@@ -1,0 +1,10 @@
+name = "chamelean"
+version = "0.1.0"
+defaultTargets = ["chamelean"]
+
+[[lean_lib]]
+name = "Chamelean"
+
+[[lean_exe]]
+name = "chamelean"
+root = "Main"
