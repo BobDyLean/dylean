@@ -7,7 +7,7 @@ open Lean Elab Term Meta Tactic
   > This is a low-level API, and it is safer to use `isDefEq (mkMVar mvarId) x`.
   This function does so.
 -/
-def _root_.Lean.MVarId.safeAssign (mvarId : MVarId) (val : Expr) : MetaM Unit := do
+def Lean.MVarId.safeAssign (mvarId : MVarId) (val : Expr) : MetaM Unit := do
   guard (← isDefEq (mkMVar mvarId) val)
 
 /--
@@ -24,6 +24,20 @@ def _root_.Lean.MVarId.safeAssign (mvarId : MVarId) (val : Expr) : MetaM Unit :=
   To avoid problems in the first place, one may use this function pervasively.
 -/
 
-def _root_.Lean.Expr.sanitize (val : Expr) : MetaM Expr := do
+def Lean.Expr.sanitize (val : Expr) : MetaM Expr := do
   pure ((← instantiateMVars val).consumeMData)
+
+-- Revert every fvar except the one satisfying `p`
+-- (adapted from Lean.MVarId.revertAll)
+def Lean.MVarId.revertAllExcept (mvarId : MVarId) (p: FVarId → MetaM Bool): MetaM MVarId := mvarId.withContext do
+  mvarId.checkNotAssigned `revertAllThat
+  let mut toRevert := #[]
+  for fvarId in (← getLCtx).getFVarIds do
+    unless (← p fvarId) ∨ (← fvarId.getDecl).isAuxDecl do
+      toRevert := toRevert.push fvarId
+  mvarId.setKind .natural
+  let (_, mvarId) ← mvarId.revert toRevert
+    (preserveOrder := true)
+    (clearAuxDeclsInsteadOfRevert := true)
+  return mvarId
 

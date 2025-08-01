@@ -12,6 +12,7 @@ axiom is_knowable_by (b:Bytes) (l:Label) (tr: ProofTrace): Prop
 
 axiom is_publishable_implies_bytes_invariant:
   is_publishable b tr → bytes_invariant b tr
+grind_pattern is_publishable_implies_bytes_invariant => is_publishable b tr
 
 axiom is_knowable_by_implies_bytes_invariant:
   is_knowable_by b l tr → bytes_invariant b tr
@@ -26,7 +27,7 @@ set_option trace.Step true
 axiom pure_spec:
   preserves_invariant (pure x)
     (fun _ => True)
-    (fun _ _ => True)
+    (fun res _ => res = x)
 
 @[step]
 axiom send_message_spec:
@@ -35,10 +36,16 @@ axiom send_message_spec:
     (fun _ _ => True)
 
 @[step]
-axiom receive_message_spec (l:Label):
+axiom receive_message_spec:
   preserves_invariant (receive_message n)
     (fun _ => True)
-    (fun b tr => is_knowable_by b l tr)
+    (fun b tr => is_publishable b tr)
+
+-- @[step]
+-- axiom receive_message_spec (l:Label):
+--   preserves_invariant (receive_message n)
+--     (fun _ => True)
+--     (fun b tr => is_knowable_by b l tr)
 
 def test (b:Bytes) : Traceful Bytes := do
   let msg1 ← receive_message 0
@@ -49,21 +56,18 @@ def test (b:Bytes) : Traceful Bytes := do
 theorem test_spec (b:Bytes) :
   preserves_invariant (test b)
     (fun tr => is_publishable b tr)
-    (fun _ _ => True)
+    (fun res tr => is_publishable res tr)
   := by
     unfold test preserves_invariant
     intros tr_exec tr_proof _ h_tr_inv h_tr_rel
     step
-    · exact secret
     · trivial
     step
-    · have := enable_later_lemmas
-      grind [is_publishable_implies_bytes_invariant]
+    · grind
     step
-    · have := enable_later_lemmas
-      grind [is_knowable_by_implies_bytes_invariant]
+    · grind
     step
     · trivial
-    trivial
+    grind
 
 end Test
