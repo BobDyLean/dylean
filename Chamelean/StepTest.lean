@@ -63,8 +63,7 @@ theorem test_spec (b:Bytes) :
     (fun tr => is_publishable b tr)
     (fun res tr => is_publishable res tr)
   := by
-    unfold test preserves_invariant
-    intros tr_exec tr_proof _ h_tr_inv h_tr_rel
+    unfold test
     step
     · trivial
     step with ⟨ pub ⟩

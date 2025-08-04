@@ -503,6 +503,7 @@ def evalStepFinal
       xName := `x
     }
 
+partial
 def evalStep (args: StepArgs): TacticM Unit := do
   withMainContext do -- useful to get the retrieve FVar names in the trace
   let goalType ← Tactic.getMainTarget
@@ -517,7 +518,17 @@ def evalStep (args: StepArgs): TacticM Unit := do
     | .final x =>
       trace[Step] "function is a final operation"
       evalStepFinal args
-  | (_, .preserves_invariant func pre post) => throwError "TODO intros and recurse on preserves_invariant_on"
+  | (_, .preserves_invariant func pre post) =>
+    trace[Step] "goal is `preserves_invariant` on function {func}, unfolding and recursing"
+    let goal ← getMainGoal
+    let goal ← Lean.Meta.unfoldTarget goal `Chamelean.Trace.preserves_invariant
+    let (_trExecFv, goal) ← goal.intro1P
+    let (_trProofFv, goal) ← goal.intro1P
+    let (_preFv, goal) ← goal.intro1
+    let (_trInvFv, goal) ← goal.intro1
+    let (_trRelFv, goal) ← goal.intro1
+    replaceMainGoal [goal]
+    evalStep args
 
 elab (name := step) "step" args:stepArgs: tactic => do
   evalStep (← parseStepArgs args)
