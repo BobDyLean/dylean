@@ -134,6 +134,29 @@ def specTypeTelescope
       pure (.final type)
       --throwError "unknown case"
 
+syntax stepArgs := ("with" " ⟨ " term,* " ⟩")?
+
+structure StepArgs where
+  xGhostTerms : Array Expr
+
+def parseStepArgs (args: TSyntax ``Chamelean.Step.stepArgs): TacticM StepArgs
+  :=
+  withMainContext do
+  trace[Step] "Step arguments: {args.raw}"
+  match args with
+  | `(stepArgs| $[with ⟨ $xGhosts,* ⟩ ]? ) =>
+    let xGhostTerms ←
+      match xGhosts with
+      | none => pure #[]
+      | some xGhosts =>
+        xGhosts.getElems.mapM (fun xGhost =>
+          Tactic.elabTerm xGhost none
+        )
+    pure {
+      xGhostTerms := xGhostTerms
+    }
+  | _ => throwUnsupportedSyntax
+
 structure EvalStepConfig where
   theoremName: Name
   nbArgs: Nat
@@ -339,6 +362,7 @@ def massageNextGoal
   (as parametrized by `EvalStepConfig`)
 -/
 def evalStepAux
+  (args: StepArgs)
   (conf: EvalStepConfig)
   : TacticM Unit
   := do
@@ -358,7 +382,7 @@ def evalStepAux
       -- this will instantiate a bunch of metavariables of bindMVars
       trace[Step] "Step 1: unify goal with the step theorem"
       trace[Step] "step theorem before unification {bindTheoremType}"
-      if ¬ (← isDefEq bindTheoremType (← getMainTarget)) then
+      unless (← isDefEq bindTheoremType (← getMainTarget)) do
         throwError "step: cannot unify goal and bind_preserves_invariant_on"
       let bindTheoremType ← instantiateMVars bindTheoremType
       trace[Step] "step theorem after unification {bindTheoremType}"
@@ -398,7 +422,7 @@ def evalStepAux
       let pf_x_mvar := bindMVars[conf.xSpecTheoremPosition]!
       trace[Step] "Step 3: unify the theorem for x in step theorem with {xTheoremName}"
       trace[Step] "gonna unify {xTheoremType}"
-      if ¬ (← isDefEq xTheoremType (← pf_x_mvar.getType)) then
+      unless (← isDefEq xTheoremType (← pf_x_mvar.getType)) do
         throwError "step: cannot unify blah and bluh { xTheoremType }"
       trace[Step] "resulting in {← instantiateMVars xTheoremType}"
       pf_x_mvar.assign xTheoremExpr
@@ -415,26 +439,41 @@ def evalStepAux
       let pfPreXMVar := bindMVars[conf.preconditionPosition]!
       let pfNextMVar := bindMVars[conf.nextPosition]!
 
-      -- step 4: close the current goal and update the goal list
-      trace[Step] "Step 4: closing goal with {bindTheoremExpr}"
-      let goalMVarId ← getMainGoal
-      goalMVarId.assign bindTheoremExpr
+      -- step 4: assign x theorem metavars
+      -- We need to do it before massaging the next goal,
+      -- because if the next goal has unassigned metavariables in its context,
+      -- then we cannot clear any fvar in its context (hence monotonizing the context)
+      -- because `Lean.localDeclDependsOn ldecl fvar`
+      -- returns true on `ldecl` with unassigned metavariables
+      -- because they might be later assigned to `fvar` in another goal
+      let xTheoremGoals ← xTheoremMVars.filterM (fun x => not <$> (x.isAssigned))
+      unless xTheoremGoals.size = args.xGhostTerms.size do
+        let xTheoremGoalTypes ← xTheoremGoals.mapM (·.getType)
+        throwError "step: expecting ghost arguments of type {xTheoremGoalTypes}, provide them using `step with ⟨ ..., ... ⟩`"
+
+      for (mvar, val) in Array.zip xTheoremGoals args.xGhostTerms do
+        mvar.safeAssign val
 
       -- step 5: massage the next goal
       let pfNextMVar ← massageNextGoal conf pfNextMVar
 
-      -- step 6: update goal list
-      let xTheoremGoals ← xTheoremMVars.filterM (fun x => not <$> (x.isAssigned))
+      -- step 6: close the current goal
+      trace[Step] "Step 4: closing goal with {bindTheoremExpr}"
+      let goalMVarId ← getMainGoal
+      goalMVarId.assign bindTheoremExpr
+
+      -- step 7: update goal list
       let bindTheoremGoals := [pfPreXMVar, pfNextMVar]
       let goals ← getUnsolvedGoals
       setGoals (xTheoremGoals.toList ++ bindTheoremGoals ++ goals)
 
 
 def evalStepBind
+  (args: StepArgs)
   (xName: Name)
   : TacticM Unit
   := do
-    evalStepAux {
+    evalStepAux args {
       theoremName := `Chamelean.Trace.bind_preserves_invariant_on
       nbArgs := 14
       nbUnifiedArgs := 7
@@ -448,9 +487,10 @@ def evalStepBind
     }
 
 def evalStepFinal
+  (args: StepArgs)
   : TacticM Unit
   := do
-    evalStepAux {
+    evalStepAux args {
       theoremName := `Chamelean.Trace.finish_preserves_invariant_on
       nbArgs := 12
       nbUnifiedArgs := 5
@@ -463,7 +503,7 @@ def evalStepFinal
       xName := `x
     }
 
-def evalStep : TacticM Unit := do
+def evalStep (args: StepArgs): TacticM Unit := do
   withMainContext do -- useful to get the retrieve FVar names in the trace
   let goalType ← Tactic.getMainTarget
   trace[Step] "step on goal: {goalType}"
@@ -473,13 +513,13 @@ def evalStep : TacticM Unit := do
     match ← specTypeTelescope func with
     | .bind x f xName =>
       trace[Step] "function is a bind, x={x}, x name={xName}, f={f}"
-      evalStepBind xName
+      evalStepBind args xName
     | .final x =>
       trace[Step] "function is a final operation"
-      evalStepFinal
+      evalStepFinal args
   | (_, .preserves_invariant func pre post) => throwError "TODO intros and recurse on preserves_invariant_on"
 
-elab (name := step) "step": tactic => do
-  evalStep
+elab (name := step) "step" args:stepArgs: tactic => do
+  evalStep (← parseStepArgs args)
 
 end Chamelean.Step
