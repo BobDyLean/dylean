@@ -183,7 +183,12 @@ def monotonizeOneHypothesis
 
     -- prove with grind using (scoped) monotonicity theorems
     withOpenIn `Chamelean.Trace.Monotone do
-      let _ ← grind newHypMVarId {} false #[] (pure ())
+      try
+        let _ ← grind newHypMVarId {} false #[] (pure ())
+      catch _ =>
+        throwError
+          "cannot monotonize `{oldHypType}`\n\
+          TODO give hints on how to solve the issue"
 
     pure (newHypExpr, newHypType)
 
