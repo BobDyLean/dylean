@@ -219,14 +219,11 @@ theorem test_spec:
     intros
     trivial
 
-def later_lemmas_enabled (_: Unit): Prop := True
-theorem enable_later_lemmas: later_lemmas_enabled () := by simp [later_lemmas_enabled]
+@[scoped grind→]
+axiom _root_.Chamelean.Trace.Monotone.is_publishable_later (b:Bytes) (tr1 tr2: ProofTrace): is_publishable b tr1 → tr1 ≤ tr2 → is_publishable b tr2
 
-axiom is_publishable_later (b:Bytes) (tr1 tr2: ProofTrace) (dummy: Unit): is_publishable b tr1 → tr1 ≤ tr2 → is_publishable b tr2
-grind_pattern is_publishable_later => is_publishable b tr1, tr1 ≤ tr2, later_lemmas_enabled dummy
-
-axiom bytes_invariant_later (b:Bytes) (tr1 tr2: ProofTrace) (dummy: Unit): bytes_invariant b tr1 → tr1 ≤ tr2 → bytes_invariant b tr2
-grind_pattern bytes_invariant_later => bytes_invariant b tr1, tr1 ≤ tr2, later_lemmas_enabled dummy
+@[scoped grind→]
+axiom _root_.Chamelean.Trace.Monotone.bytes_invariant_later (b:Bytes) (tr1 tr2: ProofTrace): bytes_invariant b tr1 → tr1 ≤ tr2 → bytes_invariant b tr2
 
 def is_monotone (p: ProofTrace → Prop): Prop :=
   ∀ tr1 tr2,
@@ -241,11 +238,11 @@ example: is_monotone (fun tr =>
       | some false => bytes_invariant b5 tr
     )
   )) := by
-  have := enable_later_lemmas
+  open Chamelean.Trace.Monotone in
   grind [is_monotone]
 
 example: is_publishable b tr1 ∧ tr1 ≤ tr2 → is_publishable b tr2 := by
-  have := enable_later_lemmas
+  open Chamelean.Trace.Monotone in
   grind
 
 end Chamelean.Trace

@@ -181,8 +181,10 @@ def monotonizeOneHypothesis
     let newHypExpr ← mkFreshExprMVar newHypType
     let newHypMVarId := newHypExpr.mvarId!
 
-    let newHypMVarId ← newHypMVarId.assert `bleh (mkAppN (mkConst `Chamelean.Trace.later_lemmas_enabled) #[mkConst `PUnit.unit [1]]) (mkConst `Chamelean.Trace.enable_later_lemmas)
-    let _ ← grind newHypMVarId {} false #[] (pure ())
+    -- prove with grind using (scoped) monotonicity theorems
+    withOpenIn `Chamelean.Trace.Monotone do
+      let _ ← grind newHypMVarId {} false #[] (pure ())
+
     pure (newHypExpr, newHypType)
 
 /--

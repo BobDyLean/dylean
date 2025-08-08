@@ -1,17 +1,18 @@
 import Chamelean.Trace
 import Chamelean.Step
 
-namespace Test
-
 open Chamelean.Trace
+
+namespace Test
 
 def mk_rand (len:Nat) : Traceful Bytes := sorry
 def send_message (b:Bytes) : Traceful Unit := sorry
 def receive_message (n:Nat) : Traceful Bytes := sorry
 
 axiom is_knowable_by (b:Bytes) (l:Label) (tr: ProofTrace): Prop
-axiom is_knowable_by_later (b:Bytes) (l:Label) (tr1 tr2: ProofTrace) (dummy: Unit): is_knowable_by b l tr1 → tr1 ≤ tr2 → is_knowable_by b l tr2
-grind_pattern is_knowable_by_later => is_knowable_by b l tr1, tr1 ≤ tr2, later_lemmas_enabled dummy
+
+@[scoped grind→]
+axiom _root_.Chamelean.Trace.Monotone.is_knowable_by_later (b:Bytes) (l:Label) (tr1 tr2: ProofTrace): Test.is_knowable_by b l tr1 → tr1 ≤ tr2 → Test.is_knowable_by b l tr2
 
 axiom is_publishable_implies_bytes_invariant:
   is_publishable b tr → bytes_invariant b tr

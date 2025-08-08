@@ -41,3 +41,17 @@ def Lean.MVarId.revertAllExcept (mvarId : MVarId) (p: FVarId → MetaM Bool): Me
     (clearAuxDeclsInsteadOfRevert := true)
   return mvarId
 
+/--
+  Opens a namespace (similarly to `open ... in` in tactics).
+  Useful to enable scoped lemmas (e.g. for `grind` or `simp`).
+-/
+def withOpenIn
+  [Monad m] [MonadEnv m] [MonadLiftT (ST IO.RealWorld) m] [MonadFinally m]
+  (namespaceName : Name) (k : m α): m α
+  := do
+    try
+      pushScope
+      activateScoped namespaceName
+      k
+    finally
+      popScope
