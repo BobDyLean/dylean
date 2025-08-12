@@ -1,107 +1,22 @@
 import Init.Control.Lawful.Basic
+import Chamelean.Trace.Type
+import Chamelean.Label.Type
+import Chamelean.Label
 
-namespace Chamelean.Trace
-
-axiom Bytes: Type 0
-
-inductive TraceEntry (a:Type) where
-  | rand_gen: a -> TraceEntry a
-  | send_msg: Bytes -> TraceEntry a
-  | log_event: TraceEntry a
-  -- TODO
-
-inductive Trace (a:Type) where
-  | nil: Trace a
-  | snoc: Trace a -> TraceEntry a -> Trace a
-
-def map_trace_entry
-  (f: a -> b) (e: TraceEntry a)
-  : TraceEntry b
-  :=
-  match e with
-  | .rand_gen pf => .rand_gen (f pf)
-  | .send_msg msg => .send_msg msg
-  | .log_event => .log_event
-
-def map_trace
-  (f: a -> b) (tr: Trace a)
-  : Trace b
-  :=
-  match tr with
-  | .nil => .nil
-  | .snoc tr_before e => .snoc (map_trace f tr_before) (map_trace_entry f e)
-
-instance : Functor Trace where
-  map := map_trace
-
-instance : LawfulFunctor Trace where
-  map_const := by
-    intros
-    simp [Functor.mapConst, Functor.map]
-  id_map := by
-    intros α tr
-    simp [Functor.map]
-    induction tr with
-    | nil =>
-      simp [map_trace]
-    | snoc tr_before e =>
-      simp [map_trace, map_trace_entry]
-      grind
-  comp_map := by
-    intros α β γ g h tr
-    simp [Functor.map]
-    induction tr with
-    | nil =>
-      simp [map_trace]
-    | snoc tr_before e =>
-      simp [map_trace, map_trace_entry]
-      grind
-
-inductive LETrace : Trace a -> Trace a -> Prop where
-  | equal: (tr1 = tr2) -> LETrace tr1 tr2
-  | extend: (e: TraceEntry a) -> LETrace tr1 tr2 -> LETrace tr1 (.snoc tr2 e)
-
-instance : LE (Trace a) where
-  le := LETrace
-
-theorem trace_le_trans
-  (tr1: Trace a) (tr2: Trace a) (tr3: Trace a)
-  : tr1 ≤ tr2 → tr2 ≤ tr3 → tr1 ≤ tr3
-  := by
-    intros hxy hyz
-    induction hyz with
-    | equal => simp_all
-    | extend e _ ih =>
-      exact (LETrace.extend e ih)
-
--- grind_pattern trace_le_trans => tr1 ≤ tr2, tr1 ≤ tr3
-
-instance : Trans (· ≤ · : Trace a → Trace a → Prop) (· ≤ ·) (· ≤ ·) where
-  trans := by
-    intros x y z
-    exact trace_le_trans x y z
-  /-by
-    intros x y z hxy hyz
-    induction hyz with
-    | equal => simp_all
-    | extend e _ ih =>
-      exact (LETrace.extend e ih)
-      -/
+namespace Chamelean
 
 abbrev ExecutionTrace := Trace Unit
 
-def Label := ExecutionTrace -> Prop
-
 abbrev ProofTrace := Trace Label -- TODO and usage
 
-def trace_rel (tr_exec: ExecutionTrace) (tr_proof: ProofTrace) :=
+def Trace.rel (tr_exec: ExecutionTrace) (tr_proof: ProofTrace) :=
   tr_exec = Functor.mapConst () tr_proof
 
 abbrev Traceful := StateT ExecutionTrace Id
 abbrev TracefulErr := OptionT Traceful
 abbrev Err := OptionT Id
 
-axiom trace_invariant: ProofTrace -> Prop
+axiom Trace.invariant: ProofTrace -> Prop
 
 def preserves_invariant_on
   (f: Traceful a)
@@ -112,8 +27,8 @@ def preserves_invariant_on
   let (x, tr_exec') := (f.run tr_exec).run
   ∃ tr_proof',
     post x tr_proof' ∧
-    trace_invariant tr_proof' ∧
-    trace_rel tr_exec' tr_proof' ∧
+    Trace.invariant tr_proof' ∧
+    Trace.rel tr_exec' tr_proof' ∧
     tr_proof ≤ tr_proof'
 
 def preserves_invariant
@@ -123,8 +38,8 @@ def preserves_invariant
   :=
   ∀ tr_exec tr_proof,
   pre tr_proof →
-  trace_invariant tr_proof →
-  trace_rel tr_exec tr_proof →
+  Trace.invariant tr_proof →
+  Trace.rel tr_exec tr_proof →
   preserves_invariant_on f post tr_exec tr_proof
 
 theorem bind_preserves_invariant_on
@@ -134,13 +49,13 @@ theorem bind_preserves_invariant_on
   (tr_exec: ExecutionTrace) (tr_proof: ProofTrace)
   {pre_x post_x}
   (pf_x: preserves_invariant x pre_x post_x)
-  (pf_tr_inv: trace_invariant tr_proof)
-  (pf_tr_rel: trace_rel tr_exec tr_proof)
+  (pf_tr_inv: Trace.invariant tr_proof)
+  (pf_tr_rel: Trace.rel tr_exec tr_proof)
   (pf_pre_x: pre_x tr_proof)
   (pf_next: ∀ tr_exec_mid tr_proof_mid x',
     post_x x' tr_proof_mid →
-    trace_invariant tr_proof_mid →
-    trace_rel tr_exec_mid tr_proof_mid →
+    Trace.invariant tr_proof_mid →
+    Trace.rel tr_exec_mid tr_proof_mid →
     tr_proof ≤ tr_proof_mid → (
       preserves_invariant_on (f x') (post_f) tr_exec_mid tr_proof_mid
     )
@@ -148,7 +63,7 @@ theorem bind_preserves_invariant_on
   : preserves_invariant_on (x >>= f) (post_f) tr_exec tr_proof
   := by
     simp only [preserves_invariant_on, StateT.run_bind, Id.run_bind]
-    grind [trace_le_trans, preserves_invariant_on, preserves_invariant]
+    grind [Trace.trace_le_trans, preserves_invariant_on, preserves_invariant]
 
 theorem finish_preserves_invariant_on
   {a}
@@ -157,13 +72,13 @@ theorem finish_preserves_invariant_on
   (tr_exec: ExecutionTrace) (tr_proof: ProofTrace)
   {pre_x post_x}
   (pf_x: preserves_invariant x pre_x post_x)
-  (pf_tr_inv: trace_invariant tr_proof)
-  (pf_tr_rel: trace_rel tr_exec tr_proof)
+  (pf_tr_inv: Trace.invariant tr_proof)
+  (pf_tr_rel: Trace.rel tr_exec tr_proof)
   (pf_pre_x: pre_x tr_proof)
   (pf_next: ∀ tr_exec_mid tr_proof_mid x',
     post_x x' tr_proof_mid →
-    trace_invariant tr_proof_mid →
-    trace_rel tr_exec_mid tr_proof_mid →
+    Trace.invariant tr_proof_mid →
+    Trace.rel tr_exec_mid tr_proof_mid →
     tr_proof ≤ tr_proof_mid → (
       post x' tr_proof_mid
     )
@@ -176,7 +91,20 @@ def send_message (b:Bytes) : Traceful Unit := sorry
 def receive_message: Traceful Bytes := sorry
 
 axiom bytes_invariant (b:Bytes) (tr: ProofTrace): Prop
-axiom is_publishable (b:Bytes) (tr: ProofTrace): Prop
+axiom get_label (b:Bytes) (tr: ProofTrace): Label
+
+@[scoped grind→]
+axiom _root_.Chamelean.Trace.MonotoneLemmas.bytes_invariant_later (b:Bytes) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → bytes_invariant b tr1 → bytes_invariant b tr2
+
+axiom _root_.Chamelean.Trace.MonotoneLemmas.get_label_later (b:Bytes) (tr1 tr2: ProofTrace): bytes_invariant b tr1 → tr1 ≤ tr2 → get_label b tr1 = get_label b tr2
+
+-- TODO scoped
+grind_pattern _root_.Chamelean.Trace.MonotoneLemmas.get_label_later =>
+  bytes_invariant b tr1, tr1 ≤ tr2, get_label b tr1
+
+abbrev is_publishable (b:Bytes) (tr: ProofTrace): Prop :=
+  bytes_invariant b tr ∧
+  (get_label b tr).canFlow Label.pub tr
 
 axiom is_publishable_implies_bytes_invariant:
   is_publishable b tr → bytes_invariant b tr
@@ -219,15 +147,9 @@ theorem test_spec:
     intros
     trivial
 
-@[scoped grind→]
-axiom _root_.Chamelean.Trace.Monotone.is_publishable_later (b:Bytes) (tr1 tr2: ProofTrace): is_publishable b tr1 → tr1 ≤ tr2 → is_publishable b tr2
-
-@[scoped grind→]
-axiom _root_.Chamelean.Trace.Monotone.bytes_invariant_later (b:Bytes) (tr1 tr2: ProofTrace): bytes_invariant b tr1 → tr1 ≤ tr2 → bytes_invariant b tr2
-
 def is_monotone (p: ProofTrace → Prop): Prop :=
   ∀ tr1 tr2,
-    p tr1 → tr1 ≤ tr2 → p tr2
+    tr1 ≤ tr2 → p tr1 → p tr2
 
 example: is_monotone (fun tr =>
   is_publishable b1 tr ∨ (
@@ -238,11 +160,16 @@ example: is_monotone (fun tr =>
       | some false => bytes_invariant b5 tr
     )
   )) := by
-  open Chamelean.Trace.Monotone in
+  open Chamelean.Trace.MonotoneLemmas in
   grind [is_monotone]
 
-example: is_publishable b tr1 ∧ tr1 ≤ tr2 → is_publishable b tr2 := by
-  open Chamelean.Trace.Monotone in
+example: is_monotone (fun tr => is_publishable b tr) := by
+  open Chamelean.Trace.MonotoneLemmas in
+  unfold is_monotone
+  grind [is_monotone]
+
+example: tr1 ≤ tr2 → is_publishable b tr1 → is_publishable b tr2 := by
+  open Chamelean.Trace.MonotoneLemmas in
   grind
 
-end Chamelean.Trace
+end Chamelean

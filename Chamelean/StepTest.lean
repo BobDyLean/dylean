@@ -1,7 +1,7 @@
 import Chamelean.Trace
 import Chamelean.Step
 
-open Chamelean.Trace
+open Chamelean
 
 namespace Test
 
@@ -9,21 +9,9 @@ def mk_rand (len:Nat) : Traceful Bytes := sorry
 def send_message (b:Bytes) : Traceful Unit := sorry
 def receive_message (n:Nat) : Traceful Bytes := sorry
 
-axiom is_knowable_by (b:Bytes) (l:Label) (tr: ProofTrace): Prop
-
-@[scoped grind→]
-axiom _root_.Chamelean.Trace.Monotone.is_knowable_by_later (b:Bytes) (l:Label) (tr1 tr2: ProofTrace): Test.is_knowable_by b l tr1 → tr1 ≤ tr2 → Test.is_knowable_by b l tr2
-
-axiom is_publishable_implies_bytes_invariant:
-  is_publishable b tr → bytes_invariant b tr
-grind_pattern is_publishable_implies_bytes_invariant => is_publishable b tr
-
-axiom is_knowable_by_implies_bytes_invariant:
-  is_knowable_by b l tr → bytes_invariant b tr
-grind_pattern is_knowable_by_implies_bytes_invariant => is_knowable_by b l tr
-
-axiom pub: Label
-axiom secret: Label
+abbrev is_knowable_by (b: Bytes) (l: Label) (tr: ProofTrace): Prop :=
+  bytes_invariant b tr ∧
+  (get_label b tr).canFlow l tr
 
 set_option trace.Step true
 
@@ -67,7 +55,7 @@ theorem test_spec (b:Bytes) :
     unfold test
     step
     · trivial
-    step with ⟨ pub ⟩
+    step with ⟨ Label.pub ⟩
     · grind
     step
     · grind

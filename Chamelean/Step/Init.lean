@@ -54,10 +54,10 @@ def preservesInvariantTelescope
     trace[Step] "Theorem after forall intro: {type}"
     let (fName, args) := type.getAppFnArgs
     trace[Step] "function name: {fName}, arguments: {args}"
-    if fName = ``Chamelean.Trace.preserves_invariant then
+    if fName = ``Chamelean.preserves_invariant then
       guard (args.size = 4)
       pure (xs_and_bi, StepSpecTheorem.preserves_invariant args[1]! args[2]! args[3]!)
-    else if fName = ``Chamelean.Trace.preserves_invariant_on then
+    else if fName = ``Chamelean.preserves_invariant_on then
       guard (args.size = 5)
       pure (xs_and_bi, StepSpecTheorem.preserves_invariant_on args[1]! args[2]! args[3]! args[4]!)
     else
@@ -182,7 +182,7 @@ def monotonizeOneHypothesis
     let newHypMVarId := newHypExpr.mvarId!
 
     -- prove with grind using (scoped) monotonicity theorems
-    withOpenIn `Chamelean.Trace.Monotone do
+    withOpenIn `Chamelean.Trace.MonotoneLemmas do
       try
         let _ ← grind newHypMVarId {} false #[] (pure ())
       catch _ =>
@@ -222,7 +222,7 @@ def massageNextGoal
     -- get old trace_proof FVarId
     -- how: unify ?trace_proof_old ≤ trace_proof_new with the hypthesis we introduced
     let trProofOldFv ← do
-      let oldTraceMVarId ← mkFreshExprMVar (mkConst `Chamelean.Trace.ProofTrace)
+      let oldTraceMVarId ← mkFreshExprMVar (mkConst `Chamelean.ProofTrace)
       let trRelToUnify ← mkAppOptM `LE.le #[none, none, oldTraceMVarId, mkFVar trProofMidFv]
       trace[Step] "finding old trace fvarid by unifying {trRelToUnify} and {(← trGrowsFv.getType)}"
       unless (← isDefEq trRelToUnify (← trGrowsFv.getType)) do
@@ -236,8 +236,8 @@ def massageNextGoal
     -- get old execution trace FVarId
     -- how: unify trace_rel ?trace_exec_old trace_proof_old with an assumption
     let (trExecOldFv, trRelOldFv) ← do
-      let oldTraceMVarId ← mkFreshExprMVar (mkConst `Chamelean.Trace.ExecutionTrace)
-      let trRelToUnifyType ← mkAppOptM `Chamelean.Trace.trace_rel #[oldTraceMVarId, mkFVar trProofOldFv]
+      let oldTraceMVarId ← mkFreshExprMVar (mkConst `Chamelean.ExecutionTrace)
+      let trRelToUnifyType ← mkAppOptM `Chamelean.Trace.rel #[oldTraceMVarId, mkFVar trProofOldFv]
       let trRelToUnifyMVarId ← mkFreshExprMVar trRelToUnifyType
       trace[Step] "finding in assumptions {trRelToUnifyType}"
       trRelToUnifyMVarId.mvarId!.assumption
@@ -252,9 +252,9 @@ def massageNextGoal
     trace[Step] "old execution trace relation is {mkFVar trRelOldFv}"
 
     -- get trace invariant for old trace
-    -- how: unify trace_invariant trace_proof_old with an assumption
+    -- how: unify Trace.invariant trace_proof_old with an assumption
     let trInvOldFv ← do
-      let trInvOldType ← mkAppOptM `Chamelean.Trace.trace_invariant #[mkFVar trProofOldFv]
+      let trInvOldType ← mkAppOptM `Chamelean.Trace.invariant #[mkFVar trProofOldFv]
       let trInvOldMVarId ← mkFreshExprMVar trInvOldType
       trace[Step] "finding in assumptions {trInvOldType}"
       trInvOldMVarId.mvarId!.assumption
@@ -281,10 +281,10 @@ def massageNextGoal
       let ty ← ty.sanitize
       let (name, _) := ty.getAppFnArgs
       pure (
-        name = `Chamelean.Trace.ExecutionTrace ∨
-        name = `Chamelean.Trace.ProofTrace ∨
-        name = `Chamelean.Trace.trace_invariant ∨
-        name = `Chamelean.Trace.trace_rel ∨
+        name = `Chamelean.ExecutionTrace ∨
+        name = `Chamelean.ProofTrace ∨
+        name = `Chamelean.Trace.invariant ∨
+        name = `Chamelean.Trace.rel ∨
         name = `LE.le
       )
     )
@@ -481,7 +481,7 @@ def evalStepBind
   : TacticM Unit
   := do
     evalStepAux args {
-      theoremName := `Chamelean.Trace.bind_preserves_invariant_on
+      theoremName := `Chamelean.bind_preserves_invariant_on
       nbArgs := 14
       nbUnifiedArgs := 7
       xPosition := 2
@@ -498,7 +498,7 @@ def evalStepFinal
   : TacticM Unit
   := do
     evalStepAux args {
-      theoremName := `Chamelean.Trace.finish_preserves_invariant_on
+      theoremName := `Chamelean.finish_preserves_invariant_on
       nbArgs := 12
       nbUnifiedArgs := 5
       xPosition := 1
@@ -528,7 +528,7 @@ def evalStep (args: StepArgs): TacticM Unit := do
   | (_, .preserves_invariant func pre post) =>
     trace[Step] "goal is `preserves_invariant` on function {func}, unfolding and recursing"
     let goal ← getMainGoal
-    let goal ← Lean.Meta.unfoldTarget goal `Chamelean.Trace.preserves_invariant
+    let goal ← Lean.Meta.unfoldTarget goal `Chamelean.preserves_invariant
     let (_trExecFv, goal) ← goal.intro1P
     let (_trProofFv, goal) ← goal.intro1P
     let (_preFv, goal) ← goal.intro1
