@@ -17,6 +17,8 @@ abbrev Err := OptionT Id
 
 axiom Trace.invariant: ProofTrace -> Prop
 
+-- Weakest precondition for Traceful functions
+-- (+ relation (≤) between old and new proof trace)
 def preserves_invariant_on
   (f: Traceful a)
   (post: a -> ProofTrace -> Prop)
@@ -34,6 +36,7 @@ def preserves_invariant_on
     Trace.rel tr_exec' tr_proof' ∧
     tr_proof ≤ tr_proof'
 
+-- Hoare triple for Traceful functions
 def preserves_invariant
   (f: Traceful a)
   (pre: ProofTrace -> Prop) (post: a -> ProofTrace -> Prop)
@@ -53,8 +56,6 @@ theorem OptionT.run_bind {m : Type u → Type v} [Monad m] {α β : Type u} (x :
     | none   => pure none
   )
   := rfl
-
-#check StateT.run_bind
 
 theorem bind_preserves_invariant_on
   {a b}

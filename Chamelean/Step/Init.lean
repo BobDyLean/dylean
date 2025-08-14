@@ -432,7 +432,7 @@ def evalStepAux
       unless (← isDefEq xTheoremType (← pf_x_mvar.getType)) do
         throwError "step: cannot unify blah and bluh { xTheoremType }"
       trace[Step] "resulting in {← instantiateMVars xTheoremType}"
-      pf_x_mvar.assign xTheoremExpr
+      pf_x_mvar.safeAssign xTheoremExpr
 
       -- sanity checks
       guard (← bindMVars[conf.xSpecTheoremPosition-2]!.isAssigned) -- pre_x
@@ -467,12 +467,12 @@ def evalStepAux
       -- step 6: close the current goal
       trace[Step] "Step 4: closing goal with {bindTheoremExpr}"
       let goalMVarId ← getMainGoal
-      goalMVarId.assign bindTheoremExpr
+      goalMVarId.safeAssign bindTheoremExpr
 
       -- step 7: update goal list
       let bindTheoremGoals := [pfPreXMVar, pfNextMVar]
       let goals ← getUnsolvedGoals
-      setGoals (xTheoremGoals.toList ++ bindTheoremGoals ++ goals)
+      setGoals (bindTheoremGoals ++ goals)
 
 
 def evalStepBind

@@ -3,12 +3,12 @@ import Lean
 open Lean Elab Term Meta Tactic
 
 /--
-  The documentation of Lean.MVarID.assign tells the following:
-  > This is a low-level API, and it is safer to use `isDefEq (mkMVar mvarId) x`.
-  This function does so.
+  Variant of Batteries' Lean.MVarId.assignIfDefEq,
+  using MVarId.checkedAssign (even safer).
 -/
 def Lean.MVarId.safeAssign (mvarId : MVarId) (val : Expr) : MetaM Unit := do
-  guard (← isDefEq (mkMVar mvarId) val)
+  guard (← isDefEq (← mvarId.getType) (← inferType val))
+  guard (← mvarId.checkedAssign val)
 
 /--
   This function applies sanitization on expressions to avoid common footguns.
