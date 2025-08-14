@@ -12,8 +12,7 @@ abbrev ProofTrace := Trace Label -- TODO and usage
 def Trace.rel (tr_exec: ExecutionTrace) (tr_proof: ProofTrace) :=
   tr_exec = Functor.mapConst () tr_proof
 
-abbrev Traceful := StateT ExecutionTrace Id
-abbrev TracefulErr := OptionT Traceful
+abbrev Traceful := OptionT (StateT ExecutionTrace Id)
 abbrev Err := OptionT Id
 
 axiom Trace.invariant: ProofTrace -> Prop
@@ -24,9 +23,13 @@ def preserves_invariant_on
   (tr_exec: ExecutionTrace) (tr_proof: ProofTrace)
   : Prop
   :=
-  let (x, tr_exec') := (f.run tr_exec).run
+  let (opt_x, tr_exec') := (f.run.run tr_exec).run
   ∃ tr_proof',
-    post x tr_proof' ∧
+    (
+      match opt_x with
+      | .none => True
+      | .some x => post x tr_proof'
+    ) ∧
     Trace.invariant tr_proof' ∧
     Trace.rel tr_exec' tr_proof' ∧
     tr_proof ≤ tr_proof'
@@ -41,6 +44,17 @@ def preserves_invariant
   Trace.invariant tr_proof →
   Trace.rel tr_exec tr_proof →
   preserves_invariant_on f post tr_exec tr_proof
+
+-- This is missing from Lean's standard library??
+theorem OptionT.run_bind {m : Type u → Type v} [Monad m] {α β : Type u} (x : OptionT m α) (f : α → OptionT m β) :
+  (x >>= f).run = (do
+    match (← x.run) with
+    | some a => (f a).run
+    | none   => pure none
+  )
+  := rfl
+
+#check StateT.run_bind
 
 theorem bind_preserves_invariant_on
   {a b}
@@ -62,8 +76,11 @@ theorem bind_preserves_invariant_on
   )
   : preserves_invariant_on (x >>= f) (post_f) tr_exec tr_proof
   := by
-    simp only [preserves_invariant_on, StateT.run_bind, Id.run_bind]
-    grind [Trace.trace_le_trans, preserves_invariant_on, preserves_invariant]
+    simp only [preserves_invariant_on, OptionT.run_bind, StateT.run_bind, Id.run_bind]
+    split
+    · grind [Trace.trace_le_trans, preserves_invariant_on, preserves_invariant]
+    · simp only [StateT.run_pure, Id.run_pure]
+      grind [preserves_invariant_on, preserves_invariant]
 
 theorem finish_preserves_invariant_on
   {a}
@@ -88,7 +105,7 @@ theorem finish_preserves_invariant_on
     grind [preserves_invariant_on, preserves_invariant]
 
 def send_message (b:Bytes) : Traceful Unit := sorry
-def receive_message: Traceful Bytes := sorry
+def receive_message (ts: Nat): Traceful Bytes := sorry
 
 axiom bytes_invariant (b:Bytes) (tr: ProofTrace): Prop
 axiom get_label (b:Bytes) (tr: ProofTrace): Label
@@ -115,12 +132,12 @@ axiom send_message_spec:
     (fun _ _ => True)
 
 axiom receive_message_spec:
-  preserves_invariant (receive_message)
+  preserves_invariant (receive_message ts)
     (fun _ => True)
     (fun b tr => is_publishable b tr)
 
 def test: Traceful Unit := do
-  let msg ← receive_message
+  let msg ← receive_message 0
   send_message msg
 
 theorem test_spec:
