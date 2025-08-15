@@ -15,6 +15,10 @@ def Trace.rel (tr_exec: ExecutionTrace) (tr_proof: ProofTrace) :=
 abbrev Traceful := OptionT (StateT ExecutionTrace Id)
 abbrev Err := OptionT Id
 
+instance : MonadLift Err Traceful := {
+  monadLift := fun x => StateT.pure x.run
+}
+
 axiom Trace.invariant: ProofTrace -> Prop
 
 -- Weakest precondition for Traceful functions
@@ -105,7 +109,7 @@ theorem finish_preserves_invariant_on
   := by
     grind [preserves_invariant_on, preserves_invariant]
 
-def send_message (b:Bytes) : Traceful Unit := sorry
+def send_message (b:Bytes) : Traceful Nat := sorry
 def receive_message (ts: Nat): Traceful Bytes := sorry
 
 axiom bytes_invariant (b:Bytes) (tr: ProofTrace): Prop
@@ -137,7 +141,7 @@ axiom receive_message_spec:
     (fun _ => True)
     (fun b tr => is_publishable b tr)
 
-def test: Traceful Unit := do
+def test: Traceful Nat := do
   let msg ← receive_message 0
   send_message msg
 
