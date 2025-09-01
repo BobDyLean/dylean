@@ -192,11 +192,59 @@ def monotonizeOneHypothesis
 
     pure (newHypExpr, newHypType)
 
+def barePrepend (s: String) (n: Name): Name :=
+  match n with
+  | .anonymous => n
+  | .str pre str =>
+    .str pre (s ++ str)
+  | .num pre i =>
+    .num (barePrepend s pre) i
+
+def prepend (s: String) (n: Name): Name :=
+  let view := extractMacroScopes n
+  ({ view with name := barePrepend s view.name }).review
+
+def isAnd (e : Expr) : Bool :=
+  let (name, args) := e.getAppFnArgs
+  name = `And ∧ args.size = 2
+
+partial
+def splitAndAt (goal: MVarId) (fv: FVarId) (name: Name) (i: Nat := 0): TacticM (MVarId) :=
+  goal.withContext do
+  let fvTy ← (← fv.getType).sanitize
+  if isAnd fvTy then
+    let newGoals ← goal.cases fv
+    match newGoals.toList with
+    | [newGoal] =>
+      guard (newGoal.fields.size = 2)
+      let [fv1, fv2] := newGoal.fields.toList.map Expr.fvarId!
+        | throwError "unreachable: And must have 2 arguments"
+      let goal := newGoal.mvarId
+      let hypName ← mkFreshBinderNameForTactic name
+      goal.modifyLCtx (fun lctx => lctx.setUserName fv1 hypName)
+      let goal ← splitAndAt goal fv2 name (i+1)
+      pure goal
+    | _ => throwError "unreachable: And must have 1 constructor"
+  else
+    let hypName ← mkFreshBinderNameForTactic name
+    goal.modifyLCtx (fun lctx => lctx.setUserName fv hypName)
+    pure goal
+
+def introAndMassagePostX
+  (conf: EvalStepConfig)
+  (goal: MVarId)
+  : TacticM MVarId
+  := do
+    let (postXFv, goal) ← goal.intro1
+    -- TODO: run a pass of simplification on post_x (e.g. iota reduction etc)
+    let goal ← splitAndAt goal postXFv (prepend "h_" conf.xName)
+    pure goal
+
 /--
   Massage the next goal:
   - introduce the ∀ and hypothesis in the context
     (and use the name used in the specification)
-  - split the ∧ in precondition (TODO)
+  - split the ∧ in postcondition
   - update the context by appling monotonicity lemmas
   - clear old traces and old hypotheses (trace invariant etc)
 -/
@@ -210,27 +258,33 @@ def massageNextGoal
     withTraceNode `Step (fun _ => pure m!"Massage the next goal") do
 
     -- Introduce variables and hypothesis
-    let (trExecMidFv, goal) ← goal.intro1
-    let (trProofMidFv, goal) ← goal.intro1
+    let (_trExecMidFv, goal) ← goal.intro1
+    let (_trProofMidFv, goal) ← goal.intro1
     let (_xFv, goal) ← goal.intro conf.xName
-    let (_postXFv, goal) ← goal.intro1
+    -- we will not rely on the fvar above because
+    -- `introAndMassagePostX` might trash them
+    let goal ← introAndMassagePostX conf goal
     let (_trInvFv, goal) ← goal.intro1
     let (_trRelFv, goal) ← goal.intro1
     let (trGrowsFv, goal) ← goal.intro1
     goal.withContext do
 
-    -- get old trace_proof FVarId
-    -- how: unify ?trace_proof_old ≤ trace_proof_new with the hypthesis we introduced
-    let trProofOldFv ← do
+    -- get old and mid trace_proof FVarId
+    -- how: unify ?trace_proof_old ≤ ?trace_proof_mid with the hypthesis we introduced
+    let (trProofOldFv, trProofMidFv) ← do
       let oldTraceMVarId ← mkFreshExprMVar (mkConst `Chamelean.ProofTrace)
-      let trRelToUnify ← mkAppOptM `LE.le #[none, none, oldTraceMVarId, mkFVar trProofMidFv]
+      let midTraceMVarId ← mkFreshExprMVar (mkConst `Chamelean.ProofTrace)
+      let trRelToUnify ← mkAppOptM `LE.le #[none, none, oldTraceMVarId, midTraceMVarId]
       trace[Step] "finding old trace fvarid by unifying {trRelToUnify} and {(← trGrowsFv.getType)}"
       unless (← isDefEq trRelToUnify (← trGrowsFv.getType)) do
         throwError "cannot unify {trRelToUnify} and {(← trGrowsFv.getType)}"
       let oldTraceExpr ← instantiateMVars oldTraceMVarId
       unless oldTraceExpr.isFVar do
         throwError "old trace is not an fvar: {oldTraceExpr}"
-      pure oldTraceExpr.fvarId!
+      let midTraceExpr ← instantiateMVars midTraceMVarId
+      unless midTraceExpr.isFVar do
+        throwError "mid trace is not an fvar: {midTraceExpr}"
+      pure (oldTraceExpr.fvarId!, midTraceExpr.fvarId!)
     trace[Step] "old proof trace is {mkFVar trProofOldFv}"
 
     -- get old execution trace FVarId
@@ -250,6 +304,25 @@ def massageNextGoal
       pure (oldTraceExpr.fvarId!, oldTraceRelExpr.fvarId!)
     trace[Step] "old execution trace is {mkFVar trExecOldFv}"
     trace[Step] "old execution trace relation is {mkFVar trRelOldFv}"
+
+    -- get mid execution trace FVarId
+    -- how: unify trace_rel ?trace_exec_old trace_proof_mid with an assumption
+    let (trExecMidFv, trRelMidFv) ← do
+      let midTraceMVarId ← mkFreshExprMVar (mkConst `Chamelean.ExecutionTrace)
+      let trRelToUnifyType ← mkAppOptM `Chamelean.Trace.rel #[midTraceMVarId, mkFVar trProofMidFv]
+      let trRelToUnifyMVarId ← mkFreshExprMVar trRelToUnifyType
+      trace[Step] "finding in assumptions {trRelToUnifyType}"
+      trRelToUnifyMVarId.mvarId!.assumption
+      let midTraceExpr ← instantiateMVars midTraceMVarId
+      let midTraceRelExpr ← instantiateMVars trRelToUnifyMVarId
+      unless midTraceExpr.isFVar do
+        throwError "mid trace is not an fvar: {midTraceExpr}"
+      unless midTraceRelExpr.isFVar do
+        throwError "mid trace rel is not an fvar: {midTraceRelExpr}"
+      pure (midTraceExpr.fvarId!, midTraceRelExpr.fvarId!)
+    trace[Step] "mid execution trace is {mkFVar trExecMidFv}"
+    trace[Step] "mid execution trace relation is {mkFVar trRelMidFv}"
+
 
     -- get trace invariant for old trace
     -- how: unify Trace.invariant trace_proof_old with an assumption
