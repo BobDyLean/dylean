@@ -19,6 +19,44 @@ instance : MonadLift Err Traceful := {
   monadLift := fun x => StateT.pure x.run
 }
 
+def Traceful.run (x: Traceful a) (tr: ExecutionTrace): (Option a × ExecutionTrace) :=
+  Id.run (StateT.run (OptionT.run x) tr)
+
+-- This is missing from Lean's standard library??
+theorem OptionT.run_pure {m : Type u → Type v} [Monad m] {α : Type u} (x : α) :
+  OptionT.run (pure x) = some (pure x)
+  := rfl
+
+-- This is missing from Lean's standard library??
+theorem OptionT.run_bind {m : Type u → Type v} [Monad m] {α β : Type u} (x : OptionT m α) (f : α → OptionT m β) :
+  (x >>= f).run = (do
+    match (← x.run) with
+    | some a => (f a).run
+    | none   => pure none
+  )
+  := rfl
+
+
+theorem Traceful.run_pure
+  (x: a) (tr: ExecutionTrace)
+  : Traceful.run (pure x) tr = (some x, tr)
+  := by
+    rfl
+
+theorem Traceful.run_bind
+  (x: Traceful a) (f: a → Traceful b) (tr: ExecutionTrace)
+  : Traceful.run (x >>= f) tr = (
+    let (opt_x, tr) := x.run tr
+    match opt_x with
+    | some x => (f x).run tr
+    | none => (none, tr)
+  )
+  := by
+    simp only [Traceful.run, OptionT.run_bind, StateT.run_bind, Id.run_bind]
+    split
+    · simp_all
+    · simp_all
+
 axiom Trace.invariant: ProofTrace -> Prop
 
 -- Weakest precondition for Traceful functions
@@ -29,7 +67,7 @@ def preserves_invariant_on
   (tr_proof: ProofTrace)
   : Prop
   :=
-  let (opt_x, tr_exec') := (f.run.run tr_proof.erase).run
+  let (opt_x, tr_exec') := f.run tr_proof.erase
   ∃ tr_proof',
     (
       match opt_x with
@@ -51,15 +89,6 @@ def preserves_invariant
   Trace.invariant tr →
   preserves_invariant_on f post tr
 
--- This is missing from Lean's standard library??
-theorem OptionT.run_bind {m : Type u → Type v} [Monad m] {α β : Type u} (x : OptionT m α) (f : α → OptionT m β) :
-  (x >>= f).run = (do
-    match (← x.run) with
-    | some a => (f a).run
-    | none   => pure none
-  )
-  := rfl
-
 theorem bind_preserves_invariant_on
   {a b}
   (x: Traceful a) (f: a -> Traceful b)
@@ -78,11 +107,10 @@ theorem bind_preserves_invariant_on
   )
   : preserves_invariant_on (x >>= f) (post_f) tr
   := by
-    simp only [preserves_invariant_on, OptionT.run_bind, StateT.run_bind, Id.run_bind]
+    simp only [preserves_invariant_on, Traceful.run_bind]
     split
     · grind [Trace.trace_le_trans, preserves_invariant_on, preserves_invariant]
-    · simp only [StateT.run_pure, Id.run_pure]
-      grind [preserves_invariant_on, preserves_invariant]
+    · grind [preserves_invariant_on, preserves_invariant]
 
 theorem finish_preserves_invariant_on
   {a}
