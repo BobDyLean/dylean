@@ -9,8 +9,8 @@ abbrev ExecutionTrace := Trace Unit
 
 abbrev ProofTrace := Trace Label -- TODO and usage
 
-def Trace.rel (tr_exec: ExecutionTrace) (tr_proof: ProofTrace) :=
-  tr_exec = Functor.mapConst () tr_proof
+def Trace.erase (tr_proof: ProofTrace): ExecutionTrace :=
+  Functor.mapConst () tr_proof
 
 abbrev Traceful := OptionT (StateT ExecutionTrace Id)
 abbrev Err := OptionT Id
@@ -26,10 +26,10 @@ axiom Trace.invariant: ProofTrace -> Prop
 def preserves_invariant_on
   (f: Traceful a)
   (post: a -> ProofTrace -> Prop)
-  (tr_exec: ExecutionTrace) (tr_proof: ProofTrace)
+  (tr_proof: ProofTrace)
   : Prop
   :=
-  let (opt_x, tr_exec') := (f.run.run tr_exec).run
+  let (opt_x, tr_exec') := (f.run.run tr_proof.erase).run
   ∃ tr_proof',
     (
       match opt_x with
@@ -37,7 +37,7 @@ def preserves_invariant_on
       | .some x => post x tr_proof'
     ) ∧
     Trace.invariant tr_proof' ∧
-    Trace.rel tr_exec' tr_proof' ∧
+    tr_exec' = tr_proof'.erase ∧
     tr_proof ≤ tr_proof'
 
 -- Hoare triple for Traceful functions
@@ -46,11 +46,10 @@ def preserves_invariant
   (pre: ProofTrace -> Prop) (post: a -> ProofTrace -> Prop)
   : Prop
   :=
-  ∀ tr_exec tr_proof,
-  pre tr_proof →
-  Trace.invariant tr_proof →
-  Trace.rel tr_exec tr_proof →
-  preserves_invariant_on f post tr_exec tr_proof
+  ∀ tr,
+  pre tr →
+  Trace.invariant tr →
+  preserves_invariant_on f post tr
 
 -- This is missing from Lean's standard library??
 theorem OptionT.run_bind {m : Type u → Type v} [Monad m] {α β : Type u} (x : OptionT m α) (f : α → OptionT m β) :
@@ -65,21 +64,19 @@ theorem bind_preserves_invariant_on
   {a b}
   (x: Traceful a) (f: a -> Traceful b)
   (post_f: b -> ProofTrace -> Prop)
-  (tr_exec: ExecutionTrace) (tr_proof: ProofTrace)
+  (tr: ProofTrace)
   {pre_x post_x}
   (pf_x: preserves_invariant x pre_x post_x)
-  (pf_tr_inv: Trace.invariant tr_proof)
-  (pf_tr_rel: Trace.rel tr_exec tr_proof)
-  (pf_pre_x: pre_x tr_proof)
-  (pf_next: ∀ tr_exec_mid tr_proof_mid x',
-    post_x x' tr_proof_mid →
-    Trace.invariant tr_proof_mid →
-    Trace.rel tr_exec_mid tr_proof_mid →
-    tr_proof ≤ tr_proof_mid → (
-      preserves_invariant_on (f x') (post_f) tr_exec_mid tr_proof_mid
+  (pf_tr_inv: Trace.invariant tr)
+  (pf_pre_x: pre_x tr)
+  (pf_next: ∀ tr_mid x',
+    post_x x' tr_mid →
+    Trace.invariant tr_mid →
+    tr ≤ tr_mid → (
+      preserves_invariant_on (f x') (post_f) tr_mid
     )
   )
-  : preserves_invariant_on (x >>= f) (post_f) tr_exec tr_proof
+  : preserves_invariant_on (x >>= f) (post_f) tr
   := by
     simp only [preserves_invariant_on, OptionT.run_bind, StateT.run_bind, Id.run_bind]
     split
@@ -91,21 +88,19 @@ theorem finish_preserves_invariant_on
   {a}
   (x: Traceful a)
   (post: a -> ProofTrace -> Prop)
-  (tr_exec: ExecutionTrace) (tr_proof: ProofTrace)
+  (tr: ProofTrace)
   {pre_x post_x}
   (pf_x: preserves_invariant x pre_x post_x)
-  (pf_tr_inv: Trace.invariant tr_proof)
-  (pf_tr_rel: Trace.rel tr_exec tr_proof)
-  (pf_pre_x: pre_x tr_proof)
-  (pf_next: ∀ tr_exec_mid tr_proof_mid x',
-    post_x x' tr_proof_mid →
-    Trace.invariant tr_proof_mid →
-    Trace.rel tr_exec_mid tr_proof_mid →
-    tr_proof ≤ tr_proof_mid → (
-      post x' tr_proof_mid
+  (pf_tr_inv: Trace.invariant tr)
+  (pf_pre_x: pre_x tr)
+  (pf_next: ∀ tr_mid x',
+    post_x x' tr_mid →
+    Trace.invariant tr_mid →
+    tr ≤ tr_mid → (
+      post x' tr_mid
     )
   )
-  : preserves_invariant_on x post tr_exec tr_proof
+  : preserves_invariant_on x post tr
   := by
     grind [preserves_invariant_on, preserves_invariant]
 
@@ -151,21 +146,19 @@ theorem test_spec:
     (fun _ _ => True)
   := by
     rw [test, preserves_invariant]
-    intros tr_exec tr_proof _ h_tr_inv h_tr_rel
+    intros tr _ h_tr_inv
     apply bind_preserves_invariant_on
     · exact receive_message_spec
     · assumption
-    · assumption
     · grind
     -- clear h_tr_rel h_tr_inv
-    intros tr_exec tr_proof msg
+    intros tr_exec tr msg
     intros
     apply finish_preserves_invariant_on
     · exact send_message_spec
     · assumption
-    · assumption
     · grind [is_publishable_implies_bytes_invariant]
-    intros tr_exec tr_proof x
+    intros tr_exec tr x
     intros
     trivial
 

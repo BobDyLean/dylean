@@ -31,8 +31,7 @@ inductive StepSpecTheorem where
   | preserves_invariant_on
     (func: Expr)
     (post: Expr)
-    (tr_exec: Expr)
-    (tr_proof: Expr)
+    (tr: Expr)
   | preserves_invariant
     (func: Expr)
     (pre: Expr)
@@ -58,8 +57,8 @@ def preservesInvariantTelescope
       guard (args.size = 4)
       pure (xs_and_bi, StepSpecTheorem.preserves_invariant args[1]! args[2]! args[3]!)
     else if fName = ``Chamelean.preserves_invariant_on then
-      guard (args.size = 5)
-      pure (xs_and_bi, StepSpecTheorem.preserves_invariant_on args[1]! args[2]! args[3]! args[4]!)
+      guard (args.size = 4)
+      pure (xs_and_bi, StepSpecTheorem.preserves_invariant_on args[1]! args[2]! args[3]!)
     else
       throwError "not a constant"
 
@@ -164,7 +163,6 @@ structure EvalStepConfig where
   xPosition: Nat
   xSpecTheoremPosition: Nat
   trInvPosition: Nat
-  trRelPosition: Nat
   preconditionPosition: Nat
   nextPosition: Nat
   xName: Name
@@ -258,26 +256,24 @@ def massageNextGoal
     withTraceNode `Step (fun _ => pure m!"Massage the next goal") do
 
     -- Introduce variables and hypothesis
-    let (_trExecMidFv, goal) ← goal.intro1
-    let (_trProofMidFv, goal) ← goal.intro1
+    let (_trMidFv, goal) ← goal.intro1
     let (_xFv, goal) ← goal.intro conf.xName
     -- we will not rely on the fvar above because
     -- `introAndMassagePostX` might trash them
     let goal ← introAndMassagePostX conf goal
     let (_trInvFv, goal) ← goal.intro1
-    let (_trRelFv, goal) ← goal.intro1
     let (trGrowsFv, goal) ← goal.intro1
     goal.withContext do
 
-    -- get old and mid trace_proof FVarId
-    -- how: unify ?trace_proof_old ≤ ?trace_proof_mid with the hypthesis we introduced
-    let (trProofOldFv, trProofMidFv) ← do
+    -- get old and mid trace FVarId
+    -- how: unify ?tr_old ≤ ?tr_mid with the hypthesis we introduced
+    let (trOldFv, trMidFv) ← do
       let oldTraceMVarId ← mkFreshExprMVar (mkConst `Chamelean.ProofTrace)
       let midTraceMVarId ← mkFreshExprMVar (mkConst `Chamelean.ProofTrace)
-      let trRelToUnify ← mkAppOptM `LE.le #[none, none, oldTraceMVarId, midTraceMVarId]
-      trace[Step] "finding old trace fvarid by unifying {trRelToUnify} and {(← trGrowsFv.getType)}"
-      unless (← isDefEq trRelToUnify (← trGrowsFv.getType)) do
-        throwError "cannot unify {trRelToUnify} and {(← trGrowsFv.getType)}"
+      let trLeToUnify ← mkAppOptM `LE.le #[none, none, oldTraceMVarId, midTraceMVarId]
+      trace[Step] "finding old trace fvarid by unifying {trLeToUnify} and {(← trGrowsFv.getType)}"
+      unless (← isDefEq trLeToUnify (← trGrowsFv.getType)) do
+        throwError "cannot unify {trLeToUnify} and {(← trGrowsFv.getType)}"
       let oldTraceExpr ← instantiateMVars oldTraceMVarId
       unless oldTraceExpr.isFVar do
         throwError "old trace is not an fvar: {oldTraceExpr}"
@@ -285,49 +281,13 @@ def massageNextGoal
       unless midTraceExpr.isFVar do
         throwError "mid trace is not an fvar: {midTraceExpr}"
       pure (oldTraceExpr.fvarId!, midTraceExpr.fvarId!)
-    trace[Step] "old proof trace is {mkFVar trProofOldFv}"
-
-    -- get old execution trace FVarId
-    -- how: unify trace_rel ?trace_exec_old trace_proof_old with an assumption
-    let (trExecOldFv, trRelOldFv) ← do
-      let oldTraceMVarId ← mkFreshExprMVar (mkConst `Chamelean.ExecutionTrace)
-      let trRelToUnifyType ← mkAppOptM `Chamelean.Trace.rel #[oldTraceMVarId, mkFVar trProofOldFv]
-      let trRelToUnifyMVarId ← mkFreshExprMVar trRelToUnifyType
-      trace[Step] "finding in assumptions {trRelToUnifyType}"
-      trRelToUnifyMVarId.mvarId!.assumption
-      let oldTraceExpr ← instantiateMVars oldTraceMVarId
-      let oldTraceRelExpr ← instantiateMVars trRelToUnifyMVarId
-      unless oldTraceExpr.isFVar do
-        throwError "old trace is not an fvar: {oldTraceExpr}"
-      unless oldTraceRelExpr.isFVar do
-        throwError "old trace rel is not an fvar: {oldTraceRelExpr}"
-      pure (oldTraceExpr.fvarId!, oldTraceRelExpr.fvarId!)
-    trace[Step] "old execution trace is {mkFVar trExecOldFv}"
-    trace[Step] "old execution trace relation is {mkFVar trRelOldFv}"
-
-    -- get mid execution trace FVarId
-    -- how: unify trace_rel ?trace_exec_old trace_proof_mid with an assumption
-    let (trExecMidFv, trRelMidFv) ← do
-      let midTraceMVarId ← mkFreshExprMVar (mkConst `Chamelean.ExecutionTrace)
-      let trRelToUnifyType ← mkAppOptM `Chamelean.Trace.rel #[midTraceMVarId, mkFVar trProofMidFv]
-      let trRelToUnifyMVarId ← mkFreshExprMVar trRelToUnifyType
-      trace[Step] "finding in assumptions {trRelToUnifyType}"
-      trRelToUnifyMVarId.mvarId!.assumption
-      let midTraceExpr ← instantiateMVars midTraceMVarId
-      let midTraceRelExpr ← instantiateMVars trRelToUnifyMVarId
-      unless midTraceExpr.isFVar do
-        throwError "mid trace is not an fvar: {midTraceExpr}"
-      unless midTraceRelExpr.isFVar do
-        throwError "mid trace rel is not an fvar: {midTraceRelExpr}"
-      pure (midTraceExpr.fvarId!, midTraceRelExpr.fvarId!)
-    trace[Step] "mid execution trace is {mkFVar trExecMidFv}"
-    trace[Step] "mid execution trace relation is {mkFVar trRelMidFv}"
-
+    trace[Step] "old trace is {mkFVar trOldFv}"
+    trace[Step] "mid trace is {mkFVar trMidFv}"
 
     -- get trace invariant for old trace
-    -- how: unify Trace.invariant trace_proof_old with an assumption
+    -- how: unify Trace.invariant tr_old with an assumption
     let trInvOldFv ← do
-      let trInvOldType ← mkAppOptM `Chamelean.Trace.invariant #[mkFVar trProofOldFv]
+      let trInvOldType ← mkAppOptM `Chamelean.Trace.invariant #[mkFVar trOldFv]
       let trInvOldMVarId ← mkFreshExprMVar trInvOldType
       trace[Step] "finding in assumptions {trInvOldType}"
       trInvOldMVarId.mvarId!.assumption
@@ -354,10 +314,8 @@ def massageNextGoal
       let ty ← ty.sanitize
       let (name, _) := ty.getAppFnArgs
       pure (
-        name = `Chamelean.ExecutionTrace ∨
         name = `Chamelean.ProofTrace ∨
         name = `Chamelean.Trace.invariant ∨
-        name = `Chamelean.Trace.rel ∨
         name = `LE.le
       )
     )
@@ -367,12 +325,9 @@ def massageNextGoal
     trace[Step] "checking fvars are still in local context"
     do
       let lctx ← goal.withContext getLCtx
-      guard (lctx.contains trExecOldFv)
-      guard (lctx.contains trProofOldFv)
-      guard (lctx.contains trExecMidFv)
-      guard (lctx.contains trProofMidFv)
+      guard (lctx.contains trOldFv)
+      guard (lctx.contains trMidFv)
       guard (lctx.contains trInvOldFv)
-      guard (lctx.contains trRelOldFv)
       guard (lctx.contains trGrowsFv)
 
     -- Introduce each assumption one by one,
@@ -390,14 +345,14 @@ def massageNextGoal
       let (newGoal, toClear) ← goal.withContext do
         trace[Step] "introduced: {← hypFv.getUserName}: {← hypFv.getType}"
         let dependsOnOldTrace: Bool ←
-          localDeclDependsOn (← hypFv.getDecl) trProofOldFv
+          localDeclDependsOn (← hypFv.getDecl) trOldFv
         if dependsOnOldTrace then
           -- Some assumptions depend on the trace but shouldn't me monotonized
           -- e.g. trace invariant, etc
           -- However, note they were not reverted,
           -- hence everything we introduce needs monotonizing.
           trace[Step] "depends on trace, monotonizing"
-          let (newHypProof, newHyp) ← monotonizeOneHypothesis goal hypFv trProofOldFv trProofMidFv
+          let (newHypProof, newHyp) ← monotonizeOneHypothesis goal hypFv trOldFv trMidFv
           let goal ← goal.assert (← hypFv.getUserName) newHyp newHypProof
           let (_, goal) ← goal.intro1P
           pure (goal, some hypFv)
@@ -408,20 +363,15 @@ def massageNextGoal
         monotonizedFv := monotonizedFv.push fv
 
     -- Rename the new traces with the names of the old traces
-    let trExecName ← trExecOldFv.getUserName
-    let trProofName ← trProofOldFv.getUserName
+    let trName ← trOldFv.getUserName
     goal.modifyLCtx (fun lctx =>
-      let lctx := lctx.setUserName trExecMidFv trExecName
-      let lctx := lctx.setUserName trProofMidFv trProofName
-      lctx
+      lctx.setUserName trMidFv trName
     )
 
     let oldTraceFv := #[
       trInvOldFv,
-      trRelOldFv,
       trGrowsFv,
-      trProofOldFv,
-      trExecOldFv,
+      trOldFv, -- cleared after hypothesis that depend on it
     ]
 
     -- Clear assumptions that were monotonized + old trace assumptions
@@ -512,9 +462,8 @@ def evalStepAux
       guard (← bindMVars[conf.xSpecTheoremPosition-1]!.isAssigned) -- post_x
       guard (← bindMVars[conf.xSpecTheoremPosition]!.isAssigned) -- pf_x (we just assigned it)
 
-      -- trace invariant and trace relationships are in the assumptions
+      -- trace invariant is in the assumptions
       bindMVars[conf.trInvPosition]!.assumption --pf_tr_inv
-      bindMVars[conf.trRelPosition]!.assumption --pf_tr_rel
 
       let pfPreXMVar := bindMVars[conf.preconditionPosition]!
       let pfNextMVar := bindMVars[conf.nextPosition]!
@@ -555,14 +504,13 @@ def evalStepBind
   := do
     evalStepAux args {
       theoremName := `Chamelean.bind_preserves_invariant_on
-      nbArgs := 14
-      nbUnifiedArgs := 7
+      nbArgs := 12
+      nbUnifiedArgs := 6
       xPosition := 2
-      xSpecTheoremPosition := 9
-      trInvPosition := 10
-      trRelPosition := 11
-      preconditionPosition := 12
-      nextPosition := 13
+      xSpecTheoremPosition := 8
+      trInvPosition := 9
+      preconditionPosition := 10
+      nextPosition := 11
       xName
     }
 
@@ -572,14 +520,13 @@ def evalStepFinal
   := do
     evalStepAux args {
       theoremName := `Chamelean.finish_preserves_invariant_on
-      nbArgs := 12
-      nbUnifiedArgs := 5
+      nbArgs := 10
+      nbUnifiedArgs := 4
       xPosition := 1
-      xSpecTheoremPosition := 7
-      trInvPosition := 8
-      trRelPosition := 9
-      preconditionPosition := 10
-      nextPosition := 11
+      xSpecTheoremPosition := 6
+      trInvPosition := 7
+      preconditionPosition := 8
+      nextPosition := 9
       xName := `x
     }
 
@@ -589,7 +536,7 @@ def evalStep (args: StepArgs): TacticM Unit := do
   let goalType ← Tactic.getMainTarget
   trace[Step] "step on goal: {goalType}"
   match ← preservesInvariantTelescope goalType with
-  | (_, .preserves_invariant_on func post tr_exec tr_proof) =>
+  | (_, .preserves_invariant_on func post tr) =>
     trace[Step] "goal is `preserves_invariant_on` on function {func}"
     match ← specTypeTelescope func with
     | .bind x f xName =>
@@ -602,11 +549,9 @@ def evalStep (args: StepArgs): TacticM Unit := do
     trace[Step] "goal is `preserves_invariant` on function {func}, unfolding and recursing"
     let goal ← getMainGoal
     let goal ← Lean.Meta.unfoldTarget goal `Chamelean.preserves_invariant
-    let (_trExecFv, goal) ← goal.intro1P
-    let (_trProofFv, goal) ← goal.intro1P
+    let (_trFv, goal) ← goal.intro1P
     let (_preFv, goal) ← goal.intro1
     let (_trInvFv, goal) ← goal.intro1
-    let (_trRelFv, goal) ← goal.intro1
     replaceMainGoal [goal]
     evalStep args
 
