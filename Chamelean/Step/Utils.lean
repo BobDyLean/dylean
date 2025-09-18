@@ -7,8 +7,13 @@ open Lean Elab Term Meta Tactic
   using MVarId.checkedAssign (even safer).
 -/
 def Lean.MVarId.safeAssign (mvarId : MVarId) (val : Expr) : MetaM Unit := do
-  guard (← isDefEq (← mvarId.getType) (← inferType val))
-  guard (← mvarId.checkedAssign val)
+  unless ← isDefEq (← mvarId.getType) (← inferType val) do
+    throwError "safeAssign: cannot unify types `{← mvarId.getType}` and `{← inferType val}`"
+  unless ← mvarId.checkedAssign val do
+    throwError "safeAssign: checkedAssign failed?"
+
+def Lean.MVarId.assignTypeclassInstance (mvarId : MVarId): MetaM Unit := do
+  mvarId.safeAssign (← synthInstance (← mvarId.getType))
 
 /--
   This function applies sanitization on expressions to avoid common footguns.
@@ -55,3 +60,28 @@ def withOpenIn
       k
     finally
       popScope
+
+def prepend (s: String) (n: Name): Name :=
+  let view := extractMacroScopes n
+  ({ view with name := barePrepend s view.name }).review
+where
+  barePrepend (s: String) (n: Name): Name :=
+    match n with
+    | .anonymous => n
+    | .str pre str =>
+      .str pre (s ++ str)
+    | .num pre i =>
+      .num (barePrepend s pre) i
+
+-- 0-element tuple: unit
+-- 1-element tuple: this element
+-- n-element tuple: actually make a tuple (i.e. nested pairs)
+def makeTuple (arr: Array Expr): MetaM Expr := do
+  match arr.size with
+  | 0 => mkAppM ``Unit.unit #[]
+  | 1 => pure arr[0]!
+  | sz =>
+    arr.foldrM (fun t acc => do
+      mkAppM ``Prod.mk #[t, acc]
+    ) (arr[sz-1]!) (start := sz-1)
+

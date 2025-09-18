@@ -15,29 +15,37 @@ abbrev is_knowable_by (b: Bytes) (l: Label) (tr: ProofTrace): Prop :=
 
 set_option trace.Step true
 
-@[step]
-axiom pure_spec:
-  preserves_invariant (pure x)
+instance:
+  HoareTriple
+    (pure x)
     (fun _ => True)
     (fun res _ => res = x)
+  where
+    pf := sorry
 
-@[step]
-axiom mk_rand_spec (len: Nat) (lab: Label):
-  preserves_invariant (mk_rand len)
+instance:
+  HoareTripleGhost
+    (mk_rand len)
+    lab
     (fun _ => True)
     (fun b tr => is_knowable_by b lab tr)
+  where
+    pf := sorry
 
-@[step]
-axiom send_message_spec:
-  preserves_invariant (send_message b)
+instance:
+  HoareTriple
+    (send_message b)
     (fun tr => bytes_invariant b tr)
     (fun _ _ => True)
+  where
+    pf := sorry
 
-@[step]
-axiom receive_message_spec:
-  preserves_invariant (receive_message n)
-    (fun _ => True)
-    (fun b tr => is_publishable b tr)
+instance:
+  HoareTriple
+    (receive_message n)
+    (fun _ => True) (fun b tr => is_publishable b tr)
+  where
+    pf := sorry
 
 def test (b:Bytes) : Traceful Bytes := do
   let msg1 ← receive_message 0

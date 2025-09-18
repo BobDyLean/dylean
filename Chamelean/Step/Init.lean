@@ -7,26 +7,6 @@ open Lean Elab Term Meta Tactic
 
 namespace Chamelean.Step
 
-structure Rules where
-  rules: DiscrTree Name
-deriving Inhabited
-
-def Rules.empty : Rules := {
-  rules := DiscrTree.empty,
-}
-
-def Rules.insert (r : Rules) (kv : Array DiscrTree.Key × Name) : Rules := {
-  rules := r.rules.insertCore kv.fst kv.snd,
-}
-
-def Extension := SimpleScopedEnvExtension (Array DiscrTree.Key × Name) Rules
-deriving Inhabited
-
-structure StepSpecAttr where
-  attr: AttributeImpl
-  ext: Extension
-deriving Inhabited
-
 inductive StepSpecTheorem where
   | preserves_invariant_on
     (func: Expr)
@@ -62,52 +42,6 @@ def preservesInvariantTelescope
     else
       throwError "not a constant"
 
-private def saveStepSpecFromThm (ext : Extension) (attrKind : AttributeKind) (theoremName : Name) :
-  AttrM Unit := do
-  -- Lookup the theorem
-  let env ← getEnv
-  trace[Step] "Registering `step` theorem for {theoremName}"
-  let some thDecl := env.findAsync? theoremName
-    | throwError "Could not find theorem {theoremName}"
-  let type := thDecl.sig.get.type
-  let key ← MetaM.run' (do
-    match ← preservesInvariantTelescope type with
-    | (_, StepSpecTheorem.preserves_invariant func _ _) =>
-      trace[Step] "Registering spec theorem ({theoremName}) for expr: {func}"
-      -- -- Convert the function expression to a discrimination tree key
-      DiscrTree.mkPath func
-    | (_, _) =>
-      throwError "can only register theorems on `preserves_invariant`"
-  )
-  -- Save the entry
-  ScopedEnvExtension.add ext (key, theoremName) attrKind
-  trace[Step] "Saved the entry"
-  pure ()
-
-initialize stepAttr : StepSpecAttr ← do
-  let ext ←
-    registerSimpleScopedEnvExtension {
-      name        := `stepMap,
-      initial     := Rules.empty,
-      addEntry    := Rules.insert,
-    }
-  let attrImpl : AttributeImpl := {
-    name := `step
-    descr := "Adds theorems to the `step` database"
-    add := fun thName stx attrKind => do
-      Attribute.Builtin.ensureNoArgs stx
-      saveStepSpecFromThm ext attrKind thName
-    erase := fun thName => do
-      throwError "step erase: not implemented"
-  }
-  registerBuiltinAttribute attrImpl
-  pure { attr := attrImpl, ext := ext }
-
-def StepSpecAttr.find? (s : StepSpecAttr) (e : Expr) : MetaM (Array Name) := do
-  let state := s.ext.getState (← getEnv)
-  let rules ← state.rules.getMatch e
-  pure rules
-
 inductive SpecType where
   | bind (x:Expr) (f:Expr) (xName:Name)
   | final (x:Expr)
@@ -136,7 +70,7 @@ def specTypeTelescope
 syntax stepArgs := ("with" " ⟨ " term,* " ⟩")?
 
 structure StepArgs where
-  xGhostTerms : Array Expr
+  xGhostTerm : Expr
 
 def parseStepArgs (args: TSyntax ``Chamelean.Step.stepArgs): TacticM StepArgs
   :=
@@ -152,7 +86,7 @@ def parseStepArgs (args: TSyntax ``Chamelean.Step.stepArgs): TacticM StepArgs
           Tactic.elabTerm xGhost none
         )
     pure {
-      xGhostTerms := xGhostTerms
+      xGhostTerm := ← makeTuple xGhostTerms
     }
   | _ => throwUnsupportedSyntax
 
@@ -160,7 +94,7 @@ structure EvalStepConfig where
   theoremName: Name
   nbArgs: Nat
   nbUnifiedArgs: Nat
-  xPosition: Nat
+  ghostPosition: Nat
   xSpecTheoremPosition: Nat
   trInvPosition: Nat
   preconditionPosition: Nat
@@ -189,18 +123,6 @@ def monotonizeOneHypothesis
           TODO give hints on how to solve the issue"
 
     pure (newHypExpr, newHypType)
-
-def barePrepend (s: String) (n: Name): Name :=
-  match n with
-  | .anonymous => n
-  | .str pre str =>
-    .str pre (s ++ str)
-  | .num pre i =>
-    .num (barePrepend s pre) i
-
-def prepend (s: String) (n: Name): Name :=
-  let view := extractMacroScopes n
-  ({ view with name := barePrepend s view.name }).review
 
 def isAnd (e : Expr) : Bool :=
   let (name, args) := e.getAppFnArgs
@@ -400,20 +322,25 @@ def evalStepAux
     withTraceNode `Step (fun _ => pure m!"Apply step") do
       -- bindTheoremExprForall = bind_preserves_invariant_on
       let bindTheoremExprForall ← Term.mkConst conf.theoremName
-      -- bindTheoremTypeForall = ∀ x f ..., preserves_invariant_on (x >>= f) ...
+      -- bindTheoremTypeForall = ∀ ghost x f ..., preserves_invariant_on (x >>= f) ...
       let bindTheoremTypeForall ← inferType bindTheoremExprForall
       -- bindTheoremType = preserves_invariant_on (x >>= f) ...
       let (bindMVars, _, bindTheoremType) ← forallMetaTelescope bindTheoremTypeForall
-      -- bindTheoremExpr = bind_preserves_invariant_on ?x ?f ?...
+      -- bindTheoremExpr = bind_preserves_invariant_on ?ghost ?x ?f ?...
       let bindTheoremExpr := mkAppN bindTheoremExprForall bindMVars
       let bindMVars := bindMVars.map (·.mvarId!)
 
-      -- step 1: unify bindTheoremType with the goal.
-      -- this will instantiate a bunch of metavariables of bindMVars
-      trace[Step] "Step 1: unify goal with the step theorem"
+      -- step 1: instantiate the ghost parameter
+      trace[Step] "Step 1: assign ghost parameter {args.xGhostTerm}"
+      bindMVars[conf.ghostPosition]!.safeAssign args.xGhostTerm
+
+      -- step 2: assign the goal to bindTheoremExpr
+      -- this will unify its type with the goal (thanks to safeAssign)
+      -- hence will instantiate a bunch of metavariables of bindMVars
+      trace[Step] "Step 2: unify goal with the step theorem"
       trace[Step] "step theorem before unification {bindTheoremType}"
-      unless (← isDefEq bindTheoremType (← getMainTarget)) do
-        throwError "step: cannot unify goal and bind_preserves_invariant_on"
+      let goalMVarId ← getMainGoal
+      goalMVarId.safeAssign bindTheoremExpr
       let bindTheoremType ← instantiateMVars bindTheoremType
       trace[Step] "step theorem after unification {bindTheoremType}"
 
@@ -422,45 +349,12 @@ def evalStepAux
       for i in [0:conf.nbUnifiedArgs] do
         guard (← bindMVars[i]!.isAssigned)
 
-      -- step 2: obtain the @[step] theorem to apply
-      trace[Step] "Step 2: obtain the @[step] theorem to apply"
-      let xTheoremName ← do
-        let xMVar := bindMVars[conf.xPosition]!
-        let xExpr ← instantiateMVars (.mvar xMVar)
-        let theoremNames ← stepAttr.find? xExpr
-        trace[Step] "got theorems {theoremNames}"
-        if theoremNames.size = 0 then
-          throwError "step: found no theorem"
-        if theoremNames.size ≥ 2 then
-          throwError "step: too many theorems? {theoremNames}"
-        else
-          pure theoremNames[0]!
-      trace[Step] "got theorem {xTheoremName}"
-
-      -- xTheoremExprForall = x_spec
-      let xTheoremExprForall ← Term.mkConst xTheoremName
-      -- xTheoremTypeForall = ∀ ..., preserves_invariant ...
-      let xTheoremTypeForall ← inferType xTheoremExprForall
-      -- xTheoremType = preserves_invariant ...
-      let (xTheoremMVars, _, xTheoremType) ← forallMetaTelescope xTheoremTypeForall
-      -- xTheoremExpr = x_spec ?...
-      let xTheoremExpr := mkAppN xTheoremExprForall xTheoremMVars
-      let xTheoremMVars := xTheoremMVars.map (·.mvarId!)
-
-      -- step 3: unify the theorem for x with the one required by `bind_preserves_invariant_on`
-      -- this will also unify the precondition and postcondition of x
-      let pf_x_mvar := bindMVars[conf.xSpecTheoremPosition]!
-      trace[Step] "Step 3: unify the theorem for x in step theorem with {xTheoremName}"
-      trace[Step] "gonna unify {xTheoremType}"
-      unless (← isDefEq xTheoremType (← pf_x_mvar.getType)) do
-        throwError "step: cannot unify blah and bluh { xTheoremType }"
-      trace[Step] "resulting in {← instantiateMVars xTheoremType}"
-      pf_x_mvar.safeAssign xTheoremExpr
-
+      -- step 3: assign the specification for x via typeclass synthesis
+      bindMVars[conf.xSpecTheoremPosition]!.assignTypeclassInstance
       -- sanity checks
       guard (← bindMVars[conf.xSpecTheoremPosition-2]!.isAssigned) -- pre_x
       guard (← bindMVars[conf.xSpecTheoremPosition-1]!.isAssigned) -- post_x
-      guard (← bindMVars[conf.xSpecTheoremPosition]!.isAssigned) -- pf_x (we just assigned it)
+      guard (← bindMVars[conf.xSpecTheoremPosition]!.isAssigned) -- HoareTriple typeclass (we just assigned it)
 
       -- trace invariant is in the assumptions
       bindMVars[conf.trInvPosition]!.assumption --pf_tr_inv
@@ -468,34 +362,13 @@ def evalStepAux
       let pfPreXMVar := bindMVars[conf.preconditionPosition]!
       let pfNextMVar := bindMVars[conf.nextPosition]!
 
-      -- step 4: assign x theorem metavars
-      -- We need to do it before massaging the next goal,
-      -- because if the next goal has unassigned metavariables in its context,
-      -- then we cannot clear any fvar in its context (hence monotonizing the context)
-      -- because `Lean.localDeclDependsOn ldecl fvar`
-      -- returns true on `ldecl` with unassigned metavariables
-      -- because they might be later assigned to `fvar` in another goal
-      let xTheoremGoals ← xTheoremMVars.filterM (fun x => not <$> (x.isAssigned))
-      unless xTheoremGoals.size = args.xGhostTerms.size do
-        let xTheoremGoalTypes ← xTheoremGoals.mapM (·.getType)
-        throwError "step: expecting ghost arguments of type {xTheoremGoalTypes}, provide them using `step with ⟨ ..., ... ⟩`"
-
-      for (mvar, val) in Array.zip xTheoremGoals args.xGhostTerms do
-        mvar.safeAssign val
-
-      -- step 5: massage the next goal
+      -- step 4: massage the next goal
       let pfNextMVar ← massageNextGoal conf pfNextMVar
 
-      -- step 6: close the current goal
-      trace[Step] "Step 4: closing goal with {bindTheoremExpr}"
-      let goalMVarId ← getMainGoal
-      goalMVarId.safeAssign bindTheoremExpr
-
-      -- step 7: update goal list
+      -- step 5: update goal list
       let bindTheoremGoals := [pfPreXMVar, pfNextMVar]
       let goals ← getUnsolvedGoals
       setGoals (bindTheoremGoals ++ goals)
-
 
 def evalStepBind
   (args: StepArgs)
@@ -504,13 +377,13 @@ def evalStepBind
   := do
     evalStepAux args {
       theoremName := `Chamelean.bind_preserves_invariant_on
-      nbArgs := 12
-      nbUnifiedArgs := 6
-      xPosition := 2
-      xSpecTheoremPosition := 8
-      trInvPosition := 9
-      preconditionPosition := 10
-      nextPosition := 11
+      nbArgs := 14
+      nbUnifiedArgs := 8
+      ghostPosition := 3,
+      xSpecTheoremPosition := 10
+      trInvPosition := 11
+      preconditionPosition := 12
+      nextPosition := 13
       xName
     }
 
@@ -520,13 +393,13 @@ def evalStepFinal
   := do
     evalStepAux args {
       theoremName := `Chamelean.finish_preserves_invariant_on
-      nbArgs := 10
-      nbUnifiedArgs := 4
-      xPosition := 1
-      xSpecTheoremPosition := 6
-      trInvPosition := 7
-      preconditionPosition := 8
-      nextPosition := 9
+      nbArgs := 12
+      nbUnifiedArgs := 6
+      ghostPosition := 2
+      xSpecTheoremPosition := 8
+      trInvPosition := 9
+      preconditionPosition := 10
+      nextPosition := 11
       xName := `x
     }
 

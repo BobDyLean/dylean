@@ -89,13 +89,23 @@ def preserves_invariant
   Trace.invariant tr →
   preserves_invariant_on f post tr
 
+class HoareTripleGhost (f: Traceful a) (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+  pf: preserves_invariant f pre post
+
+class HoareTriple (f: Traceful a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+  pf: preserves_invariant f pre post
+
+instance [HoareTriple f pre post]: HoareTripleGhost f () pre post where
+  pf := HoareTriple.pf
+
 theorem bind_preserves_invariant_on
-  {a b}
+  {a b g}
+  (ghost: g)
   (x: Traceful a) (f: a -> Traceful b)
   (post_f: b -> ProofTrace -> Prop)
   (tr: ProofTrace)
   {pre_x post_x}
-  (pf_x: preserves_invariant x pre_x post_x)
+  [ht: HoareTripleGhost x ghost pre_x post_x]
   (pf_tr_inv: Trace.invariant tr)
   (pf_pre_x: pre_x tr)
   (pf_next: ∀ tr_mid x',
@@ -107,18 +117,20 @@ theorem bind_preserves_invariant_on
   )
   : preserves_invariant_on (x >>= f) (post_f) tr
   := by
+    have := ht.pf
     simp only [preserves_invariant_on, Traceful.run_bind]
     split
     · grind [Trace.trace_le_trans, preserves_invariant_on, preserves_invariant]
     · grind [preserves_invariant_on, preserves_invariant]
 
 theorem finish_preserves_invariant_on
-  {a}
+  {a g}
+  (ghost: g)
   (x: Traceful a)
   (post: a -> ProofTrace -> Prop)
   (tr: ProofTrace)
   {pre_x post_x}
-  (pf_x: preserves_invariant x pre_x post_x)
+  [ht: HoareTripleGhost x ghost pre_x post_x]
   (pf_tr_inv: Trace.invariant tr)
   (pf_pre_x: pre_x tr)
   (pf_next: ∀ tr_mid x',
@@ -130,6 +142,7 @@ theorem finish_preserves_invariant_on
   )
   : preserves_invariant_on x post tr
   := by
+    have := ht.pf
     grind [preserves_invariant_on, preserves_invariant]
 
 def send_message (b:Bytes) : Traceful Nat := sorry
@@ -147,22 +160,26 @@ axiom _root_.Chamelean.Trace.MonotoneLemmas.get_label_later (b:Bytes) (tr1 tr2: 
 grind_pattern _root_.Chamelean.Trace.MonotoneLemmas.get_label_later =>
   bytes_invariant b tr1, tr1 ≤ tr2, get_label b tr1
 
-abbrev is_publishable (b:Bytes) (tr: ProofTrace): Prop :=
+@[grind]
+def is_publishable (b:Bytes) (tr: ProofTrace): Prop :=
   bytes_invariant b tr ∧
   (get_label b tr).canFlow Label.pub tr
 
-axiom is_publishable_implies_bytes_invariant:
-  is_publishable b tr → bytes_invariant b tr
-
-axiom send_message_spec:
-  preserves_invariant (send_message b)
+instance:
+  HoareTriple
+    (send_message b)
     (fun tr => bytes_invariant b tr)
     (fun _ _ => True)
+  where
+    pf := sorry
 
-axiom receive_message_spec:
-  preserves_invariant (receive_message ts)
+instance:
+  HoareTriple
+    (receive_message n)
     (fun _ => True)
     (fun b tr => is_publishable b tr)
+  where
+    pf := sorry
 
 def test: Traceful Nat := do
   let msg ← receive_message 0
@@ -175,17 +192,15 @@ theorem test_spec:
   := by
     rw [test, preserves_invariant]
     intros tr _ h_tr_inv
-    apply bind_preserves_invariant_on
-    · exact receive_message_spec
+    apply bind_preserves_invariant_on ()
     · assumption
     · grind
     -- clear h_tr_rel h_tr_inv
     intros tr_exec tr msg
     intros
-    apply finish_preserves_invariant_on
-    · exact send_message_spec
+    apply finish_preserves_invariant_on ()
     · assumption
-    · grind [is_publishable_implies_bytes_invariant]
+    · grind
     intros tr_exec tr x
     intros
     trivial
