@@ -179,6 +179,7 @@ structure EvalStepConfig where
   nbArgs: Nat
   nbUnifiedArgs: Nat
   ghostPosition: Nat
+  hasGhostPosition: Nat
   xSpecTheoremPosition: Nat
   trInvPosition: Nat
   preconditionPosition: Nat
@@ -355,24 +356,24 @@ def evalStepAux
       let bindTheoremExpr := mkAppN bindTheoremExprForall bindMVars
       let bindMVars := bindMVars.map (·.mvarId!)
 
-      -- step 1: instantiate the ghost parameter
-      trace[Step] "Step 1: assign ghost parameter {args.xGhostTerm}"
-      bindMVars[conf.ghostPosition]!.safeAssign args.xGhostTerm
-
-      -- step 2: assign the goal to bindTheoremExpr
+      -- step 1: assign the goal to bindTheoremExpr
       -- this will unify its type with the goal (thanks to safeAssign)
       -- hence will instantiate a bunch of metavariables of bindMVars
-      trace[Step] "Step 2: unify goal with the step theorem"
+      trace[Step] "Step 1: unify goal with the step theorem"
       trace[Step] "step theorem before unification {bindTheoremType}"
       let goalMVarId ← getMainGoal
       goalMVarId.safeAssign bindTheoremExpr
       let bindTheoremType ← instantiateMVars bindTheoremType
       trace[Step] "step theorem after unification {bindTheoremType}"
 
-      guard (bindMVars.size = conf.nbArgs) -- sanity check
-      -- (sanity) check that some of the metavariable were correctly assigned
-      for i in [0:conf.nbUnifiedArgs] do
-        guard (← bindMVars[i]!.isAssigned)
+      -- step 2: instantiate the ghost parameter
+      trace[Step] "Step 2: assign ghost parameter {args.xGhostTerm}"
+      bindMVars[conf.hasGhostPosition]!.assignTypeclassInstance
+      let expectedGhostType ← bindMVars[conf.ghostPosition]!.getType
+      let gotGhostType ← inferType args.xGhostTerm
+      unless (← isDefEq expectedGhostType gotGhostType) do
+        throwError "Ghost parameter has type {gotGhostType}, expected type {expectedGhostType}.\nHint: use `step ... with ⟨ ... ⟩`"
+      bindMVars[conf.ghostPosition]!.safeAssign args.xGhostTerm
 
       -- step 3: assign the specification for x via typeclass synthesis
       bindMVars[conf.xSpecTheoremPosition]!.assignTypeclassInstance
@@ -394,6 +395,11 @@ def evalStepAux
       -- step 5: massage the next goal
       let pfNextMVar ← massageNextGoal conf pfNextMVar
 
+      -- sanity check that all of the metavariable were correctly assigned
+      guard (bindMVars.size = conf.nbArgs) -- sanity check
+      for i in [0:conf.nbUnifiedArgs] do
+        guard (← bindMVars[i]!.isAssigned)
+
       -- step 6: update goal list
       let bindTheoremGoals := [pfNextMVar]
       let goals ← getUnsolvedGoals
@@ -406,13 +412,14 @@ def evalStepBind
   := do
     evalStepAux args {
       theoremName := ``Chamelean.Traceful.bind_wp
-      nbArgs := 14
-      nbUnifiedArgs := 8
+      nbArgs := 15
+      nbUnifiedArgs := 14
       ghostPosition := 3,
-      xSpecTheoremPosition := 10
-      trInvPosition := 11
-      preconditionPosition := 12
-      nextPosition := 13
+      hasGhostPosition := 10
+      xSpecTheoremPosition := 11
+      trInvPosition := 12
+      preconditionPosition := 13
+      nextPosition := 14
       xName
     }
 
@@ -422,13 +429,14 @@ def evalStepFinal
   := do
     evalStepAux args {
       theoremName := ``Chamelean.Traceful.finish_wp
-      nbArgs := 12
-      nbUnifiedArgs := 6
+      nbArgs := 13
+      nbUnifiedArgs := 12
       ghostPosition := 2
-      xSpecTheoremPosition := 8
-      trInvPosition := 9
-      preconditionPosition := 10
-      nextPosition := 11
+      hasGhostPosition := 8
+      xSpecTheoremPosition := 9
+      trInvPosition := 10
+      preconditionPosition := 11
+      nextPosition := 12
       xName := `x
     }
 
@@ -448,24 +456,30 @@ def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Uni
     let applyTheoremExpr := mkAppN applyTheoremExprForall applyMVars
     let applyMVars := applyMVars.map (·.mvarId!)
 
-    -- sanity check
-    guard (applyMVars.size = 9);
-    -- ghost
-    applyMVars[2]!.safeAssign args.xGhostTerm
     -- x
     applyMVars[3]!.safeAssign (.fvar letFv)
-    -- HoareTriplePureGhost instance
+    -- HasGhostArgumentType
     applyMVars[6]!.assignTypeclassInstance
+    let expectedGhostType ← applyMVars[2]!.getType
+    let gotGhostType ← inferType args.xGhostTerm
+    unless (← isDefEq expectedGhostType gotGhostType) do
+      -- TODO: could be a `step_let` (bad error message)
+      throwError "Ghost parameter has type {gotGhostType}, expected type {expectedGhostType}.\nHint: use `step ... with ⟨ ... ⟩`"
+    -- ghost
+    applyMVars[2]!.safeAssign args.xGhostTerm
+    -- HoareTriplePureGhost instance
+    applyMVars[7]!.assignTypeclassInstance
     -- tr
-    applyMVars[7]!.assumption -- "I am feeling lucky" (works if there is only one `ProofTrace` in the local context)
+    applyMVars[8]!.assumption -- "I am feeling lucky" (works if there is only one `ProofTrace` in the local context)
 
-    -- sanity check
-    for i in [0:8] do
-      guard (← applyMVars[i]!.isAssigned)
-
-    let pfPreMVar := applyMVars[8]!
+    let pfPreMVar := applyMVars[9]!
     solvePrecondition args pfPreMVar
     guard (← pfPreMVar.isAssigned)
+
+    -- sanity check
+    guard (applyMVars.size = 10);
+    for i in [0:10] do
+      guard (← applyMVars[i]!.isAssigned)
 
     let goal ← goal.assert .anonymous applyTheoremType applyTheoremExpr
     let goal ← introAndMassagePostX letName goal

@@ -37,6 +37,9 @@ instance:
   where
     pf := sorry
 
+instance: HasGhostArgumentType (mk_rand len) Label where
+  dummy := ()
+
 instance:
   HoareTripleGhost
     (mk_rand len)

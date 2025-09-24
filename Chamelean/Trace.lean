@@ -93,7 +93,10 @@ def hoareTriple [WP m] (f: m a) (pre: ProofTrace → Prop) (post: a → ProofTra
     Trace.invariant tr →
     WP.wp f post tr
 
-class HoareTripleGhost [WP m] (f: m a) (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+class HasGhostArgumentType (x: a) (g: outParam (Type u_g)) where
+  dummy: Unit
+
+class HoareTripleGhost [WP m] (f: m a) [HasGhostArgumentType f g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: hoareTriple f pre post
 
 class HoareTriple [WP m] (f: m a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
@@ -102,7 +105,18 @@ class HoareTriple [WP m] (f: m a) (pre: outParam (ProofTrace → Prop)) (post: o
 instance
   {m :Type u → Type v} [WP m]
   {a: Type u}
-  (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop) (f: m a)
+  (f: m a)
+  (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop)
+  [HoareTriple f pre post]
+  : HasGhostArgumentType f Unit
+where
+  dummy := ()
+
+instance
+  {m :Type u → Type v} [WP m]
+  {a: Type u}
+  (f: m a)
+  (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop)
   [HoareTriple f pre post]
   : HoareTripleGhost f () pre post
 where
@@ -118,9 +132,19 @@ where
     wp (liftM x: n a) post tr
 
 instance
+  {m: Type u → Type v} {n: Type u → Type w} [MonadLift m n]
+  {a: Type u} {g: Type u_g}
+  (x: m a)
+  [HasGhostArgumentType x g]
+  : HasGhostArgumentType (liftM x: n a) g
+where
+  dummy := ()
+
+instance
   {m: Type u → Type v} {n: Type u → Type w} [MonadLift m n] [WP m] [WP n] [wplift: WPLift m n]
   {a: Type u} {g: Type u_g}
   (x: m a) (ghost: g) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop)
+  [HasGhostArgumentType x g]
   [ht: HoareTripleGhost x ghost pre post]
   : HoareTripleGhost (liftM x: n a) ghost pre post
 where
@@ -144,6 +168,7 @@ theorem Traceful.bind_wp
   (post_f: b -> ProofTrace -> Prop)
   (tr: ProofTrace)
   {pre_x post_x}
+  [HasGhostArgumentType x g]
   [ht: HoareTripleGhost x ghost pre_x post_x]
   (pf_tr_inv: Trace.invariant tr)
   (pf_pre_x: pre_x tr)
@@ -167,6 +192,7 @@ theorem Traceful.finish_wp
   (post: a -> ProofTrace -> Prop)
   (tr: ProofTrace)
   {pre_x post_x}
+  [HasGhostArgumentType x g]
   [ht: HoareTripleGhost x ghost pre_x post_x]
   (pf_tr_inv: Trace.invariant tr)
   (pf_pre_x: pre_x tr)
@@ -183,11 +209,19 @@ theorem Traceful.finish_wp
     simp_all only [WP.wp, hoareTriple]
     grind
 
-class HoareTriplePureGhost (x: a) (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+class HoareTriplePureGhost (x: a) [HasGhostArgumentType x g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: ∀ tr, pre tr → post x tr
 
 class HoareTriplePure (x: a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: ∀ tr, pre tr → post x tr
+
+instance
+  (x: a)
+  (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop)
+  [HoareTriplePure x pre post]
+  : HasGhostArgumentType x Unit
+where
+  dummy := ()
 
 instance [HoareTriplePure x pre post]: HoareTriplePureGhost x () pre post where
   pf := HoareTriplePure.pf
@@ -196,22 +230,41 @@ theorem apply_hoare_triple_pure
   {a g}
   (ghost: g) (x: a)
   {pre: ProofTrace → Prop} {post: a → ProofTrace → Prop}
+  [HasGhostArgumentType x g]
   [ht: HoareTriplePureGhost x ghost pre post]
   (tr: ProofTrace)
   (p: pre tr)
   : post x tr
   := ht.pf tr p
 
-class HoareTriplePureBoolGhost (b: Bool) (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (ProofTrace → Prop)) where
+class HoareTriplePureBoolGhost (b: Bool) [HasGhostArgumentType b g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (ProofTrace → Prop)) where
   pf: ∀ tr, pre tr → b → post tr
 
 class HoareTriplePureBool (b: Bool) (pre: outParam (ProofTrace → Prop)) (post: outParam (ProofTrace → Prop)) where
   pf: ∀ tr, pre tr → b → post tr
 
-instance [HoareTriplePureBool x pre post]: HoareTriplePureBoolGhost x () pre post where
+instance
+  (b: Bool)
+  (pre: ProofTrace → Prop) (post: ProofTrace → Prop)
+  [HoareTriplePureBool b pre post]
+  : HasGhostArgumentType b Unit
+where
+  dummy := ()
+
+instance
+  [HoareTriplePureBool x pre post]
+  : HoareTriplePureBoolGhost x () pre post
+where
   pf := HoareTriplePureBool.pf
 
-instance (b: Bool) [ht: HoareTriplePureBoolGhost b ghost pre post]:
+instance
+  (b: Bool)
+  [HasGhostArgumentType b g]
+  : HasGhostArgumentType (guard (b = true): Traceful Unit) g
+where
+  dummy := ()
+
+instance (b: Bool) [HasGhostArgumentType b g] [ht: HoareTriplePureBoolGhost b ghost pre post]:
   HoareTripleGhost
     (guard (b = true): Traceful Unit)
     (ghost)
