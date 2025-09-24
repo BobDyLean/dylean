@@ -59,46 +59,85 @@ theorem Traceful.run_bind
 
 axiom Trace.invariant: ProofTrace -> Prop
 
--- Weakest precondition for Traceful functions
--- (+ relation (≤) between old and new proof trace)
-def preserves_invariant_on
-  (f: Traceful a)
-  (post: a -> ProofTrace -> Prop)
-  (tr_proof: ProofTrace)
-  : Prop
-  :=
-  let (opt_x, tr_exec') := f.run tr_proof.erase
-  ∃ tr_proof',
-    (
-      match opt_x with
-      | .none => True
-      | .some x => post x tr_proof'
-    ) ∧
-    Trace.invariant tr_proof' ∧
-    tr_exec' = tr_proof'.erase ∧
-    tr_proof ≤ tr_proof'
+class WP (m: Type u → Type v) where
+  wp: m a → (a → ProofTrace → Prop) → (ProofTrace → Prop)
 
--- Hoare triple for Traceful functions
-def preserves_invariant
-  (f: Traceful a)
-  (pre: ProofTrace -> Prop) (post: a -> ProofTrace -> Prop)
-  : Prop
-  :=
+export WP (wp)
+
+instance: WP Id where
+  wp f post tr_proof :=
+    post f.run tr_proof
+
+instance: WP Err where
+  wp f post tr_proof :=
+    match f.run with
+    | .none => True
+    | .some x => post x tr_proof
+
+instance: WP Traceful where
+  wp f post tr_proof :=
+    let (opt_x, tr_exec') := f.run tr_proof.erase
+    ∃ tr_proof',
+      (
+        match opt_x with
+        | .none => True
+        | .some x => post x tr_proof'
+      ) ∧
+      Trace.invariant tr_proof' ∧
+      tr_exec' = tr_proof'.erase ∧
+      tr_proof ≤ tr_proof'
+
+def hoareTriple [WP m] (f: m a) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop): Prop :=
   ∀ tr,
-  pre tr →
-  Trace.invariant tr →
-  preserves_invariant_on f post tr
+    pre tr →
+    Trace.invariant tr →
+    WP.wp f post tr
 
-class HoareTripleGhost (f: Traceful a) (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
-  pf: preserves_invariant f pre post
+class HoareTripleGhost [WP m] (f: m a) (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+  pf: hoareTriple f pre post
 
-class HoareTriple (f: Traceful a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
-  pf: preserves_invariant f pre post
+class HoareTriple [WP m] (f: m a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+  pf: hoareTriple f pre post
 
-instance [HoareTriple f pre post]: HoareTripleGhost f () pre post where
+instance
+  {m :Type u → Type v} [WP m]
+  {a: Type u}
+  (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop) (f: m a)
+  [HoareTriple f pre post]
+  : HoareTripleGhost f () pre post
+where
   pf := HoareTriple.pf
 
-theorem bind_preserves_invariant_on
+class WPLift
+  (m: Type u → Type v) (n : Type u → Type w)
+  [MonadLift m n] [WP m] [WP n]
+where
+  pf {a: Type u} (x: m a) (post: a → ProofTrace → Prop) (tr: ProofTrace):
+    tr.invariant →
+    wp x post tr →
+    wp (liftM x: n a) post tr
+
+instance
+  {m: Type u → Type v} {n: Type u → Type w} [MonadLift m n] [WP m] [WP n] [wplift: WPLift m n]
+  {a: Type u} {g: Type u_g}
+  (x: m a) (ghost: g) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop)
+  [ht: HoareTripleGhost x ghost pre post]
+  : HoareTripleGhost (liftM x: n a) ghost pre post
+where
+  pf := by
+    have := ht.pf
+    have := wplift.pf x
+    grind [hoareTriple]
+
+instance: WPLift Err Traceful where
+  pf := by
+    -- ugh
+    simp only [wp, liftM, monadLift, MonadLift.monadLift, Traceful.run, OptionT.run]
+    unfold StateT.pure
+    simp only [StateT.run, Id.run_pure]
+    grind
+
+theorem Traceful.bind_wp
   {a b g}
   (ghost: g)
   (x: Traceful a) (f: a -> Traceful b)
@@ -112,18 +151,16 @@ theorem bind_preserves_invariant_on
     post_x x' tr_mid →
     Trace.invariant tr_mid →
     tr ≤ tr_mid → (
-      preserves_invariant_on (f x') (post_f) tr_mid
+      WP.wp (f x') (post_f) tr_mid
     )
   )
-  : preserves_invariant_on (x >>= f) (post_f) tr
+  : WP.wp (x >>= f) (post_f) tr
   := by
     have := ht.pf
-    simp only [preserves_invariant_on, Traceful.run_bind]
-    split
-    · grind [Trace.trace_le_trans, preserves_invariant_on, preserves_invariant]
-    · grind [preserves_invariant_on, preserves_invariant]
+    simp_all only [WP.wp, hoareTriple, Traceful.run_bind]
+    grind [Trace.trace_le_trans]
 
-theorem finish_preserves_invariant_on
+theorem Traceful.finish_wp
   {a g}
   (ghost: g)
   (x: Traceful a)
@@ -140,10 +177,60 @@ theorem finish_preserves_invariant_on
       post x' tr_mid
     )
   )
-  : preserves_invariant_on x post tr
+  : WP.wp x post tr
   := by
     have := ht.pf
-    grind [preserves_invariant_on, preserves_invariant]
+    simp_all only [WP.wp, hoareTriple]
+    grind
+
+class HoareTriplePureGhost (x: a) (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+  pf: ∀ tr, pre tr → post x tr
+
+class HoareTriplePure (x: a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+  pf: ∀ tr, pre tr → post x tr
+
+instance [HoareTriplePure x pre post]: HoareTriplePureGhost x () pre post where
+  pf := HoareTriplePure.pf
+
+theorem apply_hoare_triple_pure
+  {a g}
+  (ghost: g) (x: a)
+  {pre: ProofTrace → Prop} {post: a → ProofTrace → Prop}
+  [ht: HoareTriplePureGhost x ghost pre post]
+  (tr: ProofTrace)
+  (p: pre tr)
+  : post x tr
+  := ht.pf tr p
+
+class HoareTriplePureBoolGhost (b: Bool) (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (ProofTrace → Prop)) where
+  pf: ∀ tr, pre tr → b → post tr
+
+class HoareTriplePureBool (b: Bool) (pre: outParam (ProofTrace → Prop)) (post: outParam (ProofTrace → Prop)) where
+  pf: ∀ tr, pre tr → b → post tr
+
+instance [HoareTriplePureBool x pre post]: HoareTriplePureBoolGhost x () pre post where
+  pf := HoareTriplePureBool.pf
+
+instance (b: Bool) [ht: HoareTriplePureBoolGhost b ghost pre post]:
+  HoareTripleGhost
+    (guard (b = true): Traceful Unit)
+    (ghost)
+    (fun tr => pre tr)
+    (fun () tr => post tr)
+where
+  pf := by
+    have := ht.pf
+    simp [hoareTriple, wp, guard]
+    intro tr h_pre h_inv
+    exists tr
+    cases b
+    · simp [failure, Traceful.run, OptionT.fail, OptionT.mk, OptionT.run]
+      grind
+    · simp [pure, Traceful.run, OptionT.pure, OptionT.mk, OptionT.run]
+      unfold StateT.pure
+      simp [StateT.run]
+      grind
+
 
 def send_message (b:Bytes) : Traceful Nat := sorry
 def receive_message (ts: Nat): Traceful Bytes := sorry
@@ -185,23 +272,24 @@ def test: Traceful Nat := do
   let msg ← receive_message 0
   send_message msg
 
-theorem test_spec:
-  preserves_invariant (test)
+instance:
+  HoareTriple (test)
     (fun _ => True)
     (fun _ _ => True)
-  := by
-    rw [test, preserves_invariant]
+where
+  pf := by
+    unfold test hoareTriple
     intros tr _ h_tr_inv
-    apply bind_preserves_invariant_on ()
+    apply Traceful.bind_wp ()
     · assumption
     · grind
     -- clear h_tr_rel h_tr_inv
-    intros tr_exec tr msg
+    intros tr msg
     intros
-    apply finish_preserves_invariant_on ()
+    apply Traceful.finish_wp ()
     · assumption
     · grind
-    intros tr_exec tr x
+    intros tr x
     intros
     trivial
 

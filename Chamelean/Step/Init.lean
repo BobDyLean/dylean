@@ -1,5 +1,6 @@
 import Lean
 import Chamelean.Step.Trace
+import Chamelean.Step.LetUtils
 import Chamelean.Step.Utils
 import Chamelean.Trace
 
@@ -8,11 +9,11 @@ open Lean Elab Term Meta Tactic
 namespace Chamelean.Step
 
 inductive StepSpecTheorem where
-  | preserves_invariant_on
+  | wp
     (func: Expr)
     (post: Expr)
     (tr: Expr)
-  | preserves_invariant
+  | hoareTriple
     (func: Expr)
     (pre: Expr)
     (post: Expr)
@@ -33,16 +34,17 @@ def preservesInvariantTelescope
     trace[Step] "Theorem after forall intro: {type}"
     let (fName, args) := type.getAppFnArgs
     trace[Step] "function name: {fName}, arguments: {args}"
-    if fName = ``Chamelean.preserves_invariant then
-      guard (args.size = 4)
-      pure (xs_and_bi, StepSpecTheorem.preserves_invariant args[1]! args[2]! args[3]!)
-    else if fName = ``Chamelean.preserves_invariant_on then
-      guard (args.size = 4)
-      pure (xs_and_bi, StepSpecTheorem.preserves_invariant_on args[1]! args[2]! args[3]!)
+    if fName = ``Chamelean.hoareTriple then
+      guard (args.size = 6)
+      pure (xs_and_bi, StepSpecTheorem.hoareTriple args[3]! args[4]! args[5]!)
+    else if fName = ``Chamelean.wp then
+      guard (args.size = 6)
+      pure (xs_and_bi, StepSpecTheorem.wp args[3]! args[4]! args[5]!)
     else
       throwError "not a constant"
 
 inductive SpecType where
+  | let_binding (x:Expr) (xName:Name)
   | bind (x:Expr) (f:Expr) (xName:Name)
   | final (x:Expr)
 
@@ -52,20 +54,26 @@ def specTypeTelescope
   := do
     withTraceNode `Step (fun _ => pure m!"Analyze the function to prove") do
     let type ← type.sanitize
-    let (funcName, args) := type.getAppFnArgs
-    trace[Step] "specTypeTelescope: got {funcName} and {args}"
-    if funcName = ``Bind.bind then
-      guard (args.size = 6)
-      let x := args[4]!
-      let f := args[5]!
-      let xName ←
-        match f with
-        | .lam xName _ _ _ => pure xName
-        | _ => throwError "bind's f is not a lambda?"
-      pure (.bind x f xName)
-    else
+    match type with
+    | .letE declName _type value _body _nondep =>
+      pure (.let_binding value declName)
+    | .app _ _ =>
+      let (funcName, args) := type.getAppFnArgs
+      trace[Step] "specTypeTelescope: got {funcName} and {args}"
+      if funcName = ``Bind.bind then
+        guard (args.size = 6)
+        let x := args[4]!
+        let f := args[5]!
+        let xName ←
+          match f with
+          | .lam xName _ _ _ => pure xName
+          | _ => throwError "bind's f is not a lambda?"
+        pure (.bind x f xName)
+      else
+        pure (.final type)
+        --throwError "unknown case"
+    | _ =>
       pure (.final type)
-      --throwError "unknown case"
 
 syntax stepArgs := ("with" " ⟨ " term,* " ⟩")?
 
@@ -151,13 +159,13 @@ def splitAndAt (goal: MVarId) (fv: FVarId) (name: Name) (i: Nat := 0): TacticM (
     pure goal
 
 def introAndMassagePostX
-  (conf: EvalStepConfig)
+  (xName: Name)
   (goal: MVarId)
   : TacticM MVarId
   := do
     let (postXFv, goal) ← goal.intro1
     -- TODO: run a pass of simplification on post_x (e.g. iota reduction etc)
-    let goal ← splitAndAt goal postXFv (prepend "h_" conf.xName)
+    let goal ← splitAndAt goal postXFv (prepend "h_" xName)
     pure goal
 
 /--
@@ -182,7 +190,7 @@ def massageNextGoal
     let (_xFv, goal) ← goal.intro conf.xName
     -- we will not rely on the fvar above because
     -- `introAndMassagePostX` might trash them
-    let goal ← introAndMassagePostX conf goal
+    let goal ← introAndMassagePostX conf.xName goal
     let (_trInvFv, goal) ← goal.intro1
     let (trGrowsFv, goal) ← goal.intro1
     goal.withContext do
@@ -376,7 +384,7 @@ def evalStepBind
   : TacticM Unit
   := do
     evalStepAux args {
-      theoremName := `Chamelean.bind_preserves_invariant_on
+      theoremName := ``Chamelean.Traceful.bind_wp
       nbArgs := 14
       nbUnifiedArgs := 8
       ghostPosition := 3,
@@ -392,7 +400,7 @@ def evalStepFinal
   : TacticM Unit
   := do
     evalStepAux args {
-      theoremName := `Chamelean.finish_preserves_invariant_on
+      theoremName := ``Chamelean.Traceful.finish_wp
       nbArgs := 12
       nbUnifiedArgs := 6
       ghostPosition := 2
@@ -403,25 +411,72 @@ def evalStepFinal
       xName := `x
     }
 
+def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Unit :=
+  do
+  goal.withContext do
+    let letValue := (← letFv.getDecl).value
+    let letName := (← letFv.getDecl).userName
+
+    -- applyTheoremExprForall = apply_hoare_triple_pure
+    let applyTheoremExprForall ← Term.mkConst ``Chamelean.apply_hoare_triple_pure
+    -- applyTheoremTypeForall = ∀ ghost x ..., post x tr
+    let applyTheoremTypeForall ← inferType applyTheoremExprForall
+    -- applyTheoremType = post x tr
+    let (applyMVars, _, applyTheoremType) ← forallMetaTelescope applyTheoremTypeForall
+    -- applyTheoremExpr = apply_hoare_triple_pure ?ghost ?x ?...
+    let applyTheoremExpr := mkAppN applyTheoremExprForall applyMVars
+    let applyMVars := applyMVars.map (·.mvarId!)
+
+    -- sanity check
+    guard (applyMVars.size = 9);
+    -- ghost
+    applyMVars[2]!.safeAssign args.xGhostTerm
+    -- x
+    applyMVars[3]!.safeAssign letValue
+    -- HoareTriplePureGhost instance
+    applyMVars[6]!.assignTypeclassInstance
+    -- tr
+    applyMVars[7]!.assumption -- "I am feeling lucky" (works if there is only one `ProofTrace` in the local context)
+
+    -- sanity check
+    for i in [0:8] do
+      guard (← applyMVars[i]!.isAssigned)
+
+    let pfPreMVar := applyMVars[8]!
+
+    let goal ← goal.assert .anonymous applyTheoremType applyTheoremExpr
+    let goal ← introAndMassagePostX letName goal
+
+    let goals ← getUnsolvedGoals
+    setGoals ([pfPreMVar, goal] ++ goals)
+
+def evalStepLet (args: StepArgs): TacticM Unit :=
+  withTraceNode `Step (fun _ => pure m!"Apply step let") do
+    let goal ← getMainGoal
+    let (letFv, goal) ← stepIntro goal
+    applyLetTheorem args goal letFv
+
 partial
 def evalStep (args: StepArgs): TacticM Unit := do
   withMainContext do -- useful to get the retrieve FVar names in the trace
   let goalType ← Tactic.getMainTarget
   trace[Step] "step on goal: {goalType}"
   match ← preservesInvariantTelescope goalType with
-  | (_, .preserves_invariant_on func post tr) =>
+  | (_, .wp func post tr) =>
     trace[Step] "goal is `preserves_invariant_on` on function {func}"
     match ← specTypeTelescope func with
+    | .let_binding x xName =>
+      evalStepLet args
     | .bind x f xName =>
       trace[Step] "function is a bind, x={x}, x name={xName}, f={f}"
       evalStepBind args xName
     | .final x =>
       trace[Step] "function is a final operation"
       evalStepFinal args
-  | (_, .preserves_invariant func pre post) =>
+  | (_, .hoareTriple func pre post) =>
     trace[Step] "goal is `preserves_invariant` on function {func}, unfolding and recursing"
     let goal ← getMainGoal
-    let goal ← Lean.Meta.unfoldTarget goal `Chamelean.preserves_invariant
+    let goal ← Lean.Meta.unfoldTarget goal ``Chamelean.hoareTriple
     let (_trFv, goal) ← goal.intro1P
     let (_preFv, goal) ← goal.intro1
     let (_trInvFv, goal) ← goal.intro1
@@ -430,5 +485,11 @@ def evalStep (args: StepArgs): TacticM Unit := do
 
 elab (name := step) "step" args:stepArgs: tactic => do
   evalStep (← parseStepArgs args)
+
+elab (name := step_let) "step_let" letFvSyn:term args:stepArgs: tactic => do
+  withMainContext do
+  let letFvTerm ← Tactic.elabTerm letFvSyn none
+  let letFv := letFvTerm.fvarId!
+  applyLetTheorem (← parseStepArgs args) (← getMainGoal) letFv
 
 end Chamelean.Step

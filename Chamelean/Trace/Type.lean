@@ -65,6 +65,14 @@ inductive LETrace : Trace a -> Trace a -> Prop where
 instance : LE (Trace a) where
   le := LETrace
 
+-- TODO: is there a typeclass about this?
+@[grind, refl]
+theorem trace_le_refl
+  (tr: Trace α)
+  : tr ≤ tr
+  := by
+    exact LETrace.equal tr
+
 theorem trace_le_trans
   (tr1: Trace a) (tr2: Trace a) (tr3: Trace a)
   : tr1 ≤ tr2 → tr2 ≤ tr3 → tr1 ≤ tr3
@@ -88,5 +96,17 @@ instance : Trans (· ≤ · : Trace a → Trace a → Prop) (· ≤ ·) (· ≤ 
     | extend e _ ih =>
       exact (LETrace.extend e ih)
       -/
+
+theorem trace_le_map
+  (f: α → β)
+  (tr1 tr2: Trace α):
+  tr1 ≤ tr2 →
+  (f <$> tr1) ≤ (f <$> tr2)
+  := by
+    intro h_le
+    induction h_le
+    · apply LETrace.equal
+    · apply LETrace.extend
+      assumption
 
 end Chamelean.Trace

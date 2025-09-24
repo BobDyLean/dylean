@@ -5,6 +5,20 @@ open Chamelean
 
 namespace Test
 
+def hash (b: Bytes): Bytes := sorry
+def test_publishable (b: Bytes): Bool := sorry
+
+instance:
+  HoareTriplePure
+    (hash b)
+    (fun tr => bytes_invariant b tr)
+    (fun res tr =>
+      bytes_invariant res tr ∧
+      get_label res tr = get_label b tr
+    )
+  where
+    pf := sorry
+
 def mk_rand (len:Nat) : Traceful Bytes := sorry
 def send_message (b:Bytes) : Traceful Unit := sorry
 def receive_message (n:Nat) : Traceful Bytes := sorry
@@ -17,7 +31,7 @@ set_option trace.Step true
 
 instance:
   HoareTriple
-    (pure x)
+    (pure x: Traceful a)
     (fun _ => True)
     (fun res _ => res = x)
   where
@@ -47,25 +61,44 @@ instance:
   where
     pf := sorry
 
-def test (b:Bytes) : Traceful Bytes := do
+instance:
+  HoareTriplePureBool
+    (test_publishable b)
+    (fun _ => True) (fun tr => is_publishable b tr)
+  where
+    pf := sorry
+
+
+def test (b:Bytes) (b2: Bytes): Traceful Bytes := do
   let msg1 ← receive_message 0
   let r ← mk_rand 32
-  send_message r
-  send_message b
+  let hb := hash b
+  send_message (hash r)
+  send_message hb
   send_message msg1
+  guard (test_publishable b2)
+  send_message b2
   pure msg1
 
-theorem test_spec (b:Bytes) :
-  preserves_invariant (test b)
+instance:
+  HoareTriple
+    (test b b2)
     (fun tr => is_publishable b tr)
     (fun res tr => is_publishable res tr)
-  := by
+where
+  pf := by
     unfold test
     step
     · trivial
     step with ⟨ Label.pub ⟩
     · grind
+    step_intro -- will do proofs on hb later
+    hoist
     step
+    · grind
+    step
+    · grind
+    step_let hb
     · grind
     step
     · grind
@@ -73,6 +106,10 @@ theorem test_spec (b:Bytes) :
     · grind
     step
     · trivial
+    step
+    · grind
+    step
+    · grind
     grind
 
 end Test
