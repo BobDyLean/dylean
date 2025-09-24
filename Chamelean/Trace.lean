@@ -235,27 +235,27 @@ where
 def send_message (b:Bytes) : Traceful Nat := sorry
 def receive_message (ts: Nat): Traceful Bytes := sorry
 
-axiom bytes_invariant (b:Bytes) (tr: ProofTrace): Prop
-axiom get_label (b:Bytes) (tr: ProofTrace): Label
+axiom Bytes.invariant (b:Bytes) (tr: ProofTrace): Prop
+axiom Bytes.label (b:Bytes) (tr: ProofTrace): Label
 
 @[scoped grind→]
-axiom _root_.Chamelean.Trace.MonotoneLemmas.bytes_invariant_later (b:Bytes) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → bytes_invariant b tr1 → bytes_invariant b tr2
+axiom _root_.Chamelean.Trace.MonotoneLemmas.bytes_invariant_later (b:Bytes) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → b.invariant tr1 → b.invariant tr2
 
-axiom _root_.Chamelean.Trace.MonotoneLemmas.get_label_later (b:Bytes) (tr1 tr2: ProofTrace): bytes_invariant b tr1 → tr1 ≤ tr2 → get_label b tr1 = get_label b tr2
+axiom _root_.Chamelean.Trace.MonotoneLemmas.get_label_later (b:Bytes) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → b.label tr1 = b.label tr2
 
 -- TODO scoped
 grind_pattern _root_.Chamelean.Trace.MonotoneLemmas.get_label_later =>
-  bytes_invariant b tr1, tr1 ≤ tr2, get_label b tr1
+  b.invariant tr1, tr1 ≤ tr2, b.label tr1
 
 @[grind]
-def is_publishable (b:Bytes) (tr: ProofTrace): Prop :=
-  bytes_invariant b tr ∧
-  (get_label b tr).canFlow Label.pub tr
+def Bytes.is_publishable (b:Bytes) (tr: ProofTrace): Prop :=
+  b.invariant tr ∧
+  (b.label tr).canFlow Label.pub tr
 
 instance:
   HoareTriple
     (send_message b)
-    (fun tr => bytes_invariant b tr)
+    (fun tr => b.invariant tr)
     (fun _ _ => True)
   where
     pf := sorry
@@ -264,7 +264,7 @@ instance:
   HoareTriple
     (receive_message n)
     (fun _ => True)
-    (fun b tr => is_publishable b tr)
+    (fun b tr => b.is_publishable tr)
   where
     pf := sorry
 
@@ -297,24 +297,24 @@ def is_monotone (p: ProofTrace → Prop): Prop :=
   ∀ tr1 tr2,
     tr1 ≤ tr2 → p tr1 → p tr2
 
-example: is_monotone (fun tr =>
-  is_publishable b1 tr ∨ (
-    bytes_invariant b2 tr ∧ (
+example: ∀ b1 b2 b3 b4 b5: Bytes, ∀ x, is_monotone (fun tr =>
+  b1.is_publishable tr ∨ (
+    b2.invariant tr ∧ (
       match x with
-      | none => is_publishable b3 tr
-      | some true => bytes_invariant b4 tr
-      | some false => bytes_invariant b5 tr
+      | none => b3.is_publishable tr
+      | some true => b4.invariant tr
+      | some false => b5.invariant tr
     )
   )) := by
   open Chamelean.Trace.MonotoneLemmas in
   grind [is_monotone]
 
-example: is_monotone (fun tr => is_publishable b tr) := by
+example: ∀ b: Bytes, is_monotone (fun tr => b.is_publishable tr) := by
   open Chamelean.Trace.MonotoneLemmas in
   unfold is_monotone
   grind [is_monotone]
 
-example: tr1 ≤ tr2 → is_publishable b tr1 → is_publishable b tr2 := by
+example: ∀ b: Bytes, tr1 ≤ tr2 → b.is_publishable tr1 → b.is_publishable tr2 := by
   open Chamelean.Trace.MonotoneLemmas in
   grind
 

@@ -11,10 +11,10 @@ def test_publishable (b: Bytes): Bool := sorry
 instance:
   HoareTriplePure
     (hash b)
-    (fun tr => bytes_invariant b tr)
+    (fun tr => b.invariant tr)
     (fun res tr =>
-      bytes_invariant res tr ∧
-      get_label res tr = get_label b tr
+      res.invariant tr ∧
+      res.label tr = b.label tr
     )
   where
     pf := sorry
@@ -24,8 +24,8 @@ def send_message (b:Bytes) : Traceful Unit := sorry
 def receive_message (n:Nat) : Traceful Bytes := sorry
 
 abbrev is_knowable_by (b: Bytes) (l: Label) (tr: ProofTrace): Prop :=
-  bytes_invariant b tr ∧
-  (get_label b tr).canFlow l tr
+  b.invariant tr ∧
+  (b.label tr).canFlow l tr
 
 set_option trace.Step true
 
@@ -49,7 +49,7 @@ instance:
 instance:
   HoareTriple
     (send_message b)
-    (fun tr => bytes_invariant b tr)
+    (fun tr => b.invariant tr)
     (fun _ _ => True)
   where
     pf := sorry
@@ -57,14 +57,14 @@ instance:
 instance:
   HoareTriple
     (receive_message n)
-    (fun _ => True) (fun b tr => is_publishable b tr)
+    (fun _ => True) (fun b tr => b.is_publishable tr)
   where
     pf := sorry
 
 instance:
   HoareTriplePureBool
     (test_publishable b)
-    (fun _ => True) (fun tr => is_publishable b tr)
+    (fun _ => True) (fun tr => b.is_publishable tr)
   where
     pf := sorry
 
@@ -83,8 +83,8 @@ def test (b:Bytes) (b2: Bytes): Traceful Bytes := do
 instance:
   HoareTriple
     (test b b2)
-    (fun tr => is_publishable b tr)
-    (fun res tr => is_publishable res tr)
+    (fun tr => b.is_publishable tr)
+    (fun res tr => res.is_publishable tr)
 where
   pf := by
     unfold test
