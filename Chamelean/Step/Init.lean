@@ -453,7 +453,7 @@ def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Uni
     -- ghost
     applyMVars[2]!.safeAssign args.xGhostTerm
     -- x
-    applyMVars[3]!.safeAssign letValue
+    applyMVars[3]!.safeAssign (.fvar letFv)
     -- HoareTriplePureGhost instance
     applyMVars[6]!.assignTypeclassInstance
     -- tr
