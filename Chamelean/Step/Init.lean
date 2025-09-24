@@ -75,17 +75,18 @@ def specTypeTelescope
     | _ =>
       pure (.final type)
 
-syntax stepArgs := ("with" " ⟨ " term,* " ⟩")?
+syntax stepArgs := ("with" " ⟨ " term,* " ⟩")? ("by" tacticSeq)?
 
 structure StepArgs where
   xGhostTerm : Expr
+  preTactic: Option Syntax
 
 def parseStepArgs (args: TSyntax ``Chamelean.Step.stepArgs): TacticM StepArgs
   :=
   withMainContext do
   trace[Step] "Step arguments: {args.raw}"
   match args with
-  | `(stepArgs| $[with ⟨ $xGhosts,* ⟩ ]? ) =>
+  | `(stepArgs| $[with ⟨ $xGhosts,* ⟩ ]? $[by $disch]? ) =>
     let xGhostTerms ←
       match xGhosts with
       | none => pure #[]
@@ -95,19 +96,24 @@ def parseStepArgs (args: TSyntax ``Chamelean.Step.stepArgs): TacticM StepArgs
         )
     pure {
       xGhostTerm := ← makeTuple xGhostTerms
+      preTactic := disch
     }
   | _ => throwUnsupportedSyntax
 
-structure EvalStepConfig where
-  theoremName: Name
-  nbArgs: Nat
-  nbUnifiedArgs: Nat
-  ghostPosition: Nat
-  xSpecTheoremPosition: Nat
-  trInvPosition: Nat
-  preconditionPosition: Nat
-  nextPosition: Nat
-  xName: Name
+def solvePrecondition
+  (args: StepArgs)
+  (pre: MVarId)
+  : TacticM Unit
+  := do
+    match args.preTactic with
+    | some tac =>
+      let currentGoals ← getGoals
+      setGoals [pre]
+      evalTactic tac
+      setGoals currentGoals
+    | none =>
+      let _ ← grind pre {} false #[] (pure ())
+      pure ()
 
 def monotonizeOneHypothesis
   (goal: MVarId)
@@ -167,6 +173,17 @@ def introAndMassagePostX
     -- TODO: run a pass of simplification on post_x (e.g. iota reduction etc)
     let goal ← splitAndAt goal postXFv (prepend "h_" xName)
     pure goal
+
+structure EvalStepConfig where
+  theoremName: Name
+  nbArgs: Nat
+  nbUnifiedArgs: Nat
+  ghostPosition: Nat
+  xSpecTheoremPosition: Nat
+  trInvPosition: Nat
+  preconditionPosition: Nat
+  nextPosition: Nat
+  xName: Name
 
 /--
   Massage the next goal:
@@ -370,11 +387,15 @@ def evalStepAux
       let pfPreXMVar := bindMVars[conf.preconditionPosition]!
       let pfNextMVar := bindMVars[conf.nextPosition]!
 
-      -- step 4: massage the next goal
+      -- step 4: solve precondition
+      solvePrecondition args pfPreXMVar
+      guard (← pfPreXMVar.isAssigned)
+
+      -- step 5: massage the next goal
       let pfNextMVar ← massageNextGoal conf pfNextMVar
 
-      -- step 5: update goal list
-      let bindTheoremGoals := [pfPreXMVar, pfNextMVar]
+      -- step 6: update goal list
+      let bindTheoremGoals := [pfNextMVar]
       let goals ← getUnsolvedGoals
       setGoals (bindTheoremGoals ++ goals)
 
@@ -443,12 +464,14 @@ def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Uni
       guard (← applyMVars[i]!.isAssigned)
 
     let pfPreMVar := applyMVars[8]!
+    solvePrecondition args pfPreMVar
+    guard (← pfPreMVar.isAssigned)
 
     let goal ← goal.assert .anonymous applyTheoremType applyTheoremExpr
     let goal ← introAndMassagePostX letName goal
 
     let goals ← getUnsolvedGoals
-    setGoals ([pfPreMVar, goal] ++ goals)
+    setGoals ([goal] ++ goals)
 
 def evalStepLet (args: StepArgs): TacticM Unit :=
   withTraceNode `Step (fun _ => pure m!"Apply step let") do

@@ -89,27 +89,17 @@ where
   pf := by
     unfold test
     step
-    · trivial
     step with ⟨ Label.pub ⟩
-    · grind
     step_intro -- will do proofs on hb later
     hoist
     step
-    · grind
     step
-    · grind
     step_let hb
-    · grind
     step
-    · grind
     step
-    · grind
     step
-    · trivial
     step
-    · grind
     step
-    · grind
     grind
 
 end Test
