@@ -2,6 +2,7 @@ import Init.Control.Lawful.Basic
 import Chamelean.Trace.Type
 import Chamelean.Label.Type
 import Chamelean.Label
+import Lean
 
 namespace Chamelean
 
@@ -93,8 +94,55 @@ def hoareTriple [WP m] (f: m a) (pre: ProofTrace → Prop) (post: a → ProofTra
     Trace.invariant tr →
     WP.wp f post tr
 
+/--
+  This typeclass notifies the `step` tactic that
+  the hoare triple for `x` expects a ghost parameter of type `g`.
+  Knowing this type is crucial to provide useful error message
+  when a user provides a ghost parameter with the wrong type.
+-/
 class HasGhostArgumentType (x: a) (g: outParam (Type u_g)) where
   dummy: Unit
+
+/--
+  Some ghost parameters can be found automatically
+  by looking into the context.
+  This structure holds a metaprogram
+  which is called with a metavariable for the ghost parameter,
+  and the expression corresponding to the hoare triple that requires the ghost parameter.
+  It is expected to assign the ghost parameter metavariable.
+-/
+structure GhostParameterFinder where
+  findGhost: Lean.MVarId → Lean.Expr → Lean.MetaM Unit
+
+/--
+  This typeclass notifies the `step` tactic that
+  `metaprog` can automatically find the ghost parameter
+  of the the hoare triple associated with `x`.
+  For technical reasons, `metaprog` must be a top-level declaration,
+  it cannot be written inline in the declaration.
+  This is to prevent it to depend on local variables specific to this instance.
+-/
+class HasGhostMetaprogram {a: Sort u_1} (x: a) (metaprog: outParam GhostParameterFinder) where
+  dummy: Unit
+
+/--
+  Some hoare triples are derived from others,
+  for example we can create a hoare triple for `lift x` given a hoare triple for `x`.
+  In this case, both hoare triple use the same ghost parameter,
+  but the metaprogram that finds the ghost parameter for `x`
+  won't work if we feed it `lift x` instead of `x`.
+  To solve this issue,
+  `HasIndirectGhostMetaprogram x metaprog y`
+  notifies the `step` tactic
+  that `metaprog` is expected to be called with the expression of `y`
+  instead of the expression of `x`.
+-/
+class HasIndirectGhostMetaprogram {a: Sort u_1} {b: outParam (Sort u_2)} (x: a) (metaprog: outParam GhostParameterFinder) (y: outParam b) where
+  dummy: Unit
+
+instance [HasGhostMetaprogram x metaprog]: HasIndirectGhostMetaprogram x metaprog x
+where
+  dummy := ()
 
 class HoareTripleGhost [WP m] (f: m a) [HasGhostArgumentType f g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: hoareTriple f pre post
@@ -137,6 +185,16 @@ instance
   (x: m a)
   [HasGhostArgumentType x g]
   : HasGhostArgumentType (liftM x: n a) g
+where
+  dummy := ()
+
+instance
+  {m: Type u → Type v} {n: Type u → Type w} [MonadLift m n]
+  {a: Type u} {b: Type z}
+  (x: m a)
+  (y: b)
+  [HasIndirectGhostMetaprogram x metaprog y]
+  : HasIndirectGhostMetaprogram (liftM x: n a) metaprog y
 where
   dummy := ()
 
@@ -261,6 +319,13 @@ instance
   (b: Bool)
   [HasGhostArgumentType b g]
   : HasGhostArgumentType (guard (b = true): Traceful Unit) g
+where
+  dummy := ()
+
+instance
+  (b: Bool)
+  [HasIndirectGhostMetaprogram b metaprog y]
+  : HasIndirectGhostMetaprogram (guard (b = true): Traceful Unit) metaprog y
 where
   dummy := ()
 

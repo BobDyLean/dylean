@@ -79,6 +79,7 @@ syntax stepArgs := ("with" " ⟨ " term,* " ⟩")? ("by" tacticSeq)?
 
 structure StepArgs where
   xGhostTerm : Expr
+  xGhostTermProvided: Bool
   preTactic: Option Syntax
 
 def parseStepArgs (args: TSyntax ``Chamelean.Step.stepArgs): TacticM StepArgs
@@ -96,6 +97,7 @@ def parseStepArgs (args: TSyntax ``Chamelean.Step.stepArgs): TacticM StepArgs
         )
     pure {
       xGhostTerm := ← makeTuple xGhostTerms
+      xGhostTermProvided := xGhosts.isSome
       preTactic := disch
     }
   | _ => throwUnsupportedSyntax
@@ -333,6 +335,67 @@ def massageNextGoal
 
     pure goal
 
+def assignGhostParameterAux
+  (args: StepArgs)
+  (ghostMVarId: MVarId)
+  : MetaM Unit
+  := do
+    let expectedGhostType ← ghostMVarId.getType
+    let gotGhostType ← inferType args.xGhostTerm
+    unless (← isDefEq expectedGhostType gotGhostType) do
+      throwError "Ghost parameter has type {gotGhostType}, expected type {expectedGhostType}.\nHint: use `step ... with ⟨ ... ⟩`"
+    ghostMVarId.safeAssign args.xGhostTerm
+#check outParam
+/--
+  If no ghost parameter was provided,
+  try to use a user-provided meta-program
+  to obtain this ghost parameter
+-/
+def assignGhostParameter
+  (args: StepArgs)
+  (tcMVarId: MVarId) (ghostMVarId: MVarId)
+  : MetaM Unit
+  :=
+  withTraceNode `Step (fun _ => pure m!"Assign ghost parameter") do
+    tcMVarId.assignTypeclassInstance
+    trace[Step] "ghost expression is {args.xGhostTerm} and was {if args.xGhostTermProvided then "" else "not "}provided"
+    if args.xGhostTermProvided then
+      assignGhostParameterAux args ghostMVarId
+    else
+      -- tcType = @HasGhostArgumentType a x g
+      let tcType ← (← tcMVarId.getType).sanitize
+      let (_, tcArgs) := tcType.getAppFnArgs
+      guard (tcArgs.size = 3)
+      let u_1 ← mkFreshLevelMVar
+      let u_2 ← mkFreshLevelMVar
+      let tcMetaprogExprForall := Expr.const ``Chamelean.HasIndirectGhostMetaprogram [u_1, u_2]
+      let tcMetaprogTypeForall ← inferType tcMetaprogExprForall
+      let (tcMetaprogMVars, _, _) ← forallMetaTelescope tcMetaprogTypeForall
+      let tcMetaprogExpr := mkAppN tcMetaprogExprForall tcMetaprogMVars
+      let tcMetaprogMVars := tcMetaprogMVars.map (·.mvarId!)
+      guard (tcMetaprogMVars.size = 5)
+      tcMetaprogMVars[0]!.safeAssign tcArgs[0]!
+      tcMetaprogMVars[2]!.safeAssign tcArgs[1]!
+      let metaTcType := tcMetaprogExpr
+      trace[Step] "trying to synthetize typeclass {metaTcType}"
+      match ← trySynthInstance metaTcType with
+      | .some metaTcExpr =>
+        trace[Step] "found {metaTcExpr}"
+        let metaprog ← (Expr.mvar tcMetaprogMVars[3]!).sanitize
+        let expr ← (Expr.mvar tcMetaprogMVars[4]!).sanitize
+        trace[Step] "got {metaprog} and expression {expr}"
+        let .const metaprogName _ := metaprog
+          | throwError "Found ghost metaprogram {metaprog}, but it is not a top-level name"
+        trace[Step] "name is {metaprogName}"
+        let metaprog ← unsafe evalConstCheck GhostParameterFinder ``GhostParameterFinder metaprogName
+        metaprog.findGhost ghostMVarId expr
+        unless ← ghostMVarId.isAssigned do
+          throwError "Ghost metaprogram {metaprogName} did not assign ghost parameter"
+        trace[Step] "Ghost metaprogram obtained {Expr.mvar ghostMVarId}"
+      | _ =>
+        trace[Step] "did not find instance"
+        assignGhostParameterAux args ghostMVarId
+
 /--
   Apply a theorem about `preserves_invariant_on` on the goal.
   The function is commented with `bind_preserves_invariant_on` in mind,
@@ -368,12 +431,7 @@ def evalStepAux
 
       -- step 2: instantiate the ghost parameter
       trace[Step] "Step 2: assign ghost parameter {args.xGhostTerm}"
-      bindMVars[conf.hasGhostPosition]!.assignTypeclassInstance
-      let expectedGhostType ← bindMVars[conf.ghostPosition]!.getType
-      let gotGhostType ← inferType args.xGhostTerm
-      unless (← isDefEq expectedGhostType gotGhostType) do
-        throwError "Ghost parameter has type {gotGhostType}, expected type {expectedGhostType}.\nHint: use `step ... with ⟨ ... ⟩`"
-      bindMVars[conf.ghostPosition]!.safeAssign args.xGhostTerm
+      assignGhostParameter args bindMVars[conf.hasGhostPosition]! bindMVars[conf.ghostPosition]!
 
       -- step 3: assign the specification for x via typeclass synthesis
       bindMVars[conf.xSpecTheoremPosition]!.assignTypeclassInstance
@@ -458,15 +516,8 @@ def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Uni
 
     -- x
     applyMVars[3]!.safeAssign (.fvar letFv)
-    -- HasGhostArgumentType
-    applyMVars[6]!.assignTypeclassInstance
-    let expectedGhostType ← applyMVars[2]!.getType
-    let gotGhostType ← inferType args.xGhostTerm
-    unless (← isDefEq expectedGhostType gotGhostType) do
-      -- TODO: could be a `step_let` (bad error message)
-      throwError "Ghost parameter has type {gotGhostType}, expected type {expectedGhostType}.\nHint: use `step ... with ⟨ ... ⟩`"
-    -- ghost
-    applyMVars[2]!.safeAssign args.xGhostTerm
+    -- ghost things
+    assignGhostParameter args applyMVars[6]! applyMVars[2]!
     -- HoareTriplePureGhost instance
     applyMVars[7]!.assignTypeclassInstance
     -- tr
