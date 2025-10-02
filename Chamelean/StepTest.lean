@@ -65,9 +65,9 @@ instance:
     pf := sorry
 
 instance:
-  HoareTriplePureBool
+  HoareTriplePure
     (test_publishable b)
-    (fun _ => True) (fun tr => b.is_publishable tr)
+    (fun _ => True) (fun res tr => res → b.is_publishable tr)
   where
     pf := sorry
 

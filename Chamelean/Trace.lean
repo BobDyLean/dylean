@@ -295,46 +295,26 @@ theorem apply_hoare_triple_pure
   : post x tr
   := ht.pf tr p
 
-class HoareTriplePureBoolGhost (b: Bool) [HasGhostArgumentType b g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (ProofTrace → Prop)) where
-  pf: ∀ tr, pre tr → b → post tr
-
-class HoareTriplePureBool (b: Bool) (pre: outParam (ProofTrace → Prop)) (post: outParam (ProofTrace → Prop)) where
-  pf: ∀ tr, pre tr → b → post tr
-
-instance
-  (b: Bool)
-  (pre: ProofTrace → Prop) (post: ProofTrace → Prop)
-  [HoareTriplePureBool b pre post]
-  : HasGhostArgumentType b Unit
-where
-  dummy := ()
-
-instance
-  [HoareTriplePureBool x pre post]
-  : HoareTriplePureBoolGhost x () pre post
-where
-  pf := HoareTriplePureBool.pf
-
 instance
   (b: Bool)
   [HasGhostArgumentType b g]
-  : HasGhostArgumentType (guard (b = true): Traceful Unit) g
+  : HasGhostArgumentType (guard b: Traceful Unit) g
 where
   dummy := ()
 
 instance
   (b: Bool)
   [HasIndirectGhostMetaprogram b metaprog y]
-  : HasIndirectGhostMetaprogram (guard (b = true): Traceful Unit) metaprog y
+  : HasIndirectGhostMetaprogram (guard b: Traceful Unit) metaprog y
 where
   dummy := ()
 
-instance (b: Bool) [HasGhostArgumentType b g] [ht: HoareTriplePureBoolGhost b ghost pre post]:
+instance (b: Bool) [HasGhostArgumentType b g] [ht: HoareTriplePureGhost b ghost pre post]:
   HoareTripleGhost
     (guard (b = true): Traceful Unit)
     (ghost)
     (fun tr => pre tr)
-    (fun () tr => post tr)
+    (fun () tr => post true tr)
 where
   pf := by
     have := ht.pf
