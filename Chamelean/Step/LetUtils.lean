@@ -213,6 +213,7 @@ elab "hoist" : tactic => do
 
 namespace Test
   def g (foo: Bytes) (bar: Bytes) := foo
+  def send_message (b: Bytes): Traceful Nat := sorry
 
   example:
     wp (

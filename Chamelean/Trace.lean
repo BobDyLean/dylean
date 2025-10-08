@@ -330,9 +330,6 @@ where
       grind
 
 
-def send_message (b:Bytes) : Traceful Nat := sorry
-def receive_message (ts: Nat): Traceful Bytes := sorry
-
 axiom Bytes.invariant (b:Bytes) (tr: ProofTrace): Prop
 axiom Bytes.label (b:Bytes) (tr: ProofTrace): Label
 
@@ -349,6 +346,11 @@ grind_pattern _root_.Chamelean.Trace.MonotoneLemmas.get_label_later =>
 def Bytes.is_publishable (b:Bytes) (tr: ProofTrace): Prop :=
   b.invariant tr ∧
   (b.label tr).canFlow Label.pub tr
+
+namespace Test
+
+def send_message (b:Bytes) : Traceful Nat := sorry
+def receive_message (ts: Nat): Traceful Bytes := sorry
 
 instance:
   HoareTriple
@@ -415,5 +417,7 @@ example: ∀ b: Bytes, is_monotone (fun tr => b.is_publishable tr) := by
 example: ∀ b: Bytes, tr1 ≤ tr2 → b.is_publishable tr1 → b.is_publishable tr2 := by
   open Chamelean.Trace.MonotoneLemmas in
   grind
+
+end Test
 
 end Chamelean
