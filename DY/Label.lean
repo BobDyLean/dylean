@@ -1,7 +1,7 @@
-import Chamelean.Label.Type
-import Chamelean.Trace.Type
+import DY.Label.Type
+import DY.Trace.Type
 
-namespace Chamelean
+namespace DY
 
 structure LabelCtor where
   isCorrupt: Trace Unit → Prop
@@ -28,7 +28,7 @@ theorem Label.makeIsCorrupt (ctor: LabelCtor) (tr: Trace α): (Label.make ctor).
   simp [Label.make, isCorrupt]
 
 @[scoped grind→]
-theorem _root_.Chamelean.Trace.MonotoneLemmas.isCorrupt_Later (l: Label) (tr1 tr2: Trace Unit):
+theorem _root_.DY.Trace.MonotoneLemmas.isCorrupt_Later (l: Label) (tr1 tr2: Trace Unit):
   tr1 ≤ tr2 →
   l.isCorrupt_ tr1 →
   l.isCorrupt_ tr2
@@ -42,7 +42,7 @@ theorem _root_.Chamelean.Trace.MonotoneLemmas.isCorrupt_Later (l: Label) (tr1 tr
       grind
 
 @[scoped grind→]
-theorem _root_.Chamelean.Trace.MonotoneLemmas.isCorruptLater (l: Label) (tr1 tr2: Trace α):
+theorem _root_.DY.Trace.MonotoneLemmas.isCorruptLater (l: Label) (tr1 tr2: Trace α):
   tr1 ≤ tr2 →
   l.isCorrupt tr1 →
   l.isCorrupt tr2
@@ -50,7 +50,7 @@ theorem _root_.Chamelean.Trace.MonotoneLemmas.isCorruptLater (l: Label) (tr1 tr2
     unfold Label.isCorrupt
     simp only [map_const, Function.comp_apply]
     intro
-    apply _root_.Chamelean.Trace.MonotoneLemmas.isCorrupt_Later
+    apply _root_.DY.Trace.MonotoneLemmas.isCorrupt_Later
     apply Trace.trace_le_map (Function.const α ()) tr1 tr2
     assumption
 
@@ -60,7 +60,7 @@ def Label.canFlow (l1: Label) (l2: Label) (tr: Trace α): Prop :=
     l2.isCorrupt trLater → l1.isCorrupt trLater
 
 @[scoped grind→]
-theorem _root_.Chamelean.Trace.MonotoneLemmas.canFlowLater (l1: Label) (l2: Label) (tr1 tr2: Trace α):
+theorem _root_.DY.Trace.MonotoneLemmas.canFlowLater (l1: Label) (l2: Label) (tr1 tr2: Trace α):
   tr1 ≤ tr2 →
   l1.canFlow l2 tr1 →
   l1.canFlow l2 tr2
@@ -98,8 +98,8 @@ theorem canFlowPubEqIsCorrupt (l: Label) (tr: Trace α):
   l.isCorrupt tr = l.canFlow Label.pub tr
   := by
   -- TODO: open doesn't work?
-  -- open Chamelean.Trace.MonotoneLemmas in
-  grind [Label.canFlow, Chamelean.Trace.MonotoneLemmas.isCorruptLater]
+  -- open DY.Trace.MonotoneLemmas in
+  grind [Label.canFlow, DY.Trace.MonotoneLemmas.isCorruptLater]
 
 def Label.secret : Label := Label.make {
   isCorrupt tr := False
@@ -158,4 +158,4 @@ theorem Label.joinCanFlowRight (l1: Label) (l2: Label) (tr: Trace α):
   have := joinEq (l1.join l2) l1 l2 tr
   grind
 
-end Chamelean
+end DY

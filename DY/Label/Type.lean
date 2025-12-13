@@ -1,10 +1,10 @@
-import Chamelean.Trace.Type
+import DY.Trace.Type
 
-namespace Chamelean
+namespace DY
 
 structure Label where
   isCorrupt_: Trace Unit → Prop
   isCorruptSnoc_:
     ∀ tr e, isCorrupt_ tr → isCorrupt_ (.snoc tr e)
 
-end Chamelean
+end DY

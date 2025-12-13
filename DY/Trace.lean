@@ -1,10 +1,10 @@
 import Init.Control.Lawful.Basic
-import Chamelean.Trace.Type
-import Chamelean.Label.Type
-import Chamelean.Label
+import DY.Trace.Type
+import DY.Label.Type
+import DY.Label
 import Lean
 
-namespace Chamelean
+namespace DY
 
 abbrev ExecutionTrace := Trace Unit
 
@@ -334,12 +334,12 @@ axiom Bytes.invariant (b:Bytes) (tr: ProofTrace): Prop
 axiom Bytes.label (b:Bytes) (tr: ProofTrace): Label
 
 @[scoped grind→]
-axiom _root_.Chamelean.Trace.MonotoneLemmas.bytes_invariant_later (b:Bytes) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → b.invariant tr1 → b.invariant tr2
+axiom _root_.DY.Trace.MonotoneLemmas.bytes_invariant_later (b:Bytes) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → b.invariant tr1 → b.invariant tr2
 
-axiom _root_.Chamelean.Trace.MonotoneLemmas.get_label_later (b:Bytes) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → b.label tr1 = b.label tr2
+axiom _root_.DY.Trace.MonotoneLemmas.get_label_later (b:Bytes) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → b.label tr1 = b.label tr2
 
 -- TODO scoped
-grind_pattern _root_.Chamelean.Trace.MonotoneLemmas.get_label_later =>
+grind_pattern _root_.DY.Trace.MonotoneLemmas.get_label_later =>
   b.invariant tr1, tr1 ≤ tr2, b.label tr1
 
 @[grind]
@@ -406,18 +406,18 @@ example: ∀ b1 b2 b3 b4 b5: Bytes, ∀ x, is_monotone (fun tr =>
       | some false => b5.invariant tr
     )
   )) := by
-  open Chamelean.Trace.MonotoneLemmas in
+  open DY.Trace.MonotoneLemmas in
   grind [is_monotone]
 
 example: ∀ b: Bytes, is_monotone (fun tr => b.is_publishable tr) := by
-  open Chamelean.Trace.MonotoneLemmas in
+  open DY.Trace.MonotoneLemmas in
   unfold is_monotone
   grind [is_monotone]
 
 example: ∀ b: Bytes, tr1 ≤ tr2 → b.is_publishable tr1 → b.is_publishable tr2 := by
-  open Chamelean.Trace.MonotoneLemmas in
+  open DY.Trace.MonotoneLemmas in
   grind
 
 end Test
 
-end Chamelean
+end DY

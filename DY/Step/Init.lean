@@ -1,12 +1,12 @@
 import Lean
-import Chamelean.Step.Trace
-import Chamelean.Step.LetUtils
-import Chamelean.Step.Utils
-import Chamelean.Trace
+import DY.Step.Trace
+import DY.Step.LetUtils
+import DY.Step.Utils
+import DY.Trace
 
 open Lean Elab Term Meta Tactic
 
-namespace Chamelean.Step
+namespace DY.Step
 
 inductive StepSpecTheorem where
   | wp
@@ -34,10 +34,10 @@ def preservesInvariantTelescope
     trace[Step] "Theorem after forall intro: {type}"
     let (fName, args) := type.getAppFnArgs
     trace[Step] "function name: {fName}, arguments: {args}"
-    if fName = ``Chamelean.hoareTriple then
+    if fName = ``DY.hoareTriple then
       guard (args.size = 6)
       pure (xs_and_bi, StepSpecTheorem.hoareTriple args[3]! args[4]! args[5]!)
-    else if fName = ``Chamelean.wp then
+    else if fName = ``DY.wp then
       guard (args.size = 6)
       pure (xs_and_bi, StepSpecTheorem.wp args[3]! args[4]! args[5]!)
     else
@@ -82,7 +82,7 @@ structure StepArgs where
   xGhostTermProvided: Bool
   preTactic: Option Syntax
 
-def parseStepArgs (args: TSyntax ``Chamelean.Step.stepArgs): TacticM StepArgs
+def parseStepArgs (args: TSyntax ``DY.Step.stepArgs): TacticM StepArgs
   :=
   withMainContext do
   trace[Step] "Step arguments: {args.raw}"
@@ -130,7 +130,7 @@ def monotonizeOneHypothesis
     let newHypMVarId := newHypExpr.mvarId!
 
     -- prove with grind using (scoped) monotonicity theorems
-    withOpenIn `Chamelean.Trace.MonotoneLemmas do
+    withOpenIn `DY.Trace.MonotoneLemmas do
       try
         let _ ← grind newHypMVarId {} false #[] none
       catch _ =>
@@ -218,8 +218,8 @@ def massageNextGoal
     -- get old and mid trace FVarId
     -- how: unify ?tr_old ≤ ?tr_mid with the hypthesis we introduced
     let (trOldFv, trMidFv) ← do
-      let oldTraceMVarId ← mkFreshExprMVar (mkConst `Chamelean.ProofTrace)
-      let midTraceMVarId ← mkFreshExprMVar (mkConst `Chamelean.ProofTrace)
+      let oldTraceMVarId ← mkFreshExprMVar (mkConst `DY.ProofTrace)
+      let midTraceMVarId ← mkFreshExprMVar (mkConst `DY.ProofTrace)
       let trLeToUnify ← mkAppOptM `LE.le #[none, none, oldTraceMVarId, midTraceMVarId]
       trace[Step] "finding old trace fvarid by unifying {trLeToUnify} and {(← trGrowsFv.getType)}"
       unless (← isDefEq trLeToUnify (← trGrowsFv.getType)) do
@@ -237,7 +237,7 @@ def massageNextGoal
     -- get trace invariant for old trace
     -- how: unify Trace.invariant tr_old with an assumption
     let trInvOldFv ← do
-      let trInvOldType ← mkAppOptM `Chamelean.Trace.invariant #[mkFVar trOldFv]
+      let trInvOldType ← mkAppOptM `DY.Trace.invariant #[mkFVar trOldFv]
       let trInvOldMVarId ← mkFreshExprMVar trInvOldType
       trace[Step] "finding in assumptions {trInvOldType}"
       trInvOldMVarId.mvarId!.assumption
@@ -264,8 +264,8 @@ def massageNextGoal
       let ty ← ty.sanitize
       let (name, _) := ty.getAppFnArgs
       pure (
-        name = `Chamelean.ProofTrace ∨
-        name = `Chamelean.Trace.invariant ∨
+        name = `DY.ProofTrace ∨
+        name = `DY.Trace.invariant ∨
         name = `LE.le
       )
     )
@@ -368,7 +368,7 @@ def assignGhostParameter
       guard (tcArgs.size = 3)
       let u_1 ← mkFreshLevelMVar
       let u_2 ← mkFreshLevelMVar
-      let tcMetaprogExprForall := Expr.const ``Chamelean.HasIndirectGhostMetaprogram [u_1, u_2]
+      let tcMetaprogExprForall := Expr.const ``DY.HasIndirectGhostMetaprogram [u_1, u_2]
       let tcMetaprogTypeForall ← inferType tcMetaprogExprForall
       let (tcMetaprogMVars, _, _) ← forallMetaTelescope tcMetaprogTypeForall
       let tcMetaprogExpr := mkAppN tcMetaprogExprForall tcMetaprogMVars
@@ -469,7 +469,7 @@ def evalStepBind
   : TacticM Unit
   := do
     evalStepAux args {
-      theoremName := ``Chamelean.Traceful.bind_wp
+      theoremName := ``DY.Traceful.bind_wp
       nbArgs := 15
       nbUnifiedArgs := 14
       ghostPosition := 3,
@@ -486,7 +486,7 @@ def evalStepFinal
   : TacticM Unit
   := do
     evalStepAux args {
-      theoremName := ``Chamelean.Traceful.finish_wp
+      theoremName := ``DY.Traceful.finish_wp
       nbArgs := 13
       nbUnifiedArgs := 12
       ghostPosition := 2
@@ -505,7 +505,7 @@ def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Uni
     let letName := (← letFv.getDecl).userName
 
     -- applyTheoremExprForall = apply_hoare_triple_pure
-    let applyTheoremExprForall ← Term.mkConst ``Chamelean.apply_hoare_triple_pure
+    let applyTheoremExprForall ← Term.mkConst ``DY.apply_hoare_triple_pure
     -- applyTheoremTypeForall = ∀ ghost x ..., post x tr
     let applyTheoremTypeForall ← inferType applyTheoremExprForall
     -- applyTheoremType = post x tr
@@ -564,7 +564,7 @@ def evalStep (args: StepArgs): TacticM Unit := do
   | (_, .hoareTriple func pre post) =>
     trace[Step] "goal is `preserves_invariant` on function {func}, unfolding and recursing"
     let goal ← getMainGoal
-    let goal ← Lean.Meta.unfoldTarget goal ``Chamelean.hoareTriple
+    let goal ← Lean.Meta.unfoldTarget goal ``DY.hoareTriple
     let (_trFv, goal) ← goal.intro1P
     let (_preFv, goal) ← goal.intro1
     let (_trInvFv, goal) ← goal.intro1
@@ -580,4 +580,4 @@ elab (name := step_let) "step_let" letFvSyn:term args:stepArgs: tactic => do
   let letFv := letFvTerm.fvarId!
   applyLetTheorem (← parseStepArgs args) (← getMainGoal) letFv
 
-end Chamelean.Step
+end DY.Step

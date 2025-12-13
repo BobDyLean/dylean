@@ -1,7 +1,7 @@
-import Chamelean.Trace
-import Chamelean.Step
+import DY.Trace
+import DY.Step
 
-open Chamelean
+open DY
 
 namespace Test
 

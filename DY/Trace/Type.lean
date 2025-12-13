@@ -1,4 +1,4 @@
-namespace Chamelean
+namespace DY
 
 axiom Bytes: Type 0
 
@@ -109,4 +109,4 @@ theorem trace_le_map
     · apply LETrace.extend
       assumption
 
-end Chamelean.Trace
+end DY.Trace

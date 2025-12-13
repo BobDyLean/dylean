@@ -1,10 +1,10 @@
-name = "chamelean"
+name = "dylean"
 version = "0.1.0"
-defaultTargets = ["chamelean"]
+defaultTargets = ["dylean"]
 
 [[lean_lib]]
-name = "Chamelean"
+name = "DY"
 
 [[lean_exe]]
-name = "chamelean"
+name = "dylean"
 root = "Main"

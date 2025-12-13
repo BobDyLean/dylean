@@ -1,10 +1,10 @@
 import Lean
-import Chamelean.Trace
-import Chamelean.Step.Utils
+import DY.Trace
+import DY.Step.Utils
 
 open Lean Elab Term Meta Tactic
 
-namespace Chamelean.Step
+namespace DY.Step
 
 def swapAppLetAux (e: Expr): TacticM (Expr × Option (Name × Expr × Expr × Bool)) := do
   match e with
@@ -190,7 +190,7 @@ def hoistArgumentsInWpAux
   : MetaM (Option Expr)
   := do
     let (fn, args) := e.withApp Prod.mk
-    unless fn.constName = ``Chamelean.wp && args.size = 6 do
+    unless fn.constName = ``DY.wp && args.size = 6 do
       return none
     match ← hoistArguments isExplicitComplexExpr args[3]! with
     | .some arg1 =>
@@ -256,4 +256,4 @@ namespace Test
 
 end Test
 
-end Chamelean.Step
+end DY.Step

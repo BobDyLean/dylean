@@ -1,7 +1,7 @@
-import Chamelean.Trace
-import Chamelean.Step
+import DY.Trace
+import DY.Step
 
-open Chamelean
+open DY
 
 def pure_invariants (x: a) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop) :=
   ∀ tr,
@@ -35,10 +35,10 @@ def Usage := Principal -- TODO: real type + injectivity
 
 axiom has_usage: Bytes → Usage → ProofTrace → Prop
 
-axiom _root_.Chamelean.Trace.MonotoneLemmas.has_usage_later (b:Bytes) (usg: Usage) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → has_usage b usg tr1 → has_usage b usg tr2
+axiom _root_.DY.Trace.MonotoneLemmas.has_usage_later (b:Bytes) (usg: Usage) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → has_usage b usg tr1 → has_usage b usg tr2
 
 -- TODO scoped
-grind_pattern _root_.Chamelean.Trace.MonotoneLemmas.has_usage_later =>
+grind_pattern _root_.DY.Trace.MonotoneLemmas.has_usage_later =>
   b.invariant tr1, tr1 ≤ tr2, has_usage b usg tr1
 
 class ParseableSerializeable (a: Type) where
@@ -181,7 +181,7 @@ instance : ParseableSerializeable SignedDHEvent := sorry
 
 -- setup
 
-def Chamelean.Trace.prefix (tr: Trace α) (i: Nat): Trace α := sorry
+def DY.Trace.prefix (tr: Trace α) (i: Nat): Trace α := sorry
 axiom prefix_le (tr: Trace α) (i: Nat): (tr.prefix i) ≤ tr
 grind_pattern prefix_le => tr.prefix i
 
@@ -189,10 +189,10 @@ axiom event_logged_at (who: Principal) (ev: SignedDHEvent) (i: Nat) (tr: ProofTr
 abbrev event_logged (who: Principal) (ev: SignedDHEvent) (tr: ProofTrace) :=
   ∃ i, event_logged_at who ev i tr
 
-namespace Chamelean -- ???
+namespace DY -- ???
 @[scoped grind→]
-axiom _root_.Chamelean.Trace.MonotoneLemmas.event_logged_at_later (who: Principal) (ev: SignedDHEvent) (i: Nat) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → event_logged_at who ev i tr1 → event_logged_at who ev i tr2
-end Chamelean
+axiom _root_.DY.Trace.MonotoneLemmas.event_logged_at_later (who: Principal) (ev: SignedDHEvent) (i: Nat) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → event_logged_at who ev i tr1 → event_logged_at who ev i tr2
+end DY
 
 def dh_pk (sk: Bytes): Bytes := sorry
 def dh (sk: Bytes) (pk: Bytes): Bytes := sorry
@@ -219,11 +219,11 @@ def sign_pred (sk_usg: Usage) (vk: Bytes) (msg: Bytes) (tr: ProofTrace) :=
     )
   )
 
-namespace Chamelean -- ???
+namespace DY -- ???
 @[scoped grind→]
 -- to prove using well-formedness condition that is not yet formalized
-axiom _root_.Chamelean.Trace.MonotoneLemmas.sign_pred_later (sk_usg: Usage) (vk: Bytes) (msg: Bytes) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → sign_pred sk_usg vk msg tr1 → sign_pred sk_usg vk msg tr2
-end Chamelean
+axiom _root_.DY.Trace.MonotoneLemmas.sign_pred_later (sk_usg: Usage) (vk: Bytes) (msg: Bytes) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → sign_pred sk_usg vk msg tr1 → sign_pred sk_usg vk msg tr2
+end DY
 
 def client_state_inv (me: Principal) (sid: Nat) (st: ClientState) (tr: ProofTrace) :=
   match st with
@@ -235,16 +235,16 @@ def client_state_inv (me: Principal) (sid: Nat) (st: ClientState) (tr: ProofTrac
     k_c.invariant tr ∧
     (k_c.label tr).canFlow (client_label me) tr
 
-namespace Chamelean -- ???
+namespace DY -- ???
 -- scoped ??
 @[scoped grind→]
-theorem _root_.Chamelean.Trace.MonotoneLemmas.client_state_inv_later
+theorem _root_.DY.Trace.MonotoneLemmas.client_state_inv_later
   (me: Principal) (sid: Nat) (st: ClientState) (tr1 tr2: ProofTrace):
   tr1 ≤ tr2 → client_state_inv me sid st tr1 → client_state_inv me sid st tr2
   := by
     unfold client_state_inv
     grind
-end Chamelean
+end DY
 
 
 def server_state_inv (me: Principal) (sid: Nat)(st: ServerState) (tr: ProofTrace) :=
@@ -272,13 +272,13 @@ theorem get_dh_label_lemma (sk: Bytes) (tr: ProofTrace):
   get_dh_label (dh_pk sk) tr = sk.label tr
   := by sorry
 
-axiom _root_.Chamelean.Trace.MonotoneLemmas.get_dh_label_later (b:Bytes) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → get_dh_label b tr1 = get_dh_label b tr2
+axiom _root_.DY.Trace.MonotoneLemmas.get_dh_label_later (b:Bytes) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → get_dh_label b tr1 = get_dh_label b tr2
 
 axiom dh_eq (sk1 sk2: Bytes): dh sk1 (dh_pk sk2) = dh sk2 (dh_pk sk1)
 grind_pattern dh_eq => dh sk1 (dh_pk sk2), dh sk2 (dh_pk sk1)
 
 -- TODO scoped
-grind_pattern _root_.Chamelean.Trace.MonotoneLemmas.get_dh_label_later =>
+grind_pattern _root_.DY.Trace.MonotoneLemmas.get_dh_label_later =>
   b.invariant tr1, tr1 ≤ tr2, get_dh_label b tr1
 
 instance:
@@ -312,20 +312,20 @@ def get_sign_label (vk: Bytes) (tr: ProofTrace): Label := sorry
 axiom get_sign_label_lemma (sk: Bytes) (tr: ProofTrace):
   sk.label tr = get_sign_label (vk sk) tr
 
-axiom _root_.Chamelean.Trace.MonotoneLemmas.get_sign_label_later (b:Bytes) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → get_sign_label b tr1 = get_sign_label b tr2
+axiom _root_.DY.Trace.MonotoneLemmas.get_sign_label_later (b:Bytes) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → get_sign_label b tr1 = get_sign_label b tr2
 
 -- TODO scoped
-grind_pattern _root_.Chamelean.Trace.MonotoneLemmas.get_sign_label_later =>
+grind_pattern _root_.DY.Trace.MonotoneLemmas.get_sign_label_later =>
   b.invariant tr1, tr1 ≤ tr2, get_sign_label b tr1
 
 def has_sign_usage (vk: Bytes) (usg: Usage) (tr: ProofTrace): Prop := sorry
 axiom has_sign_usage_lemma (sk: Bytes) (usg: Usage) (tr: ProofTrace):
   has_usage sk usg tr = has_sign_usage (vk sk) usg tr
 
-axiom _root_.Chamelean.Trace.MonotoneLemmas.has_sign_usage_later (b:Bytes) (usg: Usage) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → has_sign_usage b usg tr1 → has_sign_usage b usg tr2
+axiom _root_.DY.Trace.MonotoneLemmas.has_sign_usage_later (b:Bytes) (usg: Usage) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → has_sign_usage b usg tr1 → has_sign_usage b usg tr2
 
 -- TODO scoped
-grind_pattern _root_.Chamelean.Trace.MonotoneLemmas.has_sign_usage_later =>
+grind_pattern _root_.DY.Trace.MonotoneLemmas.has_sign_usage_later =>
   b.invariant tr1, tr1 ≤ tr2, has_sign_usage b usg tr1
 
 instance: HasGhostArgumentType (sign sk nonce msg) Usage
