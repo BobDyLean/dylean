@@ -114,7 +114,7 @@ def solvePrecondition
       evalTactic tac
       setGoals currentGoals
     | none =>
-      let _ ← grind pre {} false #[] (pure ())
+      let _ ← grind pre {} false #[] none
       pure ()
 
 def monotonizeOneHypothesis
@@ -132,7 +132,7 @@ def monotonizeOneHypothesis
     -- prove with grind using (scoped) monotonicity theorems
     withOpenIn `Chamelean.Trace.MonotoneLemmas do
       try
-        let _ ← grind newHypMVarId {} false #[] (pure ())
+        let _ ← grind newHypMVarId {} false #[] none
       catch _ =>
         throwError
           "cannot monotonize `{oldHypType}`\n\
