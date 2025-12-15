@@ -6,12 +6,11 @@ import Lean
 
 namespace DY
 
+variable [BytesCtors]
+
 abbrev ExecutionTrace := Trace Unit
 
 abbrev ProofTrace := Trace Label -- TODO and usage
-
-def Trace.erase (tr_proof: ProofTrace): ExecutionTrace :=
-  Functor.mapConst () tr_proof
 
 abbrev Traceful := OptionT (StateT ExecutionTrace Id)
 abbrev Err := OptionT Id
@@ -330,23 +329,24 @@ where
       grind
 
 
-axiom Bytes.invariant (b:Bytes) (tr: ProofTrace): Prop
-axiom Bytes.label (b:Bytes) (tr: ProofTrace): Label
+-- axiom Bytes.invariant (b:Bytes) (tr: ProofTrace): Prop
+-- axiom Bytes.label (b:Bytes) (tr: ProofTrace): Label
 
-@[scoped grind→]
-axiom _root_.DY.Trace.MonotoneLemmas.bytes_invariant_later (b:Bytes) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → b.invariant tr1 → b.invariant tr2
+-- @[scoped grind→]
+-- axiom _root_.DY.Trace.MonotoneLemmas.bytes_invariant_later (b:Bytes) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → b.invariant tr1 → b.invariant tr2
 
-axiom _root_.DY.Trace.MonotoneLemmas.get_label_later (b:Bytes) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → b.label tr1 = b.label tr2
+-- axiom _root_.DY.Trace.MonotoneLemmas.get_label_later (b:Bytes) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → b.label tr1 = b.label tr2
 
 -- TODO scoped
-grind_pattern _root_.DY.Trace.MonotoneLemmas.get_label_later =>
-  b.invariant tr1, tr1 ≤ tr2, b.label tr1
+-- grind_pattern _root_.DY.Trace.MonotoneLemmas.get_label_later =>
+--   b.invariant tr1, tr1 ≤ tr2, b.label tr1
 
-@[grind]
-def Bytes.is_publishable (b:Bytes) (tr: ProofTrace): Prop :=
-  b.invariant tr ∧
-  (b.label tr).canFlow Label.pub tr
+-- @[grind]
+-- def Bytes.is_publishable (b:Bytes) (tr: ProofTrace): Prop :=
+--   b.invariant tr ∧
+--   (b.label tr).canFlow Label.pub tr
 
+/-
 namespace Test
 
 def send_message (b:Bytes) : Traceful Nat := sorry
@@ -419,5 +419,6 @@ example: ∀ b: Bytes, tr1 ≤ tr2 → b.is_publishable tr1 → b.is_publishable
   grind
 
 end Test
+-/
 
 end DY

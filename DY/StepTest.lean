@@ -1,9 +1,14 @@
 import DY.Trace
+import DY.Bytes.EquationalTheory
+import DY.Bytes.EquationalTheoryInvariants
 import DY.Step
 
 open DY
 
 namespace Test
+
+variable [EquationalTheories]
+variable [EquationalTheories.Invariants]
 
 def hash (b: Bytes): Bytes := sorry
 def test_publishable (b: Bytes): Bool := sorry
@@ -60,14 +65,14 @@ instance:
 instance:
   HoareTriple
     (receive_message n)
-    (fun _ => True) (fun b tr => b.is_publishable tr)
+    (fun _ => True) (fun b tr => b.Publishable tr)
   where
     pf := sorry
 
 instance:
   HoareTriplePure
     (test_publishable b)
-    (fun _ => True) (fun res tr => res → b.is_publishable tr)
+    (fun _ => True) (fun res tr => res → b.Publishable tr)
   where
     pf := sorry
 
@@ -86,8 +91,8 @@ def test (b:Bytes) (b2: Bytes): Traceful Bytes := do
 instance:
   HoareTriple
     (test b b2)
-    (fun tr => b.is_publishable tr)
-    (fun res tr => res.is_publishable tr)
+    (fun tr => b.Publishable tr)
+    (fun res tr => res.Publishable tr)
 where
   pf := by
     unfold test

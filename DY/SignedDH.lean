@@ -1,7 +1,16 @@
 import DY.Trace
 import DY.Step
+import DY.Bytes.EquationalTheory
+import DY.Bytes.EquationalTheoryInvariants
+import DY.EquationalTheory.Hash
 
 open DY
+
+variable [EquationalTheories]
+variable [EquationalTheories.Invariants]
+
+variable [HasEquationalTheory Hash.equationalTheory]
+variable [Hash.EquationalTheoryInvariant.Has]
 
 def pure_invariants (x: a) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop) :=
   ∀ tr,
@@ -31,7 +40,7 @@ instance:
     pf := sorry
 
 def Principal := String
-def Usage := Principal -- TODO: real type + injectivity
+-- def Usage := Principal -- TODO: real type + injectivity
 
 axiom has_usage: Bytes → Usage → ProofTrace → Prop
 
@@ -102,10 +111,10 @@ grind_pattern isWellFormedFormatRelBytesInvariant => formatRel buf x, buf.invari
 theorem isWellFormedFormatRelIsPublishable [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
   formatRel buf x →
-  (buf.is_publishable tr = isWellFormed Bytes.is_publishable x tr)
-  := isWellFormedFormatRel Bytes.is_publishable
+  (buf.Publishable tr = isWellFormed Bytes.Publishable x tr)
+  := isWellFormedFormatRel Bytes.Publishable
 
-grind_pattern isWellFormedFormatRelIsPublishable => formatRel buf x, Bytes.is_publishable buf tr
+grind_pattern isWellFormedFormatRelIsPublishable => formatRel buf x, Bytes.Publishable buf tr
 
 theorem isWellFormedParse [ParseableSerializeable a] (pre: Bytes → τ → Prop) (buf: Bytes) (x: a) (tr: τ):
   parse buf = some x →
@@ -120,7 +129,7 @@ class BytesCompatible (pre: Bytes → τ → Prop) where
 instance: BytesCompatible Bytes.invariant where
   dummy := ()
 
-instance: BytesCompatible is_publishable where
+instance: BytesCompatible Publishable where
   dummy := ()
 
 inductive ClientState where
@@ -199,7 +208,6 @@ def dh (sk: Bytes) (pk: Bytes): Bytes := sorry
 def vk (sk: Bytes): Bytes := sorry
 def sign (sk: Bytes) (nonce: Bytes) (msg: Bytes): Bytes := sorry
 def verify (vk: Bytes) (msg: Bytes) (sig: Bytes): Bool := sorry
-def hash (b: Bytes): Bytes := sorry
 
 -- invariants
 
@@ -286,7 +294,7 @@ instance:
     (dh sk pk)
     (fun tr =>
       sk.invariant tr ∧
-      pk.is_publishable tr
+      pk.Publishable tr
       -- and usage
     )
     (fun res tr =>
@@ -335,9 +343,9 @@ where
 def signMetaprog: GhostParameterFinder where
   findGhost mvar e :=
   Lean.withTraceNode `Step (fun _ => pure m!"signMetaprog") do
-    let sk_mvar ← Lean.Meta.mkFreshExprMVar (some (.const ``Bytes []))
-    let nonce_mvar ← Lean.Meta.mkFreshExprMVar (some (.const ``Bytes []))
-    let msg_mvar ← Lean.Meta.mkFreshExprMVar (some (.const ``Bytes []))
+    let sk_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
+    let nonce_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
+    let msg_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
     let signToUnify ← Lean.Meta.mkAppM ``sign #[sk_mvar, nonce_mvar, msg_mvar]
     trace[Step] "gonna unify {e} and {signToUnify}"
     unless ← Lean.Meta.isDefEq e signToUnify do
@@ -345,7 +353,7 @@ def signMetaprog: GhostParameterFinder where
     trace[Step] "got {signToUnify}"
 
     let usg_mvar := .mvar mvar
-    let tr_mvar ← Lean.Meta.mkFreshExprMVar (some (.const ``ProofTrace []))
+    let tr_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``ProofTrace #[none]))
     let hasUsageToUnify ← Lean.Meta.mkAppM ``has_usage #[sk_mvar, usg_mvar, tr_mvar]
     trace[Step] "gonna find {hasUsageToUnify} in assumptions"
     let .mvar hasUsageMvar ← Lean.Meta.mkFreshExprMVar hasUsageToUnify
@@ -389,9 +397,9 @@ where
 def verifyMetaprog: GhostParameterFinder where
   findGhost mvar e :=
   Lean.withTraceNode `Step (fun _ => pure m!"verifyMetaprog") do
-    let vkey_mvar ← Lean.Meta.mkFreshExprMVar (some (.const ``Bytes []))
-    let msg_mvar ← Lean.Meta.mkFreshExprMVar (some (.const ``Bytes []))
-    let sig_mvar ← Lean.Meta.mkFreshExprMVar (some (.const ``Bytes []))
+    let vkey_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
+    let msg_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
+    let sig_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
     let verifyToUnify ← Lean.Meta.mkAppM ``verify #[vkey_mvar, msg_mvar, sig_mvar]
     trace[Step] "gonna unify {e} and {verifyToUnify}"
     unless ← Lean.Meta.isDefEq e verifyToUnify do
@@ -399,7 +407,7 @@ def verifyMetaprog: GhostParameterFinder where
     trace[Step] "got {verifyToUnify}"
 
     let usg_mvar := .mvar mvar
-    let tr_mvar ← Lean.Meta.mkFreshExprMVar (some (.const ``ProofTrace []))
+    let tr_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``ProofTrace #[none]))
     let hasUsageToUnify ← Lean.Meta.mkAppM ``has_sign_usage #[vkey_mvar, usg_mvar, tr_mvar]
     trace[Step] "gonna find {hasUsageToUnify} in assumptions"
     let .mvar hasUsageMvar ← Lean.Meta.mkFreshExprMVar hasUsageToUnify
@@ -433,16 +441,17 @@ instance:
   where
     pf := sorry
 
-instance:
+instance (b: Bytes):
   HoareTriplePure
-    (hash b)
+    (DY.hash b)
     (fun tr => b.invariant tr)
     (fun res tr =>
       res.invariant tr ∧
       res.label tr = b.label tr
     )
   where
-    pf := sorry
+    pf := by
+      simp
 
 def gen_rand (len: Nat) : Traceful Bytes := sorry
 def send_message (b:Bytes) : Traceful Nat := sorry
@@ -476,7 +485,7 @@ instance:
 instance:
   HoareTriple
     (send_message b)
-    (fun tr => b.is_publishable tr)
+    (fun tr => b.Publishable tr)
     (fun _ _ => True)
   where
     pf := sorry
@@ -485,7 +494,7 @@ instance:
   HoareTriple
     (receive_message ts)
     (fun _ => True)
-    (fun b tr => b.is_publishable tr)
+    (fun b tr => b.Publishable tr)
   where
     pf := sorry
 
@@ -673,8 +682,8 @@ where
     step with ⟨ Label.secret ⟩
     hoist
     step_intro
-    -- for monotonicity TODO: how to infer is_publishable automatically?
-    have h_sig_msg: sig_msg.is_publishable tr := by grind
+    -- for monotonicity TODO: how to infer Publishable automatically?
+    have h_sig_msg: sig_msg.Publishable tr := by grind
     -- interesting stuff: we will prove things on `sig` later on,
     -- because we need to log the event before
     step_intro
@@ -728,7 +737,7 @@ theorem client_auth:
     grind
 
 theorem client_secrecy:
-  k.is_publishable tr → -- attacker_knows
+  k.Publishable tr → -- attacker_knows
   event_logged_at client (.ClientFinishEvent server x_pk y_pk k) time tr →
   tr.invariant → (
     let tr_before := tr.prefix time
@@ -788,8 +797,8 @@ where
     step with ⟨ Label.secret ⟩
     hoist
     step_intro
-    -- for monotonicity TODO: how to infer is_publishable automatically?
-    have h_sig_msg: sig_msg.is_publishable tr := by grind
+    -- for monotonicity TODO: how to infer Publishable automatically?
+    have h_sig_msg: sig_msg.Publishable tr := by grind
     -- interesting stuff: we will prove things on `sig` later on,
     -- because we need to log the event before
     step_intro

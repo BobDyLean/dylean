@@ -1,6 +1,8 @@
+import DY.Bytes.Type
+
 namespace DY
 
-axiom Bytes: Type 0
+variable [BytesCtors]
 
 inductive Trace.Entry (a:Type) where
   | rand_gen: a -> Trace.Entry a
@@ -108,5 +110,8 @@ theorem trace_le_map
     · apply LETrace.equal
     · apply LETrace.extend
       assumption
+
+def erase (tr: Trace α): Trace Unit :=
+  Functor.mapConst () tr
 
 end DY.Trace

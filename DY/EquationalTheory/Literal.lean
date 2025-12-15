@@ -1,0 +1,190 @@
+import DY.Bytes.Type
+import DY.Label.Type
+import DY.Trace.Type
+import DY.Bytes.EquationalTheoryInvariants
+import DY.Bytes.AttackerKnowledge
+
+namespace DY
+
+class CanMkLiteral (Bytes: Type u) where
+  literalToBytes: Nat → Bytes
+  bytesToLiteral: Bytes → Option Nat
+
+export CanMkLiteral (literalToBytes)
+export CanMkLiteral (bytesToLiteral)
+
+-- Constructors
+
+def Literal.ctor: BytesCtor where
+  data := Nat
+  nBytes := 0
+  dataOrd := inferInstance
+  dataReflOrd := inferInstance
+  dataLawfulEqOrd := inferInstance
+  dataOrientedOrd := inferInstance
+  dataTransOrd := inferInstance
+
+class abbrev Literal.HasCtor [BytesCtors] := Bytes.HasCtor Literal.ctor
+
+abbrev Literal.id [BytesCtors] [Literal.HasCtor]: CtorId := Bytes.HasCtor.id Literal.ctor
+
+abbrev Literal.View [BytesCtors] [Literal.HasCtor] := BytesView Literal.id
+
+instance [BytesCtors] [Literal.HasCtor]: CanMkLiteral Bytes where
+  literalToBytes lit :=
+    ({
+      data := lit,
+      dataBytes := V[]
+    } : Literal.View).pack
+
+  bytesToLiteral buf :=
+    match buf.view? Literal.id with
+    | some { data := lit, dataBytes := V[] } =>
+      some lit
+    | none => none
+
+theorem bytesToLiteral_literalToBytes
+  [BytesCtors] [Literal.HasCtor]
+  (lit: Nat)
+  : bytesToLiteral (literalToBytes lit: Bytes) = some lit
+  := by
+    simp only [bytesToLiteral, literalToBytes]
+    grind
+
+theorem literalToBytes_bytesToLiteral
+  [BytesCtors] [Literal.HasCtor]
+  (buf: Bytes)
+  :
+    match bytesToLiteral buf with
+    | none => True
+    | some lit =>
+      buf = literalToBytes lit
+  := by
+    simp only [bytesToLiteral, literalToBytes]
+    grind
+
+def Literal.ctors := [Literal.ctor]
+
+instance [BytesCtors] [tc: Bytes.HasCtors Literal.ctors]: Bytes.HasCtor Literal.ctor := tc.tc (Fin.mk 0 (by simp [Literal.ctors]))
+
+-- Equational theory
+
+def Literal.attKnowsLit [BytesCtors] [Bytes.HasCtors Literal.ctors]: AttackerKnowledge where
+  pred p out :=
+    ∃ lit,
+      out = literalToBytes lit
+  pred_scott_continuous := by
+    unfold Kleene.IsScottContinuous
+    intro chain h_chain
+    funext out
+    simp [Kleene.Chain.union, Kleene.Chain.map]
+
+def Literal.equationalTheory: EquationalTheory where
+  ctors := Literal.ctors
+  attackerKnowledge := [Literal.attKnowsLit]
+
+instance: EquationalTheory.CtorsEq Literal.equationalTheory Literal.ctors where pf := rfl
+
+instance: NeZero Literal.equationalTheory.ctors.length where
+  out := by simp [Literal.equationalTheory, Literal.ctors]
+
+theorem Literal.attacker_knows_literalToBytes
+  [EquationalTheories]
+  [HasEquationalTheory Literal.equationalTheory]
+  (lit: Nat) (tr: Trace α)
+  : (literalToBytes lit: Bytes).AttackerKnows tr
+  := by
+    apply Bytes.AttackerKnows.prove Literal.equationalTheory Literal.attKnowsLit
+    · simp [Literal.equationalTheory]
+    simp only [attKnowsLit]
+    exists lit
+
+-- Invariants
+
+def Literal.invariants [BytesCtors]: BytesCtorInvariants.Internal Literal.ctor where
+  well_formed := {
+    func data dataBytes rec tr := True
+    func_wf := by grind
+  }
+
+  usage := {
+    func data dataBytes rec tr := Usage.nothing
+    func_wf := by grind
+  }
+  usage_later data dataBytes rec_wf rec_usg := by grind [GetUsageLaterT]
+
+  label := {
+    func data dataBytes rec tr := Label.pub
+    func_wf := by grind
+  }
+  label_later data dataBytes rec_wf rec_usg := by grind [GetLabelLaterT]
+
+  invariant := {
+    func data dataBytes rec tr := True
+    func_wf := by grind
+  }
+  invariant_implies_wellformed data dataBytes rec_inv rec_wf := by grind [BytesInvariantImpliesBytesWellFormedT]
+  invariant_later data dataBytes rec := by grind [BytesInvariantLaterT]
+
+class abbrev Literal.HasInvariants [BytesCtors] [BytesCtorsInvariants] [Literal.HasCtor] := HasBytesInvariants Literal.id Literal.invariants
+
+@[simp]
+theorem literalToBytes.wellFormed
+  [BytesCtors] [BytesCtorsInvariants]
+  [Literal.HasCtor] [Literal.HasInvariants]
+  (lit: Nat) (tr: ProofTrace)
+  : (literalToBytes lit: Bytes).wellFormed tr
+  := by
+    simp [literalToBytes, Bytes.wellFormed.eq, Literal.invariants]
+
+@[simp]
+theorem literalToBytes.label
+  [BytesCtors] [BytesCtorsInvariants]
+  [Literal.HasCtor] [Literal.HasInvariants]
+  (lit: Nat) (tr: ProofTrace)
+  : (literalToBytes lit: Bytes).label tr = Label.pub
+  := by
+    simp [literalToBytes, Bytes.label.eq, Literal.invariants]
+
+@[simp]
+theorem literalToBytes.invariant
+  [BytesCtors] [BytesCtorsInvariants]
+  [Literal.HasCtor] [Literal.HasInvariants]
+  (lit: Nat) (tr: ProofTrace)
+  : (literalToBytes lit: Bytes).invariant tr
+  := by
+    simp [literalToBytes, Bytes.invariant.eq, Literal.invariants]
+
+def Literal.EquationalTheoryInvariant [EquationalTheories]: EquationalTheoryInvariants Literal.equationalTheory where
+  invariant
+    | 0 => Literal.invariants
+
+instance
+  [EquationalTheories] [EquationalTheories.Invariants]
+  [HasEquationalTheory Literal.equationalTheory] [Literal.EquationalTheoryInvariant.Has]
+  : HasBytesInvariants Literal.id Literal.invariants :=
+  Literal.EquationalTheoryInvariant.mkHasBytesInvariants (Fin.mk 0 (by simp [Literal.equationalTheory, Literal.ctors]))
+
+-- Preserve publishability
+
+def Literal.attKnowsLit.preserves_publishability
+  [BytesCtors] [BytesCtorsInvariants]
+  [Bytes.HasCtors Literal.ctors] [Literal.HasInvariants]: Literal.attKnowsLit.PreservesPublishability :=
+  by
+    simp only [AttackerKnowledge.PreservesPublishability, Literal.attKnowsLit]
+    intro out tr ⟨lit, h_out⟩
+    subst h_out
+    simp [Bytes.Publishable]
+    grind
+
+def Literal.PreservesPublishability
+  [EquationalTheories] [EquationalTheories.Invariants]
+  [HasEquationalTheory Literal.equationalTheory]
+  [Literal.EquationalTheoryInvariant.Has]
+  : EquationalTheory.PreservesPublishability Literal.equationalTheory where
+  pf := by
+    unfold Literal.equationalTheory
+    simp
+    exact attKnowsLit.preserves_publishability
+
+end DY
