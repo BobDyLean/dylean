@@ -4,7 +4,7 @@ import DY.Trace.Type
 import DY.Bytes.EquationalTheoryInvariants
 import DY.Bytes.AttackerKnowledge
 
-namespace DY
+namespace DY.Literal
 
 class CanMkLiteral (Bytes: Type u) where
   literalToBytes: Nat → Bytes
@@ -63,13 +63,13 @@ theorem literalToBytes_bytesToLiteral
     simp only [bytesToLiteral, literalToBytes]
     grind
 
-def Literal.ctors := [Literal.ctor]
+def ctors := [Literal.ctor]
 
-instance [BytesCtors] [tc: Bytes.HasCtors Literal.ctors]: Bytes.HasCtor Literal.ctor := tc.tc (Fin.mk 0 (by simp [Literal.ctors]))
+instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Bytes.HasCtor Literal.ctor := tc.tc (Fin.mk 0 (by simp [ctors]))
 
 -- Equational theory
 
-def Literal.attKnowsLit [BytesCtors] [Bytes.HasCtors Literal.ctors]: AttackerKnowledge where
+def attKnowsLit [BytesCtors] [Bytes.HasCtors ctors]: AttackerKnowledge where
   pred p out :=
     ∃ lit,
       out = literalToBytes lit
@@ -79,23 +79,23 @@ def Literal.attKnowsLit [BytesCtors] [Bytes.HasCtors Literal.ctors]: AttackerKno
     funext out
     simp [Kleene.Chain.union, Kleene.Chain.map]
 
-def Literal.equationalTheory: EquationalTheory where
-  ctors := Literal.ctors
-  attackerKnowledge := [Literal.attKnowsLit]
+def equationalTheory: EquationalTheory where
+  ctors := ctors
+  attackerKnowledge := [attKnowsLit]
 
-instance: EquationalTheory.CtorsEq Literal.equationalTheory Literal.ctors where pf := rfl
+instance: EquationalTheory.CtorsEq equationalTheory ctors where pf := rfl
 
-instance: NeZero Literal.equationalTheory.ctors.length where
-  out := by simp [Literal.equationalTheory, Literal.ctors]
+instance: NeZero equationalTheory.ctors.length where
+  out := by simp [equationalTheory, ctors]
 
 theorem Literal.attacker_knows_literalToBytes
   [EquationalTheories]
-  [HasEquationalTheory Literal.equationalTheory]
+  [HasEquationalTheory equationalTheory]
   (lit: Nat) (tr: Trace α)
   : (literalToBytes lit: Bytes).AttackerKnows tr
   := by
-    apply Bytes.AttackerKnows.prove Literal.equationalTheory Literal.attKnowsLit
-    · simp [Literal.equationalTheory]
+    apply Bytes.AttackerKnows.prove equationalTheory attKnowsLit
+    · simp [equationalTheory]
     simp only [attKnowsLit]
     exists lit
 
@@ -106,6 +106,9 @@ def Literal.invariants [BytesCtors]: BytesCtorInvariants.Internal Literal.ctor w
     func data dataBytes rec tr := True
     func_wf := by grind
   }
+  well_formed_later data dataBytes rec_wf := by
+    let V[] := dataBytes
+    simp_all +arith [BytesWellFormedLaterT]
 
   usage := {
     func data dataBytes rec tr := Usage.nothing
@@ -129,13 +132,13 @@ def Literal.invariants [BytesCtors]: BytesCtorInvariants.Internal Literal.ctor w
 class abbrev Literal.HasInvariants [BytesCtors] [BytesCtorsInvariants] [Literal.HasCtor] := HasBytesInvariants Literal.id Literal.invariants
 
 @[simp]
-theorem literalToBytes.wellFormed
+theorem literalToBytes.WellFormed
   [BytesCtors] [BytesCtorsInvariants]
   [Literal.HasCtor] [Literal.HasInvariants]
   (lit: Nat) (tr: ProofTrace)
-  : (literalToBytes lit: Bytes).wellFormed tr
+  : (literalToBytes lit: Bytes).WellFormed tr
   := by
-    simp [literalToBytes, Bytes.wellFormed.eq, Literal.invariants]
+    simp [literalToBytes, Bytes.WellFormed.eq, Literal.invariants]
 
 @[simp]
 theorem literalToBytes.label
@@ -147,31 +150,31 @@ theorem literalToBytes.label
     simp [literalToBytes, Bytes.label.eq, Literal.invariants]
 
 @[simp]
-theorem literalToBytes.invariant
+theorem literalToBytes.Invariant
   [BytesCtors] [BytesCtorsInvariants]
   [Literal.HasCtor] [Literal.HasInvariants]
   (lit: Nat) (tr: ProofTrace)
-  : (literalToBytes lit: Bytes).invariant tr
+  : (literalToBytes lit: Bytes).Invariant tr
   := by
-    simp [literalToBytes, Bytes.invariant.eq, Literal.invariants]
+    simp [literalToBytes, Bytes.Invariant.eq, Literal.invariants]
 
-def Literal.EquationalTheoryInvariant [EquationalTheories]: EquationalTheoryInvariants Literal.equationalTheory where
+def EquationalTheoryInvariant [EquationalTheories]: EquationalTheoryInvariants equationalTheory where
   invariant
     | 0 => Literal.invariants
 
 instance
   [EquationalTheories] [EquationalTheories.Invariants]
-  [HasEquationalTheory Literal.equationalTheory] [Literal.EquationalTheoryInvariant.Has]
+  [HasEquationalTheory equationalTheory] [EquationalTheoryInvariant.Has]
   : HasBytesInvariants Literal.id Literal.invariants :=
-  Literal.EquationalTheoryInvariant.mkHasBytesInvariants (Fin.mk 0 (by simp [Literal.equationalTheory, Literal.ctors]))
+  EquationalTheoryInvariant.mkHasBytesInvariants (Fin.mk 0 (by simp [equationalTheory, ctors]))
 
 -- Preserve publishability
 
-def Literal.attKnowsLit.preserves_publishability
+def attKnowsLit.preserves_publishability
   [BytesCtors] [BytesCtorsInvariants]
-  [Bytes.HasCtors Literal.ctors] [Literal.HasInvariants]: Literal.attKnowsLit.PreservesPublishability :=
+  [Bytes.HasCtors ctors] [Literal.HasInvariants]: attKnowsLit.PreservesPublishability :=
   by
-    simp only [AttackerKnowledge.PreservesPublishability, Literal.attKnowsLit]
+    simp only [AttackerKnowledge.PreservesPublishability, attKnowsLit]
     intro out tr ⟨lit, h_out⟩
     subst h_out
     simp [Bytes.Publishable]
@@ -179,12 +182,12 @@ def Literal.attKnowsLit.preserves_publishability
 
 def Literal.PreservesPublishability
   [EquationalTheories] [EquationalTheories.Invariants]
-  [HasEquationalTheory Literal.equationalTheory]
-  [Literal.EquationalTheoryInvariant.Has]
-  : EquationalTheory.PreservesPublishability Literal.equationalTheory where
+  [HasEquationalTheory equationalTheory]
+  [EquationalTheoryInvariant.Has]
+  : EquationalTheory.PreservesPublishability equationalTheory where
   pf := by
-    unfold Literal.equationalTheory
+    unfold equationalTheory
     simp
     exact attKnowsLit.preserves_publishability
 
-end DY
+end DY.Literal

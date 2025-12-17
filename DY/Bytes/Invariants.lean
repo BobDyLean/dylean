@@ -3,6 +3,7 @@ import DY.Label
 import DY.Trace
 
 namespace DY
+
 -- Well formed
 
 def BytesWellFormedT [BytesCtors] := ProofTrace → Prop
@@ -11,28 +12,49 @@ def BytesWellFormedT.default [BytesCtors]: BytesWellFormedT := fun _ => False
 class BytesWellFormed [BytesCtors] where
   funs: BytesFunCtors BytesWellFormedT
 
-def Bytes.wellFormed [BytesCtors] [BytesWellFormed] (b: Bytes) : BytesWellFormedT :=
+def Bytes.WellFormed [BytesCtors] [BytesWellFormed] (b: Bytes) : BytesWellFormedT :=
   Bytes.mkRec BytesWellFormed.funs .default b
 
 class HasBytesWellFormed [BytesCtors] [BytesWellFormed] (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] (binv: outParam (BytesFunCtor id BytesWellFormedT)) where
   pf: BytesWellFormed.funs id = binv.into
   dummy: Unit -- leanprover/lean4#11477 workaround
 
-theorem Bytes.wellFormed.eq
+theorem Bytes.WellFormed.eq
   [BytesCtors] [tc_binv: BytesWellFormed]
   (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor]
   {binv: BytesFunCtor id BytesWellFormedT}
   [tc: HasBytesWellFormed id binv]
   (b: BytesView id)
   (tr: ProofTrace)
-  : Bytes.wellFormed (b.pack) tr = binv.func b.data b.dataBytes Bytes.wellFormed tr
+  : Bytes.WellFormed (b.pack) tr = binv.func b.data b.dataBytes Bytes.WellFormed tr
   := by
     have lem {a b} (f g: a → b) (x: a): f = g → f x = g x := by grind
     apply lem
     apply Bytes.mkRec.eqView
     exact tc.pf
 
-grind_pattern Bytes.wellFormed.eq => Bytes.wellFormed (b.pack) tr
+grind_pattern Bytes.WellFormed.eq => Bytes.WellFormed (b.pack) tr
+
+-- Well formed later
+
+def BytesWellFormedLaterT [BytesCtors] (bwf: BytesWellFormedT) :=
+  ∀ tr1 tr2, tr1 ≤ tr2 → bwf tr1 → bwf tr2
+
+class BytesWellFormedLater [BytesCtors] [BytesWellFormed] where
+  proofs: BytesFunCtorsProof1 BytesWellFormed.funs BytesWellFormedT.default BytesWellFormedLaterT
+
+theorem Bytes.WellFormed.later
+  [BytesCtors] [BytesWellFormed] [BytesWellFormedLater]
+  (b: Bytes)
+  (tr1 tr2: ProofTrace)
+  :
+  tr1 ≤ tr2 →
+  Bytes.WellFormed b tr1 →
+  Bytes.WellFormed b tr2
+  := by
+    apply BytesWellFormedLater.proofs.prove
+
+grind_pattern Bytes.WellFormed.later => Bytes.WellFormed b tr1, tr1 ≤ tr2
 
 -- Usage
 
@@ -83,7 +105,7 @@ def GetUsageLaterT [BytesCtors] (x: BytesWellFormedT × GetUsageT) :=
   ∀ tr1 tr2: ProofTrace, tr1 ≤ tr2 → wf tr1 → usg tr1 = usg tr2
 
 class GetUsageLater [BytesCtors] [BytesWellFormed] [GetUsage] where
-  proofs: BytesFunCtorsProof2 BytesWellFormed.funs GetUsage.funs GetUsageLaterT
+  proofs: BytesFunCtorsProof2 BytesWellFormed.funs GetUsage.funs BytesWellFormedT.default GetUsageT.default GetUsageLaterT
 
 theorem Bytes.usage_later
   [BytesCtors] [BytesWellFormed] [GetUsage] [GetUsageLater]
@@ -91,7 +113,7 @@ theorem Bytes.usage_later
   (tr1 tr2: ProofTrace)
   :
   tr1 ≤ tr2 →
-  Bytes.wellFormed b tr1 →
+  Bytes.WellFormed b tr1 →
   Bytes.usage b tr1 = Bytes.usage b tr2
   := by
     apply GetUsageLater.proofs.prove
@@ -137,7 +159,7 @@ def GetLabelLaterT [BytesCtors] (x: BytesWellFormedT × GetLabelT) :=
   ∀ tr1 tr2: ProofTrace, tr1 ≤ tr2 → wf tr1 → usg tr1 = usg tr2
 
 class GetLabelLater [BytesCtors] [BytesWellFormed] [GetLabel] where
-  proofs: BytesFunCtorsProof2 BytesWellFormed.funs GetLabel.funs GetLabelLaterT
+  proofs: BytesFunCtorsProof2 BytesWellFormed.funs GetLabel.funs BytesWellFormedT.default GetLabelT.default GetLabelLaterT
 
 theorem Bytes.label_later
   [BytesCtors] [BytesWellFormed] [GetLabel] [GetLabelLater]
@@ -145,7 +167,7 @@ theorem Bytes.label_later
   (tr1 tr2: ProofTrace)
   :
   tr1 ≤ tr2 →
-  Bytes.wellFormed b tr1 →
+  Bytes.WellFormed b tr1 →
   Bytes.label b tr1 = Bytes.label b tr2
   := by
     apply GetLabelLater.proofs.prove
@@ -161,28 +183,28 @@ def BytesInvariantT.default [BytesCtors]: BytesInvariantT := fun _ => False
 class BytesInvariant [BytesCtors] where
   funs: BytesFunCtors BytesInvariantT
 
-def Bytes.invariant [BytesCtors] [BytesInvariant] (b: Bytes) (tr: ProofTrace) : Prop :=
+def Bytes.Invariant [BytesCtors] [BytesInvariant] (b: Bytes) (tr: ProofTrace) : Prop :=
   Bytes.mkRec BytesInvariant.funs .default b tr
 
 class HasBytesInvariant [BytesCtors] [BytesInvariant] (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] (binv: outParam (BytesFunCtor id BytesInvariantT)) where
   pf: BytesInvariant.funs id = binv.into
   dummy: Unit -- leanprover/lean4#11477 workaround
 
-theorem Bytes.invariant.eq
+theorem Bytes.Invariant.eq
   [BytesCtors] [tc_binv: BytesInvariant]
   (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor]
   {binv: BytesFunCtor id BytesInvariantT}
   [tc: HasBytesInvariant id binv]
   (b: BytesView id)
   (tr: ProofTrace)
-  : Bytes.invariant (b.pack) tr = binv.func b.data b.dataBytes Bytes.invariant tr
+  : Bytes.Invariant (b.pack) tr = binv.func b.data b.dataBytes Bytes.Invariant tr
   := by
     have lem {a b} (f g: a → b) (x: a): f = g → f x = g x := by grind
     apply lem
     apply Bytes.mkRec.eqView
     exact tc.pf
 
-grind_pattern Bytes.invariant.eq => Bytes.invariant (b.pack) tr
+grind_pattern Bytes.Invariant.eq => Bytes.Invariant (b.pack) tr
 
 -- Invariant implies well formed
 
@@ -191,19 +213,19 @@ def BytesInvariantImpliesBytesWellFormedT [BytesCtors] (x: BytesInvariantT × By
   ∀ tr, binv tr → bwf tr
 
 class BytesInvariantImpliesBytesWellFormed [BytesCtors] [BytesWellFormed] [BytesInvariant] where
-  proofs: BytesFunCtorsProof2 BytesInvariant.funs BytesWellFormed.funs BytesInvariantImpliesBytesWellFormedT
+  proofs: BytesFunCtorsProof2 BytesInvariant.funs BytesWellFormed.funs BytesInvariantT.default BytesWellFormedT.default BytesInvariantImpliesBytesWellFormedT
 
-theorem Bytes.invariant_implies_wellformed
+theorem Bytes.Invariant_implies_WellFormed
   [BytesCtors] [BytesWellFormed] [BytesInvariant] [BytesInvariantImpliesBytesWellFormed]
   (b: Bytes)
   (tr: ProofTrace)
   :
-  Bytes.invariant b tr →
-  Bytes.wellFormed b tr
+  Bytes.Invariant b tr →
+  Bytes.WellFormed b tr
   := by
     apply BytesInvariantImpliesBytesWellFormed.proofs.prove
 
-grind_pattern Bytes.invariant_implies_wellformed => Bytes.wellFormed b tr, Bytes.invariant b tr
+grind_pattern Bytes.Invariant_implies_WellFormed => Bytes.WellFormed b tr
 
 -- Invariant later
 
@@ -211,33 +233,34 @@ def BytesInvariantLaterT [BytesCtors] (binv: BytesInvariantT) :=
   ∀ tr1 tr2, tr1 ≤ tr2 → binv tr1 → binv tr2
 
 class BytesInvariantLater [BytesCtors] [BytesInvariant] where
-  proofs: BytesFunCtorsProof1 BytesInvariant.funs BytesInvariantLaterT
+  proofs: BytesFunCtorsProof1 BytesInvariant.funs BytesInvariantT.default BytesInvariantLaterT
 
-theorem Bytes.invariant.later
+theorem Bytes.Invariant.later
   [BytesCtors] [BytesInvariant] [BytesInvariantLater]
   (b: Bytes)
   (tr1 tr2: ProofTrace)
   :
   tr1 ≤ tr2 →
-  Bytes.invariant b tr1 →
-  Bytes.invariant b tr2
+  Bytes.Invariant b tr1 →
+  Bytes.Invariant b tr2
   := by
     apply BytesInvariantLater.proofs.prove
 
-grind_pattern Bytes.invariant.later => Bytes.invariant b tr1, tr1 ≤ tr2
+grind_pattern Bytes.Invariant.later => Bytes.Invariant b tr1, tr1 ≤ tr2
 
 structure BytesCtorInvariants.Internal [BytesCtors] (ctor: BytesCtor) where
   well_formed: BytesFunCtor.Internal ctor BytesWellFormedT
+  well_formed_later: [BytesWellFormed] → BytesFunCtorProof1.Internal Bytes.WellFormed well_formed BytesWellFormedLaterT
 
   usage: BytesFunCtor.Internal ctor GetUsageT
-  usage_later: BytesFunCtorProof2.Internal well_formed usage GetUsageLaterT
+  usage_later: [BytesWellFormed] → [GetUsage] → BytesFunCtorProof2.Internal Bytes.WellFormed Bytes.usage well_formed usage GetUsageLaterT
 
   label: [GetUsage] → BytesFunCtor.Internal ctor GetLabelT
-  label_later: [BytesWellFormed] → [GetUsage] → [GetUsageLater] → BytesFunCtorProof2.Internal well_formed label GetLabelLaterT
+  label_later: [BytesWellFormed] → [GetUsage] → [GetUsageLater] → [GetLabel] → BytesFunCtorProof2.Internal Bytes.WellFormed Bytes.label well_formed label GetLabelLaterT
 
-  invariant: [GetUsage] → [GetLabel] → BytesFunCtor.Internal ctor BytesInvariantT
-  invariant_implies_wellformed: [GetUsage] → [GetLabel] → BytesFunCtorProof2.Internal invariant well_formed BytesInvariantImpliesBytesWellFormedT
-  invariant_later: [GetUsage] → [GetLabel] → BytesFunCtorProof1.Internal invariant BytesInvariantLaterT
+  invariant: [BytesWellFormed] → [GetUsage] → [GetLabel] → BytesFunCtor.Internal ctor BytesInvariantT
+  invariant_implies_wellformed: [BytesWellFormed] → [GetUsage] → [GetLabel] → [BytesInvariant] → BytesFunCtorProof2.Internal Bytes.Invariant Bytes.WellFormed invariant well_formed BytesInvariantImpliesBytesWellFormedT
+  invariant_later: [BytesWellFormed] → [BytesWellFormedLater] → [GetUsage] → [GetUsageLater] → [GetLabel] → [GetLabelLater] → [BytesInvariant] → [BytesInvariantImpliesBytesWellFormed] → BytesFunCtorProof1.Internal Bytes.Invariant invariant BytesInvariantLaterT
   -- ...
 
 def BytesCtorInvariants.ById [BytesCtors] (id: CtorId) := BytesCtorInvariants.Internal (BytesCtors.ctors id)
@@ -249,6 +272,7 @@ def BytesCtorInvariants.into
   : BytesCtorInvariants.ById id
   where
     well_formed := BytesFunCtor.into f.well_formed
+    well_formed_later := BytesFunCtorProof1.into f.well_formed_later
 
     usage := BytesFunCtor.into f.usage
     usage_later := BytesFunCtorProof2.into f.usage_later
@@ -266,6 +290,9 @@ class BytesCtorsInvariants [BytesCtors] where
 
 instance [BytesCtors] [BytesCtorsInvariants]: BytesWellFormed where
   funs id := (BytesCtorsInvariants.funs id).well_formed
+
+instance [BytesCtors] [BytesCtorsInvariants]: BytesWellFormedLater where
+  proofs id := (BytesCtorsInvariants.funs id).well_formed_later
 
 instance [BytesCtors] [BytesCtorsInvariants]: GetUsage where
   funs id := (BytesCtorsInvariants.funs id).usage
@@ -309,7 +336,94 @@ instance [BytesCtors] [BytesCtorsInvariants] (id: CtorId) {ctor: BytesCtor} [Byt
 
 @[grind]
 def Bytes.Publishable [BytesCtors] [BytesCtorsInvariants] (b: Bytes) (tr: ProofTrace) :=
-  b.invariant tr ∧
+  b.Invariant tr ∧
   (b.label tr).canFlow Label.pub tr
+
+def Bytes.HasUsage [BytesCtors] [GetUsage] [GetLabel] (b: Bytes) (usg: Usage) (tr: ProofTrace) :=
+  b.usage tr = usg ∨
+  (b.label tr).canFlow Label.pub tr
+
+theorem Bytes.HasUsage_later
+  [BytesCtors] [BytesWellFormed] [GetUsage] [GetUsageLater] [GetLabel] [GetLabelLater]
+  (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
+  :
+    b.WellFormed tr1 →
+    tr1 ≤ tr2 →
+    b.HasUsage usg tr1 →
+    b.HasUsage usg tr2
+  := by
+    grind [Bytes.HasUsage]
+
+grind_pattern Bytes.HasUsage_later => b.HasUsage usg tr1, tr1 ≤ tr2
+
+theorem Bytes.HasUsage_inj
+  [BytesCtors] [BytesWellFormed] [GetUsage] [GetUsageLater] [GetLabel] [GetLabelLater]
+  (b: Bytes) (usg1 usg2: Usage) (tr: ProofTrace)
+  :
+    b.HasUsage usg1 tr →
+    b.HasUsage usg2 tr →
+    (usg1 = usg2 ∨ ((b.label tr).canFlow Label.pub tr))
+  := by
+    grind [Bytes.HasUsage]
+
+theorem Bytes.HasUsage_public
+  [BytesCtors] [BytesWellFormed] [GetUsage] [GetUsageLater] [GetLabel] [GetLabelLater]
+  (b: Bytes) (usg: Usage) (tr: ProofTrace)
+  :
+    (b.label tr).canFlow Label.pub tr →
+    b.HasUsage usg tr
+  := by
+    grind [Bytes.HasUsage]
+
+noncomputable
+def Bytes.xxxLabel
+  [BytesCtors] [GetLabel]
+  (extract: Bytes → Option Bytes)
+  (b: Bytes) (tr: ProofTrace) :=
+    match extract b with
+    | some sk => sk.label tr
+    | none => Label.pub
+
+def Bytes.XXXHasUsage
+  [BytesCtors] [GetUsage] [GetLabel]
+  (extract: Bytes → Option Bytes)
+  (b: Bytes) (usg: Usage) (tr: ProofTrace) :=
+    match extract b with
+    | some sk => sk.HasUsage usg tr
+    | none => True
+
+def ExtractPreservesWellFormed [BytesCtors] [BytesWellFormed] (extract: Bytes → Option Bytes): Prop :=
+  ∀ b tr, b.WellFormed tr → (
+    match extract b with
+    | some b' => b'.WellFormed tr
+    | none => True
+  )
+
+theorem Bytes.xxxLabel_later
+  [BytesCtors] [BytesWellFormed] [GetLabel] [GetLabelLater]
+  (extract: Bytes → Option Bytes)
+  (h_extract: ExtractPreservesWellFormed extract)
+  (b: Bytes) (tr1 tr2: ProofTrace)
+  :
+    b.WellFormed tr1 →
+    tr1 ≤ tr2 →
+    b.xxxLabel extract tr1 = b.xxxLabel extract tr2
+  := by
+    simp [Bytes.xxxLabel]
+    grind [ExtractPreservesWellFormed]
+
+theorem Bytes.XXXHasUsage_later
+  [BytesCtors] [BytesWellFormed] [GetUsage] [GetUsageLater] [GetLabel] [GetLabelLater]
+  (extract: Bytes → Option Bytes)
+  (h_extract: ExtractPreservesWellFormed extract)
+  (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
+  :
+    b.WellFormed tr1 →
+    tr1 ≤ tr2 →
+    b.XXXHasUsage extract usg tr1 →
+    b.XXXHasUsage extract usg tr2
+  := by
+    simp [Bytes.XXXHasUsage]
+    grind [ExtractPreservesWellFormed]
 
 end DY

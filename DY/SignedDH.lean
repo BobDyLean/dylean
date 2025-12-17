@@ -3,6 +3,7 @@ import DY.Step
 import DY.Bytes.EquationalTheory
 import DY.Bytes.EquationalTheoryInvariants
 import DY.EquationalTheory.Hash
+import DY.EquationalTheory.Sign
 
 open DY
 
@@ -12,16 +13,7 @@ variable [EquationalTheories.Invariants]
 variable [HasEquationalTheory Hash.equationalTheory]
 variable [Hash.EquationalTheoryInvariant.Has]
 
-def pure_invariants (x: a) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop) :=
-  ∀ tr,
-    pre tr → post x tr
-
-theorem apply_pure_invariant
-  {pre: ProofTrace → Prop} {post: a → ProofTrace → Prop}
-  (x: a) (tr: ProofTrace)
-  (inv: pure_invariants x pre post) (p: pre tr):
-  post x tr
-  := inv tr p
+variable [HasEquationalTheory Signature.equationalTheory]
 
 instance:
   HoareTriple
@@ -40,15 +32,6 @@ instance:
     pf := sorry
 
 def Principal := String
--- def Usage := Principal -- TODO: real type + injectivity
-
-axiom has_usage: Bytes → Usage → ProofTrace → Prop
-
-axiom _root_.DY.Trace.MonotoneLemmas.has_usage_later (b:Bytes) (usg: Usage) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → has_usage b usg tr1 → has_usage b usg tr2
-
--- TODO scoped
-grind_pattern _root_.DY.Trace.MonotoneLemmas.has_usage_later =>
-  b.invariant tr1, tr1 ≤ tr2, has_usage b usg tr1
 
 class ParseableSerializeable (a: Type) where
   parse: Bytes -> Err a
@@ -65,11 +48,13 @@ class ParseableSerializeable (a: Type) where
 
 open ParseableSerializeable
 
-@[simp, grind =]
+@[simp]
 theorem parse_serialize_inv_grind [ParseableSerializeable a] (x: a):
   ParseableSerializeable.parse (serialize x) = some x
   := by
   exact (parse_serialize_inv x)
+
+grind_pattern parse_serialize_inv_grind => serialize x
 
 def formatRel [ParseableSerializeable a] (buf: Bytes) (x: a) :=
   buf = serialize x
@@ -103,10 +88,10 @@ theorem isWellFormedFormatRel [ParseableSerializeable a] (pre: Bytes → τ → 
 theorem isWellFormedFormatRelBytesInvariant [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
   formatRel buf x →
-  (buf.invariant tr = isWellFormed Bytes.invariant x tr)
-  := isWellFormedFormatRel Bytes.invariant
+  (buf.Invariant tr = isWellFormed Bytes.Invariant x tr)
+  := isWellFormedFormatRel Bytes.Invariant
 
-grind_pattern isWellFormedFormatRelBytesInvariant => formatRel buf x, buf.invariant tr
+grind_pattern isWellFormedFormatRelBytesInvariant => formatRel buf x, buf.Invariant tr
 
 theorem isWellFormedFormatRelIsPublishable [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
@@ -126,7 +111,7 @@ theorem isWellFormedParse [ParseableSerializeable a] (pre: Bytes → τ → Prop
 class BytesCompatible (pre: Bytes → τ → Prop) where
   dummy: Unit
 
-instance: BytesCompatible Bytes.invariant where
+instance: BytesCompatible Bytes.Invariant where
   dummy := ()
 
 instance: BytesCompatible Publishable where
@@ -205,9 +190,9 @@ end DY
 
 def dh_pk (sk: Bytes): Bytes := sorry
 def dh (sk: Bytes) (pk: Bytes): Bytes := sorry
-def vk (sk: Bytes): Bytes := sorry
-def sign (sk: Bytes) (nonce: Bytes) (msg: Bytes): Bytes := sorry
-def verify (vk: Bytes) (msg: Bytes) (sig: Bytes): Bool := sorry
+-- def vk (sk: Bytes): Bytes := sorry
+-- def sign (sk: Bytes) (nonce: Bytes) (msg: Bytes): Bytes := sorry
+-- def verify (vk: Bytes) (msg: Bytes) (sig: Bytes): Bool := sorry
 
 -- invariants
 
@@ -215,32 +200,50 @@ def client_label (me: Principal): Label := sorry
 def server_label (me: Principal): Label := sorry
 def long_term_label (me: Principal): Label := sorry
 
-def sign_pred (sk_usg: Usage) (vk: Bytes) (msg: Bytes) (tr: ProofTrace) :=
-  ∃ server, server = sk_usg ∧ (
-    match parse msg with
-    | none => False
-    | some (msg: SigInput) => (
-      ∃ y_sk,
-        msg.y_pk = dh_pk y_sk ∧
-        y_sk.label tr = server_label server ∧
-        event_logged server (.ServerFinishEvent msg.x_pk msg.y_pk (hash (dh y_sk msg.x_pk))) tr
-    )
-  )
 
-namespace DY -- ???
-@[scoped grind→]
--- to prove using well-formedness condition that is not yet formalized
-axiom _root_.DY.Trace.MonotoneLemmas.sign_pred_later (sk_usg: Usage) (vk: Bytes) (msg: Bytes) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → sign_pred sk_usg vk msg tr1 → sign_pred sk_usg vk msg tr2
-end DY
+structure LongTermKeyUsage where
+  principal: Principal
+
+instance : ParseableSerializeable LongTermKeyUsage := sorry
+
+@[grind]
+def mk_long_term_usage (me: Principal): Usage := {
+  type := "SigKey",
+  tag := "SignedDH",
+  data := serialize ({ principal := me }: LongTermKeyUsage)
+}
+
+@[grind inj]
+theorem mk_long_term_usage_inj:
+  Function.Injective mk_long_term_usage
+  := by
+    simp [Function.Injective, mk_long_term_usage]
+    grind
+
+instance: Signature.SignPred where
+  pred skUsg vk msg tr :=
+    ∃ server, skUsg = mk_long_term_usage server ∧ (
+      match parse msg with
+      | none => False
+      | some (msg: SigInput) => (
+        ∃ y_sk,
+          msg.y_pk = dh_pk y_sk ∧
+          y_sk.label tr = server_label server ∧
+          event_logged server (.ServerFinishEvent msg.x_pk msg.y_pk (Hash.hash (dh y_sk msg.x_pk))) tr
+      )
+    )
+  pred_later := sorry
+
+variable [Signature.EquationalTheoryInvariant.Has]
 
 def client_state_inv (me: Principal) (sid: Nat) (st: ClientState) (tr: ProofTrace) :=
   match st with
   | .ClientInitiateState x_sk =>
-    x_sk.invariant tr ∧
+    x_sk.Invariant tr ∧
     x_sk.label tr = client_label me ∧
     True -- usage
   | .ClientFinishState k_c =>
-    k_c.invariant tr ∧
+    k_c.Invariant tr ∧
     (k_c.label tr).canFlow (client_label me) tr
 
 namespace DY -- ???
@@ -258,15 +261,15 @@ end DY
 def server_state_inv (me: Principal) (sid: Nat)(st: ServerState) (tr: ProofTrace) :=
   match st with
   | .ServerFinishState k_s =>
-    k_s.invariant tr ∧
+    k_s.Invariant tr ∧
     (k_s.label tr).canFlow (server_label me) tr
 
 instance:
   HoareTriplePure
     (dh_pk sk)
-    (fun tr => sk.invariant tr)
+    (fun tr => sk.Invariant tr)
     (fun res tr =>
-      res.invariant tr ∧
+      res.Invariant tr ∧
       res.label tr = Label.pub
       -- and usage
     )
@@ -280,63 +283,46 @@ theorem get_dh_label_lemma (sk: Bytes) (tr: ProofTrace):
   get_dh_label (dh_pk sk) tr = sk.label tr
   := by sorry
 
-axiom _root_.DY.Trace.MonotoneLemmas.get_dh_label_later (b:Bytes) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → get_dh_label b tr1 = get_dh_label b tr2
+axiom _root_.DY.Trace.MonotoneLemmas.get_dh_label_later (b:Bytes) (tr1 tr2: ProofTrace): b.Invariant tr1 → tr1 ≤ tr2 → get_dh_label b tr1 = get_dh_label b tr2
 
 axiom dh_eq (sk1 sk2: Bytes): dh sk1 (dh_pk sk2) = dh sk2 (dh_pk sk1)
 grind_pattern dh_eq => dh sk1 (dh_pk sk2), dh sk2 (dh_pk sk1)
 
 -- TODO scoped
 grind_pattern _root_.DY.Trace.MonotoneLemmas.get_dh_label_later =>
-  b.invariant tr1, tr1 ≤ tr2, get_dh_label b tr1
+  b.Invariant tr1, tr1 ≤ tr2, get_dh_label b tr1
 
 instance:
   HoareTriplePure
     (dh sk pk)
     (fun tr =>
-      sk.invariant tr ∧
+      sk.Invariant tr ∧
       pk.Publishable tr
       -- and usage
     )
     (fun res tr =>
-      res.invariant tr ∧
+      res.Invariant tr ∧
       res.label tr = Label.join (sk.label tr) (get_dh_label pk tr)
       -- and usage
     )
   where
     pf := sorry
 
-axiom vk_spec (sk: Bytes):
-  pure_invariants (vk sk)
-  (fun tr =>
-    sk.invariant tr
-  )
-  (fun res tr =>
-    res.invariant tr ∧
-    res.label tr = Label.pub
-    -- and usage
-  )
+instance (sk: Bytes):
+  HoareTriplePure
+    (Signature.vk sk)
+    (fun tr =>
+      sk.Invariant tr
+    )
+    (fun res tr =>
+      res.Invariant tr ∧
+      res.label tr = Label.pub
+      -- and usage
+    )
+  where
+    pf := sorry
 
-def get_sign_label (vk: Bytes) (tr: ProofTrace): Label := sorry
-axiom get_sign_label_lemma (sk: Bytes) (tr: ProofTrace):
-  sk.label tr = get_sign_label (vk sk) tr
-
-axiom _root_.DY.Trace.MonotoneLemmas.get_sign_label_later (b:Bytes) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → get_sign_label b tr1 = get_sign_label b tr2
-
--- TODO scoped
-grind_pattern _root_.DY.Trace.MonotoneLemmas.get_sign_label_later =>
-  b.invariant tr1, tr1 ≤ tr2, get_sign_label b tr1
-
-def has_sign_usage (vk: Bytes) (usg: Usage) (tr: ProofTrace): Prop := sorry
-axiom has_sign_usage_lemma (sk: Bytes) (usg: Usage) (tr: ProofTrace):
-  has_usage sk usg tr = has_sign_usage (vk sk) usg tr
-
-axiom _root_.DY.Trace.MonotoneLemmas.has_sign_usage_later (b:Bytes) (usg: Usage) (tr1 tr2: ProofTrace): b.invariant tr1 → tr1 ≤ tr2 → has_sign_usage b usg tr1 → has_sign_usage b usg tr2
-
--- TODO scoped
-grind_pattern _root_.DY.Trace.MonotoneLemmas.has_sign_usage_later =>
-  b.invariant tr1, tr1 ≤ tr2, has_sign_usage b usg tr1
-
-instance: HasGhostArgumentType (sign sk nonce msg) Usage
+instance (sk nonce msg: Bytes): HasGhostArgumentType (Signature.sign sk nonce msg) Usage
 where
   dummy := ()
 
@@ -346,51 +332,56 @@ def signMetaprog: GhostParameterFinder where
     let sk_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
     let nonce_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
     let msg_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
-    let signToUnify ← Lean.Meta.mkAppM ``sign #[sk_mvar, nonce_mvar, msg_mvar]
+    let signToUnify ← Lean.Meta.mkAppM ``Signature.sign #[sk_mvar, nonce_mvar, msg_mvar]
     trace[Step] "gonna unify {e} and {signToUnify}"
     unless ← Lean.Meta.isDefEq e signToUnify do
       throwError "signMetaprog: cannot unify {e} and {signToUnify}"
     trace[Step] "got {signToUnify}"
 
-    let usg_mvar := .mvar mvar
+    let usg_mvar: Lean.Expr := .mvar mvar
     let tr_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``ProofTrace #[none]))
-    let hasUsageToUnify ← Lean.Meta.mkAppM ``has_usage #[sk_mvar, usg_mvar, tr_mvar]
+    let hasUsageToUnify ← Lean.Meta.mkAppOptM ``Bytes.HasUsage #[none, none, none, sk_mvar, usg_mvar, tr_mvar]
     trace[Step] "gonna find {hasUsageToUnify} in assumptions"
     let .mvar hasUsageMvar ← Lean.Meta.mkFreshExprMVar hasUsageToUnify
       | throwError ""
     hasUsageMvar.assumption
 
-instance: HasGhostMetaprogram (sign sk nonce msg) signMetaprog
+instance (sk nonce msg: Bytes): HasGhostMetaprogram (Signature.sign sk nonce msg) signMetaprog
 where
   dummy := ()
 
-instance:
+instance (sk nonce msg: Bytes) (skUsg: Usage):
   HoareTriplePureGhost
-    (sign sk nonce msg)
-    (sk_usg)
+    (Signature.sign sk nonce msg)
+    (skUsg)
     (fun tr =>
-      sk.invariant tr ∧
-      nonce.invariant tr ∧
-      msg.invariant tr ∧
-      has_usage sk sk_usg tr ∧
-      -- nonce usage
-      (sk.label tr).canFlow (nonce.label tr) tr ∧ (
+      sk.Invariant tr ∧
+      nonce.Invariant tr ∧
+      msg.Invariant tr ∧
+      sk.HasUsage skUsg tr ∧
+      --nonce `has_usage tr` SigNonce /\
+      (sk.label tr).canFlow (nonce.label tr) tr ∧
+      (
         (
-          -- sk usage
-          sign_pred sk_usg (vk sk) msg tr
+          skUsg.type = "SigKey" ∧
+          Signature.SignPred.pred skUsg (Signature.vk sk) msg tr
         ) ∨ (
           (sk.label tr).canFlow Label.pub tr
         )
       )
     )
     (fun res tr =>
-      res.invariant tr ∧
+      res.Invariant tr ∧
       res.label tr = msg.label tr
     )
   where
-    pf := sorry
+    pf := by
+      simp only [Signature.sign.label, and_true, and_imp]
+      intros
+      apply Signature.sign.Invariant sk nonce msg skUsg
+      grind
 
-instance: HasGhostArgumentType (verify vkey msg sig) Usage
+instance (vkey msg sig: Bytes): HasGhostArgumentType (Signature.verify vkey msg sig) Usage
 where
   dummy := ()
 
@@ -400,53 +391,57 @@ def verifyMetaprog: GhostParameterFinder where
     let vkey_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
     let msg_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
     let sig_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
-    let verifyToUnify ← Lean.Meta.mkAppM ``verify #[vkey_mvar, msg_mvar, sig_mvar]
+    let verifyToUnify ← Lean.Meta.mkAppM ``Signature.verify #[vkey_mvar, msg_mvar, sig_mvar]
     trace[Step] "gonna unify {e} and {verifyToUnify}"
     unless ← Lean.Meta.isDefEq e verifyToUnify do
       throwError "verifyMetaprog: cannot unify {e} and {verifyToUnify}"
     trace[Step] "got {verifyToUnify}"
 
-    let usg_mvar := .mvar mvar
+    let usg_mvar: Lean.Expr := .mvar mvar
     let tr_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``ProofTrace #[none]))
-    let hasUsageToUnify ← Lean.Meta.mkAppM ``has_sign_usage #[vkey_mvar, usg_mvar, tr_mvar]
+    let hasUsageToUnify ← Lean.Meta.mkAppOptM ``Bytes.SignkeyHasUsage #[none, none, none, none, vkey_mvar, usg_mvar, tr_mvar]
     trace[Step] "gonna find {hasUsageToUnify} in assumptions"
     let .mvar hasUsageMvar ← Lean.Meta.mkFreshExprMVar hasUsageToUnify
       | throwError ""
     hasUsageMvar.assumption
 
-instance: HasGhostMetaprogram (verify vkey msg sig) verifyMetaprog
+instance (vkey msg sig: Bytes): HasGhostMetaprogram (Signature.verify vkey msg sig) verifyMetaprog
 where
   dummy := ()
 
-instance:
+instance (vkey msg sig: Bytes) (skUsg: Usage):
   HoareTriplePureGhost
-    (verify vkey msg sig)
-    (sk_usg: Usage)
+    (Signature.verify vkey msg sig)
+    (skUsg: Usage)
     (fun tr =>
-      vkey.invariant tr ∧
-      msg.invariant tr ∧
-      sig.invariant tr ∧
-      has_sign_usage vkey sk_usg tr
+      vkey.Invariant tr ∧
+      msg.Invariant tr ∧
+      sig.Invariant tr ∧
+      vkey.SignkeyHasUsage skUsg tr
     )
     (fun res tr =>
       res → (
         (
-          --usage
-          sign_pred sk_usg vkey msg tr
+          skUsg.type = "SigKey" →
+          Signature.SignPred.pred skUsg vkey msg tr
         ) ∨ (
-          (get_sign_label vkey tr).canFlow Label.pub tr
+          (vkey.signkeyLabel tr).canFlow Label.pub tr
         )
       )
     )
   where
-    pf := sorry
+    pf := by
+      simp
+      intros
+      apply Signature.verify.Invariant vkey msg sig skUsg <;>
+      grind
 
 instance (b: Bytes):
   HoareTriplePure
-    (DY.hash b)
-    (fun tr => b.invariant tr)
+    (Hash.hash b)
+    (fun tr => b.Invariant tr)
     (fun res tr =>
-      res.invariant tr ∧
+      res.Invariant tr ∧
       res.label tr = b.label tr
     )
   where
@@ -475,7 +470,7 @@ instance:
     lab
     (fun _ => True)
     (fun b tr =>
-      b.invariant tr ∧
+      b.Invariant tr ∧
       b.label tr = lab
       -- usage, length
     )
@@ -543,9 +538,9 @@ instance:
     (get_public_key who)
     (fun _ => True)
     (fun vk tr =>
-      vk.invariant tr ∧
-      get_sign_label vk tr = long_term_label who ∧
-      has_sign_usage vk who tr
+      vk.Invariant tr ∧
+      vk.signkeyLabel tr = long_term_label who ∧
+      vk.SignkeyHasUsage (mk_long_term_usage who) tr
     )
   where
     pf := sorry
@@ -555,9 +550,9 @@ instance:
     (get_private_key who)
     (fun _ => True)
     (fun sk tr =>
-      sk.invariant tr ∧
+      sk.Invariant tr ∧
       sk.label tr = long_term_label who ∧
-      has_usage sk who tr
+      sk.HasUsage (mk_long_term_usage who) tr
     )
   where
     pf := sorry
@@ -565,18 +560,18 @@ instance:
 def event_pred (me: Principal) (ev: SignedDHEvent) (tr: ProofTrace) :=
   match ev with
   | .ClientInitiateEvent x_pk => (
-    x_pk.invariant tr ∧
+    x_pk.Invariant tr ∧
     get_dh_label x_pk tr = client_label me
   )
   | .ServerFinishEvent x_pk _y_pk k_s => (
-    k_s.invariant tr ∧
-    x_pk.invariant tr ∧
+    k_s.Invariant tr ∧
+    x_pk.Invariant tr ∧
     k_s.label tr = (server_label me).join (get_dh_label x_pk tr)
   )
   | .ClientFinishEvent server x_pk y_pk k_c => (
     (
       event_logged server (.ServerFinishEvent x_pk y_pk k_c) tr ∧
-      k_c.invariant tr ∧
+      k_c.Invariant tr ∧
       k_c.label tr = (client_label me).join (server_label server)
     ) ∨ (long_term_label server).isCorrupt tr
   )
@@ -618,9 +613,9 @@ def server_receive (me: Principal) (msg_ts: Nat) : Traceful (Nat × Nat) := do
 
   let y_sk ← gen_rand 32
   let y_pk := dh_pk y_sk
-  let k_s := hash (dh y_sk x_pk)
+  let k_s := Hash.hash (dh y_sk x_pk)
   let sig_nonce ← gen_rand 32
-  let sig := sign my_sig_key sig_nonce (serialize ({x_pk, y_pk}: SigInput))
+  let sig := Signature.sign my_sig_key sig_nonce (serialize ({x_pk, y_pk}: SigInput))
 
   log_event me (.ServerFinishEvent x_pk y_pk k_s)
   let sid ← new_sid me
@@ -639,8 +634,8 @@ def client_finish (me: Principal) (server: Principal) (msg_ts: Nat) (sid: Nat) :
   let server_vk ← get_public_key server
 
   let x_pk := dh_pk x_sk
-  guard (verify server_vk (serialize ({ x_pk, y_pk := msg.y_pk }: SigInput)) msg.sig)
-  let k_c := hash (dh x_sk msg.y_pk)
+  guard (Signature.verify server_vk (serialize ({ x_pk, y_pk := msg.y_pk }: SigInput)) msg.sig)
+  let k_c := Hash.hash (dh x_sk msg.y_pk)
 
   log_event me (.ClientFinishEvent server x_pk msg.y_pk k_c)
   set_client_state me sid (.ClientFinishState k_c)
@@ -688,7 +683,9 @@ where
     -- because we need to log the event before
     step_intro
     step by grind [event_pred]
-    step_let sig with ⟨ me ⟩ by grind [sign_pred]
+    step_let sig with ⟨ mk_long_term_usage me ⟩ by
+      simp only [Signature.SignPred.pred]
+      grind
     step
     step by grind [server_state_inv]
     step
@@ -710,14 +707,16 @@ where
     case h_1 x_sk h_x_sk =>
       -- this is useful to monotonize hypothesis
       -- (probably best as a grind pattern on client_state_inv but well)
-      have h_x_sk': x_sk.invariant tr := by grind [client_state_inv]
+      have h_x_sk': x_sk.Invariant tr := by grind [client_state_inv]
       step
       step
-      step with ⟨ server ⟩
+      step with ⟨ mk_long_term_usage server ⟩
       hoist
       step
       step
-      step by grind [event_pred, sign_pred, client_state_inv]
+      step by
+        simp_all [event_pred, Signature.SignPred.pred]
+        grind [event_pred, client_state_inv]
       step by grind [client_state_inv]
       grind
     · step
@@ -758,7 +757,8 @@ namespace TestGrindAnnot
 attribute [grind] event_pred
 attribute [grind] client_state_inv
 attribute [grind] server_state_inv
-attribute [grind] sign_pred
+attribute [grind] Signature.SignPred.pred
+attribute [grind] instSignPred
 
 instance:
   HoareTriple
@@ -803,7 +803,7 @@ where
     -- because we need to log the event before
     step_intro
     step
-    step_let sig -- with ⟨ me ⟩
+    step_let sig
     step
     step
     step
@@ -825,7 +825,7 @@ where
     case h_1 x_sk h_x_sk =>
       step
       step
-      step -- with ⟨ server ⟩
+      step
       hoist
       step
       step

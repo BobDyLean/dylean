@@ -444,75 +444,72 @@ theorem Bytes.proveRec
     let {id, data, dataBytes} := b
     pf id data dataBytes (fun b _ => Bytes.proveRec p pf b)
 
-def BytesFunCtorProof1.Internal [BytesCtors] {ctor: BytesCtor} {a: Type u} (f: BytesFunCtor.Internal ctor a) (p: a → Prop) :=
-  ∀ data dataBytes rec,
-    (∀ b, sizeOf b < sizeOf dataBytes → p (rec b)) →
-    p (f.func data dataBytes rec)
+def BytesFunCtorProof1.Internal [BytesCtors] {ctor: BytesCtor} {a: Type u} (func: Bytes → a) (f: BytesFunCtor.Internal ctor a) (p: a → Prop) :=
+  ∀ data dataBytes,
+    (∀ b, sizeOf b < sizeOf dataBytes → p (func b)) →
+    p (f.func data dataBytes func)
 
-def BytesFunCtorProof1.ById [BytesCtors] {id: CtorId} {a: Type u} (f: BytesFunCtor.ById id a) (p: a → Prop) := BytesFunCtorProof1.Internal f p
+def BytesFunCtorProof1.ById [BytesCtors] {id: CtorId} {a: Type u} (func: Bytes → a) (f: BytesFunCtor.ById id a) (p: a → Prop) := BytesFunCtorProof1.Internal func f p
 
-def BytesFunCtorProof1 [BytesCtors] {id: CtorId} {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] {a: Type u} (f: BytesFunCtor id a) (p: a → Prop) := BytesFunCtorProof1.Internal f p
+def BytesFunCtorProof1 [BytesCtors] {id: CtorId} {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] {a: Type u} (func: Bytes → a) (f: BytesFunCtor id a) (p: a → Prop) := BytesFunCtorProof1.Internal func f p
 
 def BytesFunCtorProof1.into
   [BytesCtors] {id: CtorId} {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] {a: Type u}
-  {f: BytesFunCtor id a} {p: a → Prop}
-  (pf: BytesFunCtorProof1 f p)
-  : BytesFunCtorProof1.ById f.into p
-  := fun data dataBytes rec pfRec =>
-    pf (@Bytes.HasCtorAt.pf _ id _ _ ▸ data) (@Bytes.HasCtorAt.pf _ id _ _ ▸ dataBytes) rec (@Bytes.HasCtorAt.pf _ id _ _ ▸ pfRec)
+  {func: Bytes → a} {f: BytesFunCtor id a} {p: a → Prop}
+  (pf: BytesFunCtorProof1 func f p)
+  : BytesFunCtorProof1.ById func f.into p
+  := fun data dataBytes pfRec =>
+    pf (@Bytes.HasCtorAt.pf _ id _ _ ▸ data) (@Bytes.HasCtorAt.pf _ id _ _ ▸ dataBytes) (@Bytes.HasCtorAt.pf _ id _ _ ▸ pfRec)
 
-def BytesFunCtorsProof1 [BytesCtors] {a: Type u} (f: BytesFunCtors a) (p: a → Prop) :=
-  (id: CtorId) → BytesFunCtorProof1.ById (f id) p
+def BytesFunCtorsProof1 [BytesCtors] {a: Type u} (f: BytesFunCtors a) (default: a) (p: a → Prop) :=
+  (id: CtorId) → BytesFunCtorProof1.ById (Bytes.mkRec f default) (f id) p
 
 def BytesFunCtorsProof1.prove
   [BytesCtors]
   {a: Type u}
-  {funs: BytesFunCtors a}
-  {p: a → Prop}
-  (pfuns: BytesFunCtorsProof1 funs p)
-  (default: a)
+  {funs: BytesFunCtors a} {default: a} {p: a → Prop}
+  (pfuns: BytesFunCtorsProof1 funs default p)
   (b: Bytes)
   : p (Bytes.mkRec funs default b)
   := by
     apply Bytes.proveRec (fun b => p (Bytes.mkRec funs default b))
     intros id data dataBytes pfRec
     rewrite [Bytes.mkRec.eq funs default {id, data, dataBytes}]
-    exact pfuns _ _ _ _ pfRec
+    exact pfuns _ _ _ pfRec
 
-def BytesFunCtorProof2.Internal [BytesCtors] {ctor: BytesCtor} {a: Type u} {b: Type v} (f1: BytesFunCtor.Internal ctor a) (f2: BytesFunCtor.Internal ctor b) (p: a × b → Prop) :=
-  ∀ data dataBytes rec1 rec2,
-    (∀ b, sizeOf b < sizeOf dataBytes → p (rec1 b, rec2 b)) →
-    p (f1.func data dataBytes rec1, f2.func data dataBytes rec2)
+def BytesFunCtorProof2.Internal [BytesCtors] {ctor: BytesCtor} {a: Type u} {b: Type v} (func1: Bytes → a) (func2: Bytes → b) (f1: BytesFunCtor.Internal ctor a) (f2: BytesFunCtor.Internal ctor b) (p: a × b → Prop) :=
+  ∀ data dataBytes,
+    (∀ b, sizeOf b < sizeOf dataBytes → p (func1 b, func2 b)) →
+    p (f1.func data dataBytes func1, f2.func data dataBytes func2)
 
-def BytesFunCtorProof2.ById [BytesCtors] {id: CtorId} {a: Type u} {b: Type v} (f1: BytesFunCtor.ById id a) (f2: BytesFunCtor.ById id b) (p: a × b → Prop) := BytesFunCtorProof2.Internal f1 f2 p
+def BytesFunCtorProof2.ById [BytesCtors] {id: CtorId} {a: Type u} {b: Type v} (func1: Bytes → a) (func2: Bytes → b) (f1: BytesFunCtor.ById id a) (f2: BytesFunCtor.ById id b) (p: a × b → Prop) := BytesFunCtorProof2.Internal func1 func2 f1 f2 p
 
-def BytesFunCtorProof2 [BytesCtors] {id: CtorId} {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] {a: Type u} {b: Type v} (f1: BytesFunCtor id a) (f2: BytesFunCtor id b) (p: a × b → Prop) := BytesFunCtorProof2.Internal f1 f2 p
+def BytesFunCtorProof2 [BytesCtors] {id: CtorId} {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] {a: Type u} {b: Type v} (func1: Bytes → a) (func2: Bytes → b) (f1: BytesFunCtor id a) (f2: BytesFunCtor id b) (p: a × b → Prop) := BytesFunCtorProof2.Internal func1 func2 f1 f2 p
 
 def BytesFunCtorProof2.into
   [BytesCtors] {id: CtorId} {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] {a: Type u} {b: Type v}
-  {f1: BytesFunCtor id a} {f2: BytesFunCtor id b} {p: a × b → Prop}
-  (pf: BytesFunCtorProof2 f1 f2 p)
-  : BytesFunCtorProof2.ById f1.into f2.into p
-  := fun data dataBytes rec1 rec2 pfRec =>
-    pf (@Bytes.HasCtorAt.pf _ id _ _ ▸ data) (@Bytes.HasCtorAt.pf _ id _ _ ▸ dataBytes) rec1 rec2 (@Bytes.HasCtorAt.pf _ id _ _ ▸ pfRec)
+  {func1: Bytes → a} {func2: Bytes → b} {f1: BytesFunCtor id a} {f2: BytesFunCtor id b} {p: a × b → Prop}
+  (pf: BytesFunCtorProof2 func1 func2 f1 f2 p)
+  : BytesFunCtorProof2.ById func1 func2 f1.into f2.into p
+  := fun data dataBytes pfRec =>
+    pf (@Bytes.HasCtorAt.pf _ id _ _ ▸ data) (@Bytes.HasCtorAt.pf _ id _ _ ▸ dataBytes) (@Bytes.HasCtorAt.pf _ id _ _ ▸ pfRec)
 
-def BytesFunCtorsProof2 [BytesCtors] {a: Type u} {b: Type v} (f1: BytesFunCtors a) (f2: BytesFunCtors b) (p: a × b → Prop) :=
-  (id: CtorId) → BytesFunCtorProof2.ById (f1 id) (f2 id) p
+def BytesFunCtorsProof2 [BytesCtors] {a: Type u} {b: Type v} (f1: BytesFunCtors a) (f2: BytesFunCtors b) (default1: a) (default2: b) (p: a × b → Prop) :=
+  (id: CtorId) → BytesFunCtorProof2.ById (Bytes.mkRec f1 default1) (Bytes.mkRec f2 default2) (f1 id) (f2 id) p
 
 def BytesFunCtorsProof2.prove
   [BytesCtors]
   {a: Type u} {b: Type v}
   {funs1: BytesFunCtors a} {funs2: BytesFunCtors b}
+  {default1: a} {default2: b}
   {p: a × b → Prop}
-  (pfuns: BytesFunCtorsProof2 funs1 funs2 p)
-  (default1: a)
-  (default2: b)
+  (pfuns: BytesFunCtorsProof2 funs1 funs2 default1 default2 p)
   (b: Bytes)
   : p (Bytes.mkRec funs1 default1 b, Bytes.mkRec funs2 default2 b)
   := by
     apply Bytes.proveRec (fun b => p (Bytes.mkRec funs1 default1 b, Bytes.mkRec funs2 default2 b))
     intros id data dataBytes pfRec
     rewrite [Bytes.mkRec.eq funs1 default1 {id, data, dataBytes}, Bytes.mkRec.eq funs2 default2 {id, data, dataBytes}]
-    exact pfuns _ _ _ _ _ pfRec
+    exact pfuns _ _ _ pfRec
 
 end DY

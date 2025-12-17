@@ -4,7 +4,7 @@ import DY.Trace.Type
 import DY.Bytes.EquationalTheoryInvariants
 import DY.Bytes.AttackerKnowledge
 
-namespace DY
+namespace DY.Hash
 
 class CanHash (Bytes: Type u) where
   hash: Bytes → Bytes
@@ -60,13 +60,13 @@ theorem hash_inj
     simp only [hash]
     grind
 
-def Hash.ctors := [Hash.ctor]
+def ctors := [Hash.ctor]
 
-instance [BytesCtors] [tc: Bytes.HasCtors Hash.ctors]: Bytes.HasCtor Hash.ctor := tc.tc (Fin.mk 0 (by simp [Hash.ctors]))
+instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Bytes.HasCtor Hash.ctor := tc.tc (Fin.mk 0 (by simp [ctors]))
 
 -- Equational theory
 
-def Hash.attKnowsHash [BytesCtors] [Bytes.HasCtors Hash.ctors]: AttackerKnowledge where
+def attKnowsHash [BytesCtors] [Bytes.HasCtors ctors]: AttackerKnowledge where
   pred p out :=
     ∃ inp,
       out = hash inp ∧
@@ -74,27 +74,27 @@ def Hash.attKnowsHash [BytesCtors] [Bytes.HasCtors Hash.ctors]: AttackerKnowledg
   pred_scott_continuous := by
     sorry
 
-def Hash.equationalTheory: EquationalTheory where
-  ctors := Hash.ctors
-  attackerKnowledge := [Hash.attKnowsHash]
+def equationalTheory: EquationalTheory where
+  ctors := ctors
+  attackerKnowledge := [attKnowsHash]
 
-instance: EquationalTheory.CtorsEq Hash.equationalTheory Hash.ctors where pf := rfl
+instance: EquationalTheory.CtorsEq equationalTheory ctors where pf := rfl
 
-instance: NeZero Hash.equationalTheory.ctors.length where
-  out := by simp [Hash.equationalTheory, Hash.ctors]
+instance: NeZero equationalTheory.ctors.length where
+  out := by simp [equationalTheory, ctors]
 
-theorem Hash.attacker_knows_hash
+theorem attacker_knows_hash
   [EquationalTheories]
-  [HasEquationalTheory Hash.equationalTheory]
+  [HasEquationalTheory equationalTheory]
   (inp: Bytes) (tr: Trace α)
   :
     inp.AttackerKnows tr →
     (hash inp).AttackerKnows tr
   := by
     intro h_inp
-    apply Bytes.AttackerKnows.prove Hash.equationalTheory Hash.attKnowsHash
-    · simp [Hash.equationalTheory]
-    simp only [Hash.attKnowsHash]
+    apply Bytes.AttackerKnows.prove equationalTheory attKnowsHash
+    · simp [equationalTheory]
+    simp only [attKnowsHash]
     grind
 
 -- Invariants
@@ -108,6 +108,10 @@ def Hash.invariants [BytesCtors]: BytesCtorInvariants.Internal Hash.ctor where
       let V[inp] := dataBytes
       simp_all +arith
   }
+  well_formed_later data dataBytes rec_wf := by
+    let V[inp] := dataBytes
+    simp_all +arith [BytesWellFormedLaterT]
+    grind
 
   usage := {
     func data dataBytes rec tr := Usage.nothing
@@ -147,14 +151,14 @@ def Hash.invariants [BytesCtors]: BytesCtorInvariants.Internal Hash.ctor where
 class abbrev Hash.HasInvariants [BytesCtors] [Hash.HasCtor] [BytesCtorsInvariants] := HasBytesInvariants (Hash.id) Hash.invariants
 
 @[simp]
-theorem hash.wellFormed
+theorem hash.WellFormed
   [BytesCtors] [BytesCtorsInvariants]
   [Hash.HasCtor] [Hash.HasInvariants]
   (inp: Bytes) (tr: ProofTrace)
   :
-    (hash inp).wellFormed tr = inp.wellFormed tr
+    (hash inp).WellFormed tr = inp.WellFormed tr
   := by
-    simp [hash, Bytes.wellFormed.eq, Hash.invariants]
+    simp [hash, Bytes.WellFormed.eq, Hash.invariants]
 
 @[simp]
 theorem hash.label
@@ -166,45 +170,45 @@ theorem hash.label
     simp [hash, Bytes.label.eq, Hash.invariants]
 
 @[simp]
-theorem hash.invariant
+theorem hash.Invariant
   [BytesCtors] [BytesCtorsInvariants]
   [Hash.HasCtor] [Hash.HasInvariants]
   (inp: Bytes) (tr: ProofTrace)
   :
-    (hash inp).invariant tr =
-    inp.invariant tr
+    (hash inp).Invariant tr =
+    inp.Invariant tr
   := by
-    simp [hash, Bytes.invariant.eq, Hash.invariants]
+    simp [hash, Bytes.Invariant.eq, Hash.invariants]
 
-def Hash.EquationalTheoryInvariant [EquationalTheories]: EquationalTheoryInvariants Hash.equationalTheory where
+def EquationalTheoryInvariant [EquationalTheories]: EquationalTheoryInvariants equationalTheory where
   invariant
     | 0 => Hash.invariants
 
 instance
   [EquationalTheories] [EquationalTheories.Invariants]
-  [HasEquationalTheory Hash.equationalTheory] [Hash.EquationalTheoryInvariant.Has]
+  [HasEquationalTheory equationalTheory] [EquationalTheoryInvariant.Has]
   : HasBytesInvariants Hash.id Hash.invariants :=
-  Hash.EquationalTheoryInvariant.mkHasBytesInvariants (Fin.mk 0 (by simp [Hash.equationalTheory, Hash.ctors]))
+  EquationalTheoryInvariant.mkHasBytesInvariants (Fin.mk 0 (by simp [equationalTheory, ctors]))
 
 -- Preserve publishability
 
-def Hash.attKnowsHash.preserves_publishability
+def attKnowsHash.preserves_publishability
   [BytesCtors] [BytesCtorsInvariants]
-  [Bytes.HasCtors Hash.ctors] [Hash.HasInvariants]: Hash.attKnowsHash.PreservesPublishability :=
+  [Bytes.HasCtors ctors] [Hash.HasInvariants]: attKnowsHash.PreservesPublishability :=
   by
-    simp only [AttackerKnowledge.PreservesPublishability, Hash.attKnowsHash]
+    simp only [AttackerKnowledge.PreservesPublishability, attKnowsHash]
     intro out tr ⟨inp, ⟨ h_out, h_inp ⟩⟩
     subst h_out
     simp_all [Bytes.Publishable]
 
-def Hash.PreservesPublishability
+def PreservesPublishability
   [EquationalTheories] [EquationalTheories.Invariants]
-  [HasEquationalTheory Hash.equationalTheory]
-  [Hash.EquationalTheoryInvariant.Has]
-  : EquationalTheory.PreservesPublishability Hash.equationalTheory where
+  [HasEquationalTheory equationalTheory]
+  [EquationalTheoryInvariant.Has]
+  : EquationalTheory.PreservesPublishability equationalTheory where
   pf := by
-    unfold Hash.equationalTheory
+    unfold equationalTheory
     simp
     exact attKnowsHash.preserves_publishability
 
-end DY
+end DY.Hash

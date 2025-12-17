@@ -16,9 +16,9 @@ def test_publishable (b: Bytes): Bool := sorry
 instance:
   HoareTriplePure
     (hash b)
-    (fun tr => b.invariant tr)
+    (fun tr => b.Invariant tr)
     (fun res tr =>
-      res.invariant tr ∧
+      res.Invariant tr ∧
       res.label tr = b.label tr
     )
   where
@@ -29,7 +29,7 @@ def send_message (b:Bytes) : Traceful Unit := sorry
 def receive_message (n:Nat) : Traceful Bytes := sorry
 
 abbrev is_knowable_by (b: Bytes) (l: Label) (tr: ProofTrace): Prop :=
-  b.invariant tr ∧
+  b.Invariant tr ∧
   (b.label tr).canFlow l tr
 
 set_option trace.Step true
@@ -57,7 +57,7 @@ instance:
 instance:
   HoareTriple
     (send_message b)
-    (fun tr => b.invariant tr)
+    (fun tr => b.Invariant tr)
     (fun _ _ => True)
   where
     pf := sorry
