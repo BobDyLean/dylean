@@ -3,6 +3,7 @@ import DY.Label.Type
 import DY.Trace.Type
 import DY.Bytes.EquationalTheoryInvariants
 import DY.Bytes.AttackerKnowledge
+import DY.Misc
 
 namespace DY.Concat
 
@@ -14,37 +15,17 @@ class CanConcat (Bytes: Type u) where
 export CanConcat (concat)
 export CanConcat (split)
 
-instance: Ord Unit where
-  compare _ _ := .eq
-
-instance: Std.ReflOrd Unit where
-  compare_self := by grind
-
-instance: Std.LawfulEqOrd Unit where
-  eq_of_compare := by grind
-
-instance: Std.OrientedOrd Unit where
-  eq_swap := by grind [Ordering.swap]
-
-instance: Std.TransOrd Unit where
-  isLE_trans := by grind
-
 -- Constructors
 
-abbrev Concat.ctor: BytesCtor where
+def Concat.ctor: BytesCtor where
   data := Unit
   nBytes := 2
-  dataOrd := inferInstance
-  dataReflOrd := inferInstance
-  dataLawfulEqOrd := inferInstance
-  dataOrientedOrd := inferInstance
-  dataTransOrd := inferInstance
 
 class abbrev Concat.HasCtor [BytesCtors] := Bytes.HasCtor Concat.ctor
 
 abbrev Concat.id [BytesCtors] [Concat.HasCtor]: CtorId := Bytes.HasCtor.id Concat.ctor
 
-abbrev Concat.View [BytesCtors] [Concat.HasCtor] := BytesView Concat.id
+def Concat.View [BytesCtors] [Concat.HasCtor] := BytesView Concat.id
 
 instance [BytesCtors] [Concat.HasCtor]: CanConcat Bytes where
   concat lhs rhs :=

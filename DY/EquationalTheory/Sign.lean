@@ -3,6 +3,7 @@ import DY.Label.Type
 import DY.Trace.Type
 import DY.Bytes.EquationalTheoryInvariants
 import DY.Bytes.AttackerKnowledge
+import DY.Misc
 
 namespace DY.Signature
 
@@ -17,52 +18,27 @@ export CanSign (vk)
 export CanSign (sign)
 export CanSign (verify)
 
-instance: Ord Unit where
-  compare _ _ := .eq
-
-instance: Std.ReflOrd Unit where
-  compare_self := by grind
-
-instance: Std.LawfulEqOrd Unit where
-  eq_of_compare := by grind
-
-instance: Std.OrientedOrd Unit where
-  eq_swap := by grind [Ordering.swap]
-
-instance: Std.TransOrd Unit where
-  isLE_trans := by grind
-
 -- Constructors
 
-abbrev Vk.ctor: BytesCtor where
+def Vk.ctor: BytesCtor where
   data := Unit
   nBytes := 1
-  dataOrd := inferInstance
-  dataReflOrd := inferInstance
-  dataLawfulEqOrd := inferInstance
-  dataOrientedOrd := inferInstance
-  dataTransOrd := inferInstance
 
 class abbrev Vk.HasCtor [BytesCtors] := Bytes.HasCtor Vk.ctor
 
 abbrev Vk.id [BytesCtors] [Vk.HasCtor]: CtorId := Bytes.HasCtor.id Vk.ctor
 
-abbrev Vk.View [BytesCtors] [Vk.HasCtor] := BytesView Vk.id
+def Vk.View [BytesCtors] [Vk.HasCtor] := BytesView Vk.id
 
-abbrev Sign.ctor: BytesCtor where
+def Sign.ctor: BytesCtor where
   data := Unit
   nBytes := 3
-  dataOrd := inferInstance
-  dataReflOrd := inferInstance
-  dataLawfulEqOrd := inferInstance
-  dataOrientedOrd := inferInstance
-  dataTransOrd := inferInstance
 
 class abbrev Sign.HasCtor [BytesCtors] := Bytes.HasCtor Sign.ctor
 
 abbrev Sign.id [BytesCtors] [Sign.HasCtor]: CtorId := Bytes.HasCtor.id Sign.ctor
 
-abbrev Sign.View [BytesCtors] [Sign.HasCtor] := BytesView Sign.id
+def Sign.View [BytesCtors] [Sign.HasCtor] := BytesView Sign.id
 
 instance [BytesCtors] [Vk.HasCtor] [Sign.HasCtor]: CanSign Bytes where
   vk sk :=

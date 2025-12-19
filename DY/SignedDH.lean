@@ -7,6 +7,8 @@ import DY.EquationalTheory.Sign
 
 open DY
 
+namespace Test
+
 variable [EquationalTheories]
 variable [EquationalTheories.Invariants]
 
@@ -175,7 +177,7 @@ instance : ParseableSerializeable SignedDHEvent := sorry
 
 -- setup
 
-def DY.Trace.prefix (tr: Trace α) (i: Nat): Trace α := sorry
+def _root_.DY.Trace.prefix (tr: Trace α) (i: Nat): Trace α := sorry
 axiom prefix_le (tr: Trace α) (i: Nat): (tr.prefix i) ≤ tr
 grind_pattern prefix_le => tr.prefix i
 
@@ -184,7 +186,7 @@ abbrev event_logged (who: Principal) (ev: SignedDHEvent) (tr: ProofTrace) :=
   ∃ i, event_logged_at who ev i tr
 
 namespace DY -- ???
-@[scoped grind→]
+@[grind→]
 axiom _root_.DY.Trace.MonotoneLemmas.event_logged_at_later (who: Principal) (ev: SignedDHEvent) (i: Nat) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → event_logged_at who ev i tr1 → event_logged_at who ev i tr2
 end DY
 
@@ -248,7 +250,7 @@ def client_state_inv (me: Principal) (sid: Nat) (st: ClientState) (tr: ProofTrac
 
 namespace DY -- ???
 -- scoped ??
-@[scoped grind→]
+@[grind→]
 theorem _root_.DY.Trace.MonotoneLemmas.client_state_inv_later
   (me: Principal) (sid: Nat) (st: ClientState) (tr1 tr2: ProofTrace):
   tr1 ≤ tr2 → client_state_inv me sid st tr1 → client_state_inv me sid st tr2
@@ -838,3 +840,32 @@ where
 end TestGrindAnnot
 
 end SignedDH
+
+end Test
+
+instance: EquationalTheories where
+  theories := [Hash.equationalTheory, Signature.equationalTheory]
+
+instance: NeZero EquationalTheories.theories.length where
+  out := by simp [EquationalTheories.theories]
+
+instance: HasEquationalTheory Hash.equationalTheory where
+  id := 0
+  pf := rfl
+
+instance: HasEquationalTheory Signature.equationalTheory where
+  id := 1
+  pf := rfl
+
+instance: EquationalTheories.Invariants where
+  invariants
+    | 0 => Hash.EquationalTheoryInvariant
+    | 1 => Signature.EquationalTheoryInvariant
+
+instance: Hash.EquationalTheoryInvariant.Has := inferInstanceAs ((EquationalTheories.Invariants.invariants 0).Has)
+
+instance: Signature.EquationalTheoryInvariant.Has := inferInstanceAs ((EquationalTheories.Invariants.invariants 1).Has)
+
+
+
+

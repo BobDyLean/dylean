@@ -5,7 +5,7 @@ import DY.Step
 
 open DY
 
-namespace Test
+namespace StepTest
 
 variable [EquationalTheories]
 variable [EquationalTheories.Invariants]
@@ -110,4 +110,4 @@ where
     step
     grind
 
-end Test
+end StepTest

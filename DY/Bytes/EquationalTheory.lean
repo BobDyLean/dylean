@@ -80,7 +80,7 @@ theorem computeCtorIndex_getElem (l: List EquationalTheory) (i: Nat) (j: Nat) (h
 
 class HasEquationalTheory [EquationalTheories] (theory: EquationalTheory) where
   id: TheoryId
-  pf: EquationalTheories.theories[id] = theory
+  pf (theory): EquationalTheories.theories[id] = theory
 
 instance [EquationalTheories] (id: TheoryId): HasEquationalTheory (EquationalTheories.theories[id]) where
   id := id
@@ -118,7 +118,7 @@ def EquationalTheory.into_theory_id
 def EquationalTheory.toGlobalIndex [EquationalTheories] (theory: EquationalTheory) [HasEquationalTheory theory] (id: Fin theory.ctors.length): Fin BytesCtors.n :=
   Fin.mk (computeCtorIndex EquationalTheories.theories (HasEquationalTheory.id theory) + (id.val)) (by
       have := computeCtorIndex_in_bounds EquationalTheories.theories (HasEquationalTheory.id theory) (id.val) (by grind) (by
-        have := @HasEquationalTheory.pf _ theory _
+        have := HasEquationalTheory.pf theory
         simp_all
       )
       unfold BytesCtors.n instBytesCtorsOfEquationalTheories BytesCtors.ofList
@@ -129,11 +129,11 @@ def EquationalTheory.toGlobalIndex_correct [EquationalTheories] (theory: Equatio
   BytesCtors.ctors (theory.toGlobalIndex id) = theory.ctors[id]
   := by
     have := computeCtorIndex_getElem EquationalTheories.theories (HasEquationalTheory.id theory) (id.val) (by grind) (by
-      have := @HasEquationalTheory.pf _ theory _
+      have := HasEquationalTheory.pf theory
       simp_all
     )
     unfold BytesCtors.ctors instBytesCtorsOfEquationalTheories BytesCtors.ofList EquationalTheory.toGlobalIndex
-    have := @HasEquationalTheory.pf _ theory _
+    have := HasEquationalTheory.pf theory
     simp_all
 
 structure EquationalTheories.CtorId [EquationalTheories] where

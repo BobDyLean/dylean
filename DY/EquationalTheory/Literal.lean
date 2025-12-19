@@ -18,17 +18,12 @@ export CanMkLiteral (bytesToLiteral)
 def Literal.ctor: BytesCtor where
   data := Nat
   nBytes := 0
-  dataOrd := inferInstance
-  dataReflOrd := inferInstance
-  dataLawfulEqOrd := inferInstance
-  dataOrientedOrd := inferInstance
-  dataTransOrd := inferInstance
 
 class abbrev Literal.HasCtor [BytesCtors] := Bytes.HasCtor Literal.ctor
 
 abbrev Literal.id [BytesCtors] [Literal.HasCtor]: CtorId := Bytes.HasCtor.id Literal.ctor
 
-abbrev Literal.View [BytesCtors] [Literal.HasCtor] := BytesView Literal.id
+def Literal.View [BytesCtors] [Literal.HasCtor] := BytesView Literal.id
 
 instance [BytesCtors] [Literal.HasCtor]: CanMkLiteral Bytes where
   literalToBytes lit :=

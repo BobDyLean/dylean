@@ -3,6 +3,7 @@ import DY.Label.Type
 import DY.Trace.Type
 import DY.Bytes.EquationalTheoryInvariants
 import DY.Bytes.AttackerKnowledge
+import DY.Misc
 
 namespace DY.Hash
 
@@ -11,37 +12,17 @@ class CanHash (Bytes: Type u) where
 
 export CanHash (hash)
 
-instance: Ord Unit where
-  compare _ _ := .eq
-
-instance: Std.ReflOrd Unit where
-  compare_self := by grind
-
-instance: Std.LawfulEqOrd Unit where
-  eq_of_compare := by grind
-
-instance: Std.OrientedOrd Unit where
-  eq_swap := by grind [Ordering.swap]
-
-instance: Std.TransOrd Unit where
-  isLE_trans := by grind
-
 -- Constructors
 
-abbrev Hash.ctor: BytesCtor where
+def Hash.ctor: BytesCtor where
   data := Unit
   nBytes := 1
-  dataOrd := inferInstance
-  dataReflOrd := inferInstance
-  dataLawfulEqOrd := inferInstance
-  dataOrientedOrd := inferInstance
-  dataTransOrd := inferInstance
 
 class abbrev Hash.HasCtor [BytesCtors] := Bytes.HasCtor Hash.ctor
 
 abbrev Hash.id [BytesCtors] [Hash.HasCtor]: CtorId := Bytes.HasCtor.id Hash.ctor
 
-abbrev Hash.View [BytesCtors] [Hash.HasCtor] := BytesView Hash.id
+def Hash.View [BytesCtors] [Hash.HasCtor] := BytesView Hash.id
 
 instance [BytesCtors] [Hash.HasCtor]: CanHash Bytes where
   hash inp :=

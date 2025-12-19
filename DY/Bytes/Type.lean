@@ -4,11 +4,11 @@ structure BytesCtor where
   data: Type 0
   nBytes: Nat
   -- TODO: we might want to move these outside BytesCtor(s) so that they only contain typing information
-  dataOrd: Ord data
-  dataReflOrd: Std.ReflOrd data
-  dataLawfulEqOrd: Std.LawfulEqOrd data
-  dataOrientedOrd: Std.OrientedOrd data
-  dataTransOrd: Std.TransOrd data
+  [dataOrd: Ord data]
+  [dataReflOrd: Std.ReflOrd data]
+  [dataLawfulEqOrd: Std.LawfulEqOrd data]
+  [dataOrientedOrd: Std.OrientedOrd data]
+  [dataTransOrd: Std.TransOrd data]
 
 -- TODO: if we want to compute bytes term, this Vect type is slow for performance
 -- because it contains the length of each subvector (classic issue)
@@ -297,7 +297,7 @@ instance [BytesCtors]: DecidableEq Bytes :=
 instance [BytesCtors]: LE Bytes := leOfOrd
 
 class Bytes.HasCtorAt [BytesCtors] (id: CtorId) (ctor: outParam BytesCtor) where
-  pf: BytesCtors.ctors id = ctor
+  pf (id): BytesCtors.ctors id = ctor
 
 class Bytes.HasCtor [BytesCtors] (ctor: BytesCtor) where
   id: CtorId
@@ -376,8 +376,8 @@ def BytesFunCtor.into
   : BytesFunCtor.ById id a
   :=
   {
-    func data dataBytes rec := f.func (@Bytes.HasCtorAt.pf _ id _ _ ▸ data) (@Bytes.HasCtorAt.pf _ id _ _ ▸ dataBytes) rec
-    func_wf := @Bytes.HasCtorAt.pf _ id ctor _ ▸ f.func_wf
+    func data dataBytes rec := f.func (Bytes.HasCtorAt.pf id ▸ data) (Bytes.HasCtorAt.pf id ▸ dataBytes) rec
+    func_wf := Bytes.HasCtorAt.pf id ▸ f.func_wf
   }
 
 def BytesFunCtors [BytesCtors] (a: Type u) :=
@@ -459,7 +459,7 @@ def BytesFunCtorProof1.into
   (pf: BytesFunCtorProof1 func f p)
   : BytesFunCtorProof1.ById func f.into p
   := fun data dataBytes pfRec =>
-    pf (@Bytes.HasCtorAt.pf _ id _ _ ▸ data) (@Bytes.HasCtorAt.pf _ id _ _ ▸ dataBytes) (@Bytes.HasCtorAt.pf _ id _ _ ▸ pfRec)
+    pf (Bytes.HasCtorAt.pf id ▸ data) (Bytes.HasCtorAt.pf id ▸ dataBytes) (Bytes.HasCtorAt.pf id ▸ pfRec)
 
 def BytesFunCtorsProof1 [BytesCtors] {a: Type u} (f: BytesFunCtors a) (default: a) (p: a → Prop) :=
   (id: CtorId) → BytesFunCtorProof1.ById (Bytes.mkRec f default) (f id) p
@@ -492,7 +492,7 @@ def BytesFunCtorProof2.into
   (pf: BytesFunCtorProof2 func1 func2 f1 f2 p)
   : BytesFunCtorProof2.ById func1 func2 f1.into f2.into p
   := fun data dataBytes pfRec =>
-    pf (@Bytes.HasCtorAt.pf _ id _ _ ▸ data) (@Bytes.HasCtorAt.pf _ id _ _ ▸ dataBytes) (@Bytes.HasCtorAt.pf _ id _ _ ▸ pfRec)
+    pf (Bytes.HasCtorAt.pf id ▸ data) (Bytes.HasCtorAt.pf id ▸ dataBytes) (Bytes.HasCtorAt.pf id ▸ pfRec)
 
 def BytesFunCtorsProof2 [BytesCtors] {a: Type u} {b: Type v} (f1: BytesFunCtors a) (f2: BytesFunCtors b) (default1: a) (default2: b) (p: a × b → Prop) :=
   (id: CtorId) → BytesFunCtorProof2.ById (Bytes.mkRec f1 default1) (Bytes.mkRec f2 default2) (f1 id) (f2 id) p
