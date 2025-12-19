@@ -19,13 +19,9 @@ def Literal.ctor: BytesCtor where
   data := Nat
   nBytes := 0
 
-class abbrev Literal.HasCtor [BytesCtors] := Bytes.HasCtor Literal.ctor
+def Literal.View [BytesCtors] [Literal.ctor.HasCtor] := BytesView Literal.ctor.id
 
-abbrev Literal.id [BytesCtors] [Literal.HasCtor]: CtorId := Bytes.HasCtor.id Literal.ctor
-
-def Literal.View [BytesCtors] [Literal.HasCtor] := BytesView Literal.id
-
-instance [BytesCtors] [Literal.HasCtor]: CanMkLiteral Bytes where
+instance [BytesCtors] [Literal.ctor.HasCtor]: CanMkLiteral Bytes where
   literalToBytes lit :=
     ({
       data := lit,
@@ -33,13 +29,13 @@ instance [BytesCtors] [Literal.HasCtor]: CanMkLiteral Bytes where
     } : Literal.View).pack
 
   bytesToLiteral buf :=
-    match buf.view? Literal.id with
+    match buf.view? Literal.ctor.id with
     | some { data := lit, dataBytes := V[] } =>
       some lit
     | none => none
 
 theorem bytesToLiteral_literalToBytes
-  [BytesCtors] [Literal.HasCtor]
+  [BytesCtors] [Literal.ctor.HasCtor]
   (lit: Nat)
   : bytesToLiteral (literalToBytes lit: Bytes) = some lit
   := by
@@ -47,7 +43,7 @@ theorem bytesToLiteral_literalToBytes
     grind
 
 theorem literalToBytes_bytesToLiteral
-  [BytesCtors] [Literal.HasCtor]
+  [BytesCtors] [Literal.ctor.HasCtor]
   (buf: Bytes)
   :
     match bytesToLiteral buf with
@@ -60,7 +56,7 @@ theorem literalToBytes_bytesToLiteral
 
 def ctors := [Literal.ctor]
 
-instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Bytes.HasCtor Literal.ctor := tc.tc (Fin.mk 0 (by simp [ctors]))
+instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Literal.ctor.HasCtor := tc.tc (Fin.mk 0 (by simp [ctors]))
 
 -- Equational theory
 
@@ -124,12 +120,12 @@ def Literal.invariants [BytesCtors]: BytesCtorInvariants.Internal Literal.ctor w
   invariant_implies_wellformed data dataBytes rec_inv rec_wf := by grind [BytesInvariantImpliesBytesWellFormedT]
   invariant_later data dataBytes rec := by grind [BytesInvariantLaterT]
 
-class abbrev Literal.HasInvariants [BytesCtors] [BytesCtorsInvariants] [Literal.HasCtor] := HasBytesInvariants Literal.id Literal.invariants
+class abbrev Literal.HasInvariants [BytesCtors] [BytesCtorsInvariants] [Literal.ctor.HasCtor] := HasBytesInvariants Literal.ctor.id Literal.invariants
 
 @[simp]
 theorem literalToBytes.WellFormed
   [BytesCtors] [BytesCtorsInvariants]
-  [Literal.HasCtor] [Literal.HasInvariants]
+  [Literal.ctor.HasCtor] [Literal.HasInvariants]
   (lit: Nat) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).WellFormed tr
   := by
@@ -138,7 +134,7 @@ theorem literalToBytes.WellFormed
 @[simp]
 theorem literalToBytes.label
   [BytesCtors] [BytesCtorsInvariants]
-  [Literal.HasCtor] [Literal.HasInvariants]
+  [Literal.ctor.HasCtor] [Literal.HasInvariants]
   (lit: Nat) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).label tr = Label.pub
   := by
@@ -147,7 +143,7 @@ theorem literalToBytes.label
 @[simp]
 theorem literalToBytes.Invariant
   [BytesCtors] [BytesCtorsInvariants]
-  [Literal.HasCtor] [Literal.HasInvariants]
+  [Literal.ctor.HasCtor] [Literal.HasInvariants]
   (lit: Nat) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).Invariant tr
   := by
@@ -160,7 +156,7 @@ def EquationalTheoryInvariant [EquationalTheories]: EquationalTheoryInvariants e
 instance
   [EquationalTheories] [EquationalTheories.Invariants]
   [HasEquationalTheory equationalTheory] [EquationalTheoryInvariant.Has]
-  : HasBytesInvariants Literal.id Literal.invariants :=
+  : HasBytesInvariants Literal.ctor.id Literal.invariants :=
   EquationalTheoryInvariant.mkHasBytesInvariants (Fin.mk 0 (by simp [equationalTheory, ctors]))
 
 -- Preserve publishability

@@ -224,7 +224,7 @@ instance
   [EquationalTheories]
   (theory: EquationalTheory) [HasEquationalTheory theory]
   (id: Fin theory.ctors.length)
-  : Bytes.HasCtorAt (theory.toGlobalIndex id) theory.ctors[id]
+  : theory.ctors[id].HasCtorAt (theory.toGlobalIndex id)
   where
     pf := theory.toGlobalIndex_correct id
 

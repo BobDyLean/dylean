@@ -18,13 +18,9 @@ def Hash.ctor: BytesCtor where
   data := Unit
   nBytes := 1
 
-class abbrev Hash.HasCtor [BytesCtors] := Bytes.HasCtor Hash.ctor
+def Hash.View [BytesCtors] [Hash.ctor.HasCtor] := BytesView Hash.ctor.id
 
-abbrev Hash.id [BytesCtors] [Hash.HasCtor]: CtorId := Bytes.HasCtor.id Hash.ctor
-
-def Hash.View [BytesCtors] [Hash.HasCtor] := BytesView Hash.id
-
-instance [BytesCtors] [Hash.HasCtor]: CanHash Bytes where
+instance [BytesCtors] [Hash.ctor.HasCtor]: CanHash Bytes where
   hash inp :=
     ({
       data := (),
@@ -32,7 +28,7 @@ instance [BytesCtors] [Hash.HasCtor]: CanHash Bytes where
     } : Hash.View).pack
 
 theorem hash_inj
-  [BytesCtors] [Hash.HasCtor]
+  [BytesCtors] [Hash.ctor.HasCtor]
   (inp1 inp2: Bytes)
   :
     hash inp1 = hash inp2 →
@@ -43,7 +39,7 @@ theorem hash_inj
 
 def ctors := [Hash.ctor]
 
-instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Bytes.HasCtor Hash.ctor := tc.tc (Fin.mk 0 (by simp [ctors]))
+instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Hash.ctor.HasCtor := tc.tc (Fin.mk 0 (by simp [ctors]))
 
 -- Equational theory
 
@@ -129,12 +125,12 @@ def Hash.invariants [BytesCtors]: BytesCtorInvariants.Internal Hash.ctor where
     simp_all +arith [BytesInvariantLaterT]
     grind
 
-class abbrev Hash.HasInvariants [BytesCtors] [Hash.HasCtor] [BytesCtorsInvariants] := HasBytesInvariants (Hash.id) Hash.invariants
+class abbrev Hash.HasInvariants [BytesCtors] [Hash.ctor.HasCtor] [BytesCtorsInvariants] := HasBytesInvariants (Hash.ctor.id) Hash.invariants
 
 @[simp]
 theorem hash.WellFormed
   [BytesCtors] [BytesCtorsInvariants]
-  [Hash.HasCtor] [Hash.HasInvariants]
+  [Hash.ctor.HasCtor] [Hash.HasInvariants]
   (inp: Bytes) (tr: ProofTrace)
   :
     (hash inp).WellFormed tr = inp.WellFormed tr
@@ -144,7 +140,7 @@ theorem hash.WellFormed
 @[simp]
 theorem hash.label
   [BytesCtors] [BytesCtorsInvariants]
-  [Hash.HasCtor] [Hash.HasInvariants]
+  [Hash.ctor.HasCtor] [Hash.HasInvariants]
   (inp: Bytes) (tr: ProofTrace)
   : (hash inp).label tr = inp.label tr
   := by
@@ -153,7 +149,7 @@ theorem hash.label
 @[simp]
 theorem hash.Invariant
   [BytesCtors] [BytesCtorsInvariants]
-  [Hash.HasCtor] [Hash.HasInvariants]
+  [Hash.ctor.HasCtor] [Hash.HasInvariants]
   (inp: Bytes) (tr: ProofTrace)
   :
     (hash inp).Invariant tr =
@@ -168,7 +164,7 @@ def EquationalTheoryInvariant [EquationalTheories]: EquationalTheoryInvariants e
 instance
   [EquationalTheories] [EquationalTheories.Invariants]
   [HasEquationalTheory equationalTheory] [EquationalTheoryInvariant.Has]
-  : HasBytesInvariants Hash.id Hash.invariants :=
+  : HasBytesInvariants Hash.ctor.id Hash.invariants :=
   EquationalTheoryInvariant.mkHasBytesInvariants (Fin.mk 0 (by simp [equationalTheory, ctors]))
 
 -- Preserve publishability

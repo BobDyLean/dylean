@@ -15,13 +15,13 @@ class BytesWellFormed [BytesCtors] where
 def Bytes.WellFormed [BytesCtors] [BytesWellFormed] (b: Bytes) : BytesWellFormedT :=
   Bytes.mkRec BytesWellFormed.funs .default b
 
-class HasBytesWellFormed [BytesCtors] [BytesWellFormed] (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] (binv: outParam (BytesFunCtor id BytesWellFormedT)) where
+class HasBytesWellFormed [BytesCtors] [BytesWellFormed] (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] (binv: outParam (BytesFunCtor id BytesWellFormedT)) where
   pf: BytesWellFormed.funs id = binv.into
   dummy: Unit -- leanprover/lean4#11477 workaround
 
 theorem Bytes.WellFormed.eq
   [BytesCtors] [tc_binv: BytesWellFormed]
-  (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor]
+  (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id]
   {binv: BytesFunCtor id BytesWellFormedT}
   [tc: HasBytesWellFormed id binv]
   (b: BytesView id)
@@ -78,13 +78,13 @@ noncomputable
 def Bytes.usage [BytesCtors] [GetUsage] (b: Bytes) : GetUsageT :=
   Bytes.mkRec GetUsage.funs .default b
 
-class HasGetUsage [BytesCtors] [GetUsage] (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] (binv: outParam (BytesFunCtor id GetUsageT)) where
+class HasGetUsage [BytesCtors] [GetUsage] (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] (binv: outParam (BytesFunCtor id GetUsageT)) where
   pf: GetUsage.funs id = binv.into
   dummy: Unit -- leanprover/lean4#11477 workaround
 
 theorem Bytes.usage.eq
   [BytesCtors] [tc_binv: GetUsage]
-  (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor]
+  (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id]
   {binv: BytesFunCtor id GetUsageT}
   [tc: HasGetUsage id binv]
   (b: BytesView id)
@@ -132,13 +132,13 @@ noncomputable
 def Bytes.label [BytesCtors] [GetLabel] (b: Bytes) : GetLabelT :=
   Bytes.mkRec GetLabel.funs .default b
 
-class HasGetLabel [BytesCtors] [GetLabel] (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] (binv: outParam (BytesFunCtor id GetLabelT)) where
+class HasGetLabel [BytesCtors] [GetLabel] (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] (binv: outParam (BytesFunCtor id GetLabelT)) where
   pf: GetLabel.funs id = binv.into
   dummy: Unit -- leanprover/lean4#11477 workaround
 
 theorem Bytes.label.eq
   [BytesCtors] [tc_binv: GetLabel]
-  (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor]
+  (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id]
   {binv: BytesFunCtor id GetLabelT}
   [tc: HasGetLabel id binv]
   (b: BytesView id)
@@ -186,13 +186,13 @@ class BytesInvariant [BytesCtors] where
 def Bytes.Invariant [BytesCtors] [BytesInvariant] (b: Bytes) (tr: ProofTrace) : Prop :=
   Bytes.mkRec BytesInvariant.funs .default b tr
 
-class HasBytesInvariant [BytesCtors] [BytesInvariant] (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] (binv: outParam (BytesFunCtor id BytesInvariantT)) where
+class HasBytesInvariant [BytesCtors] [BytesInvariant] (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] (binv: outParam (BytesFunCtor id BytesInvariantT)) where
   pf: BytesInvariant.funs id = binv.into
   dummy: Unit -- leanprover/lean4#11477 workaround
 
 theorem Bytes.Invariant.eq
   [BytesCtors] [tc_binv: BytesInvariant]
-  (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor]
+  (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id]
   {binv: BytesFunCtor id BytesInvariantT}
   [tc: HasBytesInvariant id binv]
   (b: BytesView id)
@@ -264,10 +264,10 @@ structure BytesCtorInvariants.Internal [BytesCtors] (ctor: BytesCtor) where
   -- ...
 
 def BytesCtorInvariants.ById [BytesCtors] (id: CtorId) := BytesCtorInvariants.Internal (BytesCtors.ctors id)
-def BytesCtorInvariants [BytesCtors] (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] := BytesCtorInvariants.Internal ctor
+def BytesCtorInvariants [BytesCtors] (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] := BytesCtorInvariants.Internal ctor
 
 def BytesCtorInvariants.into
-  [BytesCtors] {id: CtorId} {ctor: BytesCtor} [Bytes.HasCtorAt id ctor]
+  [BytesCtors] {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id]
   (f: BytesCtorInvariants id)
   : BytesCtorInvariants.ById id
   where
@@ -315,22 +315,22 @@ instance [BytesCtors] [BytesCtorsInvariants]: BytesInvariantImpliesBytesWellForm
 instance [BytesCtors] [BytesCtorsInvariants]: BytesInvariantLater where
   proofs id := (BytesCtorsInvariants.funs id).invariant_later
 
-class HasBytesInvariants [BytesCtors] [BytesCtorsInvariants] (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] (funs: outParam (BytesCtorInvariants id)) where
+class HasBytesInvariants [BytesCtors] [BytesCtorsInvariants] (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] (funs: outParam (BytesCtorInvariants id)) where
   pf: BytesCtorsInvariants.funs id = funs.into
 
-instance [BytesCtors] [BytesCtorsInvariants] (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] (funs: BytesCtorInvariants id) [tc: HasBytesInvariants id funs]: HasBytesWellFormed id funs.well_formed where
+instance [BytesCtors] [BytesCtorsInvariants] (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] (funs: BytesCtorInvariants id) [tc: HasBytesInvariants id funs]: HasBytesWellFormed id funs.well_formed where
   pf := by simp only [BytesWellFormed.funs, tc.pf, BytesCtorInvariants.into]
   dummy := ()
 
-instance [BytesCtors] [BytesCtorsInvariants] (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] (funs: BytesCtorInvariants id) [tc: HasBytesInvariants id funs]: HasGetUsage id funs.usage where
+instance [BytesCtors] [BytesCtorsInvariants] (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] (funs: BytesCtorInvariants id) [tc: HasBytesInvariants id funs]: HasGetUsage id funs.usage where
   pf := by simp only [GetUsage.funs, tc.pf, BytesCtorInvariants.into]
   dummy := ()
 
-instance [BytesCtors] [BytesCtorsInvariants] (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] (funs: BytesCtorInvariants id) [tc: HasBytesInvariants id funs]: HasGetLabel id funs.label where
+instance [BytesCtors] [BytesCtorsInvariants] (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] (funs: BytesCtorInvariants id) [tc: HasBytesInvariants id funs]: HasGetLabel id funs.label where
   pf := by simp only [GetLabel.funs, tc.pf, BytesCtorInvariants.into]
   dummy := ()
 
-instance [BytesCtors] [BytesCtorsInvariants] (id: CtorId) {ctor: BytesCtor} [Bytes.HasCtorAt id ctor] (funs: BytesCtorInvariants id) [tc: HasBytesInvariants id funs]: HasBytesInvariant id funs.invariant where
+instance [BytesCtors] [BytesCtorsInvariants] (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] (funs: BytesCtorInvariants id) [tc: HasBytesInvariants id funs]: HasBytesInvariant id funs.invariant where
   pf := by simp only [BytesInvariant.funs, tc.pf, BytesCtorInvariants.into]
   dummy := ()
 

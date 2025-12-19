@@ -21,13 +21,9 @@ def Concat.ctor: BytesCtor where
   data := Unit
   nBytes := 2
 
-class abbrev Concat.HasCtor [BytesCtors] := Bytes.HasCtor Concat.ctor
+def Concat.View [BytesCtors] [Concat.ctor.HasCtor] := BytesView Concat.ctor.id
 
-abbrev Concat.id [BytesCtors] [Concat.HasCtor]: CtorId := Bytes.HasCtor.id Concat.ctor
-
-def Concat.View [BytesCtors] [Concat.HasCtor] := BytesView Concat.id
-
-instance [BytesCtors] [Concat.HasCtor]: CanConcat Bytes where
+instance [BytesCtors] [Concat.ctor.HasCtor]: CanConcat Bytes where
   concat lhs rhs :=
     ({
       data := (),
@@ -35,13 +31,13 @@ instance [BytesCtors] [Concat.HasCtor]: CanConcat Bytes where
     } : Concat.View).pack
 
   split buf :=
-    match buf.view? Concat.id with
+    match buf.view? Concat.ctor.id with
     | some { data := (), dataBytes := V[lhs, rhs] } =>
       some (lhs, rhs)
     | none => none
 
 theorem split_concat
-  [BytesCtors] [Concat.HasCtor]
+  [BytesCtors] [Concat.ctor.HasCtor]
   (lhs rhs: Bytes)
   : split (concat lhs rhs) = some (lhs, rhs)
   := by
@@ -49,7 +45,7 @@ theorem split_concat
     grind
 
 theorem concat_split
-  [BytesCtors] [Concat.HasCtor]
+  [BytesCtors] [Concat.ctor.HasCtor]
   (buf lhs rhs: Bytes)
   : split buf = some (lhs, rhs) → concat lhs rhs = buf
   := by
@@ -58,7 +54,7 @@ theorem concat_split
 
 def ctors := [Concat.ctor]
 
-instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Bytes.HasCtor Concat.ctor := tc.tc (Fin.mk 0 (by simp [ctors]))
+instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Concat.ctor.HasCtor := tc.tc (Fin.mk 0 (by simp [ctors]))
 
 -- Equational theory
 
@@ -188,12 +184,12 @@ def Concat.invariants [BytesCtors]: BytesCtorInvariants.Internal Concat.ctor whe
     simp_all +arith [BytesInvariantLaterT]
     grind
 
-class abbrev Concat.HasInvariants [BytesCtors] [Concat.HasCtor] [BytesCtorsInvariants] := HasBytesInvariants (Concat.id) Concat.invariants
+class abbrev Concat.HasInvariants [BytesCtors] [Concat.ctor.HasCtor] [BytesCtorsInvariants] := HasBytesInvariants (Concat.ctor.id) Concat.invariants
 
 @[simp]
 theorem concat.WellFormed
   [BytesCtors] [BytesCtorsInvariants]
-  [Concat.HasCtor] [Concat.HasInvariants]
+  [Concat.ctor.HasCtor] [Concat.HasInvariants]
   (lhs rhs: Bytes) (tr: ProofTrace)
   :
     (concat lhs rhs).WellFormed tr = (lhs.WellFormed tr ∧ rhs.WellFormed tr)
@@ -203,7 +199,7 @@ theorem concat.WellFormed
 @[simp]
 theorem concat.label
   [BytesCtors] [BytesCtorsInvariants]
-  [Concat.HasCtor] [Concat.HasInvariants]
+  [Concat.ctor.HasCtor] [Concat.HasInvariants]
   (lhs rhs: Bytes) (tr: ProofTrace)
   : (concat lhs rhs).label tr = Label.meet (lhs.label tr) (rhs.label tr)
   := by
@@ -212,7 +208,7 @@ theorem concat.label
 @[simp]
 theorem concat.Invariant
   [BytesCtors] [BytesCtorsInvariants]
-  [Concat.HasCtor] [Concat.HasInvariants]
+  [Concat.ctor.HasCtor] [Concat.HasInvariants]
   (lhs rhs: Bytes) (tr: ProofTrace)
   : (concat lhs rhs).Invariant tr = (lhs.Invariant tr ∧ rhs.Invariant tr)
   := by
@@ -222,7 +218,7 @@ theorem concat.Invariant
 @[simp]
 theorem split.WellFormed
   [BytesCtors] [BytesCtorsInvariants]
-  [Concat.HasCtor] [Concat.HasInvariants]
+  [Concat.ctor.HasCtor] [Concat.HasInvariants]
   (buf: Bytes) (tr: ProofTrace)
   :
     match split buf with
@@ -239,7 +235,7 @@ theorem split.WellFormed
 @[simp]
 theorem split.label
   [BytesCtors] [BytesCtorsInvariants]
-  [Concat.HasCtor] [Concat.HasInvariants]
+  [Concat.ctor.HasCtor] [Concat.HasInvariants]
   (buf: Bytes) (tr: ProofTrace)
   :
     match split buf with
@@ -256,7 +252,7 @@ theorem split.label
 @[simp]
 theorem split.Invariant
   [BytesCtors] [BytesCtorsInvariants]
-  [Concat.HasCtor] [Concat.HasInvariants]
+  [Concat.ctor.HasCtor] [Concat.HasInvariants]
   (buf: Bytes) (tr: ProofTrace)
   :
     buf.Invariant tr →
@@ -279,7 +275,7 @@ def EquationalTheoryInvariant [EquationalTheories]: EquationalTheoryInvariants C
 instance
   [EquationalTheories] [EquationalTheories.Invariants]
   [HasEquationalTheory Concat.equationalTheory] [EquationalTheoryInvariant.Has]
-  : HasBytesInvariants Concat.id Concat.invariants :=
+  : HasBytesInvariants Concat.ctor.id Concat.invariants :=
   EquationalTheoryInvariant.mkHasBytesInvariants (Fin.mk 0 (by simp [Concat.equationalTheory, ctors]))
 
 -- Preserve publishability

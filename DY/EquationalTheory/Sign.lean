@@ -24,23 +24,15 @@ def Vk.ctor: BytesCtor where
   data := Unit
   nBytes := 1
 
-class abbrev Vk.HasCtor [BytesCtors] := Bytes.HasCtor Vk.ctor
-
-abbrev Vk.id [BytesCtors] [Vk.HasCtor]: CtorId := Bytes.HasCtor.id Vk.ctor
-
-def Vk.View [BytesCtors] [Vk.HasCtor] := BytesView Vk.id
+def Vk.View [BytesCtors] [Vk.ctor.HasCtor] := BytesView Vk.ctor.id
 
 def Sign.ctor: BytesCtor where
   data := Unit
   nBytes := 3
 
-class abbrev Sign.HasCtor [BytesCtors] := Bytes.HasCtor Sign.ctor
+def Sign.View [BytesCtors] [Sign.ctor.HasCtor] := BytesView Sign.ctor.id
 
-abbrev Sign.id [BytesCtors] [Sign.HasCtor]: CtorId := Bytes.HasCtor.id Sign.ctor
-
-def Sign.View [BytesCtors] [Sign.HasCtor] := BytesView Sign.id
-
-instance [BytesCtors] [Vk.HasCtor] [Sign.HasCtor]: CanSign Bytes where
+instance [BytesCtors] [Vk.ctor.HasCtor] [Sign.ctor.HasCtor]: CanSign Bytes where
   vk sk :=
     ({
       data := (),
@@ -54,14 +46,14 @@ instance [BytesCtors] [Vk.HasCtor] [Sign.HasCtor]: CanSign Bytes where
     } : Sign.View).pack
 
   verify vk msg sig :=
-    match sig.view? Sign.id with
+    match sig.view? Sign.ctor.id with
     | some { data := (), dataBytes := V[sk, _nonce, msg'] } =>
       msg = msg' &&
       vk = ({ data := (), dataBytes := V[sk] } : Vk.View).pack
     | none => false
 
 theorem verify_sign
-  [BytesCtors] [Vk.HasCtor] [Sign.HasCtor]
+  [BytesCtors] [Vk.ctor.HasCtor] [Sign.ctor.HasCtor]
   (sk nonce msg: Bytes)
   :
     verify (vk sk) msg (sign sk nonce msg)
@@ -71,8 +63,8 @@ theorem verify_sign
 
 def ctors := [Vk.ctor, Sign.ctor]
 
-instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Bytes.HasCtor Vk.ctor := tc.tc (Fin.mk 0 (by simp [ctors]))
-instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Bytes.HasCtor Sign.ctor := tc.tc (Fin.mk 1 (by simp [ctors]))
+instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Vk.ctor.HasCtor := tc.tc (Fin.mk 0 (by simp [ctors]))
+instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Sign.ctor.HasCtor := tc.tc (Fin.mk 1 (by simp [ctors]))
 
 -- Equational theory
 
@@ -183,12 +175,12 @@ def Vk.invariants [BytesCtors]: BytesCtorInvariants.Internal Vk.ctor where
     simp_all +arith [BytesInvariantLaterT]
     grind
 
-class abbrev Vk.HasInvariants [BytesCtors] [Vk.HasCtor] [BytesCtorsInvariants] := HasBytesInvariants (Vk.id) Vk.invariants
+class abbrev Vk.HasInvariants [BytesCtors] [Vk.ctor.HasCtor] [BytesCtorsInvariants] := HasBytesInvariants (Vk.ctor.id) Vk.invariants
 
 @[simp]
 theorem vk.WellFormed
   [BytesCtors] [BytesWellFormed]
-  [Bytes.HasCtors ctors] [HasBytesWellFormed Vk.id Vk.invariants.well_formed]
+  [Bytes.HasCtors ctors] [HasBytesWellFormed Vk.ctor.id Vk.invariants.well_formed]
   (inp: Bytes) (tr: ProofTrace)
   :
     (vk inp).WellFormed tr = inp.WellFormed tr
@@ -216,13 +208,13 @@ theorem vk.Invariant
     simp [vk, Bytes.Invariant.eq, Vk.invariants]
 
 noncomputable
-def extractSignkey [BytesCtors] [Vk.HasCtor] (vk: Bytes): Option Bytes :=
-  match vk.view? Vk.id with
+def extractSignkey [BytesCtors] [Vk.ctor.HasCtor] (vk: Bytes): Option Bytes :=
+  match vk.view? Vk.ctor.id with
   | some { data := (), dataBytes := V[sk] } =>
     some sk
   | none => none
 
-theorem vk_extractSignkey [BytesCtors] [Vk.HasCtor] [Sign.HasCtor] (b: Bytes):
+theorem vk_extractSignkey [BytesCtors] [Vk.ctor.HasCtor] [Sign.ctor.HasCtor] (b: Bytes):
   match extractSignkey b with
   | none => True
   | some sk => b = vk sk
@@ -230,14 +222,14 @@ theorem vk_extractSignkey [BytesCtors] [Vk.HasCtor] [Sign.HasCtor] (b: Bytes):
     simp [extractSignkey, vk]
     grind
 
-theorem extractSignkey.preserves_WellFormed [BytesCtors] [BytesWellFormed] [Bytes.HasCtors ctors] [HasBytesWellFormed Vk.id Vk.invariants.well_formed]: ExtractPreservesWellFormed extractSignkey
+theorem extractSignkey.preserves_WellFormed [BytesCtors] [BytesWellFormed] [Bytes.HasCtors ctors] [HasBytesWellFormed Vk.ctor.id Vk.invariants.well_formed]: ExtractPreservesWellFormed extractSignkey
   := by
     simp [ExtractPreservesWellFormed]
     grind [vk_extractSignkey, vk.WellFormed]
 
 end Signature
 
-def Bytes.SignkeyHasUsage [BytesCtors] [GetUsage] [GetLabel] [Signature.Vk.HasCtor] (vk: Bytes) (skUsg: Usage) (tr: ProofTrace): Prop :=
+def Bytes.SignkeyHasUsage [BytesCtors] [GetUsage] [GetLabel] [Signature.Vk.ctor.HasCtor] (vk: Bytes) (skUsg: Usage) (tr: ProofTrace): Prop :=
   Bytes.XXXHasUsage Signature.extractSignkey vk skUsg tr
 
 theorem Bytes.SignkeyHasUsage_vk
@@ -252,7 +244,7 @@ grind_pattern Bytes.SignkeyHasUsage_vk => (Signature.vk sk).SignkeyHasUsage skUs
 
 theorem Bytes.SignkeyHasUsage_later
   [BytesCtors] [BytesWellFormed] [GetUsage] [GetUsageLater] [GetLabel] [GetLabelLater]
-  [HasCtors Signature.ctors] [HasBytesWellFormed Signature.Vk.id Signature.Vk.invariants.well_formed]
+  [HasCtors Signature.ctors] [HasBytesWellFormed Signature.Vk.ctor.id Signature.Vk.invariants.well_formed]
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
   :
     b.WellFormed tr1 →
@@ -266,7 +258,7 @@ theorem Bytes.SignkeyHasUsage_later
 grind_pattern Bytes.SignkeyHasUsage_later => tr1 ≤ tr2, b.SignkeyHasUsage usg tr1
 
 noncomputable
-def Bytes.signkeyLabel [BytesCtors] [GetLabel] [Signature.Vk.HasCtor] (vk: Bytes) (tr: ProofTrace): Label :=
+def Bytes.signkeyLabel [BytesCtors] [GetLabel] [Signature.Vk.ctor.HasCtor] (vk: Bytes) (tr: ProofTrace): Label :=
   Bytes.xxxLabel Signature.extractSignkey vk tr
 
 theorem Bytes.signkeyLabel_vk
@@ -281,7 +273,7 @@ grind_pattern Bytes.signkeyLabel_vk => (Signature.vk sk).signkeyLabel tr
 
 theorem Bytes.signkeyLabel_later
   [BytesCtors] [BytesWellFormed] [GetUsage] [GetLabel] [GetLabelLater]
-  [HasCtors Signature.ctors] [HasBytesWellFormed Signature.Vk.id Signature.Vk.invariants.well_formed]
+  [HasCtors Signature.ctors] [HasBytesWellFormed Signature.Vk.ctor.id Signature.Vk.invariants.well_formed]
   (b: Bytes) (tr1 tr2: ProofTrace)
   :
     b.WellFormed tr1 →
@@ -393,7 +385,7 @@ def Sign.invariants [BytesCtors] [SignPred] [Bytes.HasCtors ctors]: BytesCtorInv
     simp_all +arith [BytesInvariantLaterT]
     grind [SignPred.pred_later]
 
-class abbrev Sign.HasInvariants [BytesCtors] [Bytes.HasCtors ctors] [BytesCtorsInvariants] [SignPred] := HasBytesInvariants (Sign.id) Sign.invariants
+class abbrev Sign.HasInvariants [BytesCtors] [Bytes.HasCtors ctors] [BytesCtorsInvariants] [SignPred] := HasBytesInvariants (Sign.ctor.id) Sign.invariants
 
 @[simp]
 theorem sign.WellFormed
@@ -468,7 +460,7 @@ theorem verify.Invariant
     simp [verify]
     split
     · rename_i sk nonce msg heq
-      have := Bytes.pack_view? sig Sign.id
+      have := Bytes.pack_view? sig Sign.ctor.id
       simp only [heq] at this
       subst this
       have: ({ data := (), dataBytes := V[sk] } : Vk.View).pack = CanSign.vk sk := rfl
@@ -485,13 +477,13 @@ def EquationalTheoryInvariant [EquationalTheories] [HasEquationalTheory equation
 instance
   [EquationalTheories] [EquationalTheories.Invariants]
   [HasEquationalTheory equationalTheory] [SignPred] [EquationalTheoryInvariant.Has]
-  : HasBytesInvariants Vk.id Vk.invariants :=
+  : HasBytesInvariants Vk.ctor.id Vk.invariants :=
   EquationalTheoryInvariant.mkHasBytesInvariants (Fin.mk 0 (by simp [equationalTheory, ctors]))
 
 instance
   [EquationalTheories] [EquationalTheories.Invariants]
   [HasEquationalTheory equationalTheory] [SignPred] [EquationalTheoryInvariant.Has]
-  : HasBytesInvariants Sign.id Sign.invariants :=
+  : HasBytesInvariants Sign.ctor.id Sign.invariants :=
   EquationalTheoryInvariant.mkHasBytesInvariants (Fin.mk 1 (by simp [equationalTheory, ctors]))
 
 -- Preserve publishability
