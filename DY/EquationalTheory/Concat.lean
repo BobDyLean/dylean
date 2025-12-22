@@ -139,10 +139,6 @@ def Concat.invariants [BytesCtors]: BytesCtorInvariants.Internal Concat.ctor whe
   well_formed := {
     func := fun () V[lhs, rhs] rec tr =>
       rec lhs tr ∧ rec rhs tr
-    func_wf := by
-      intro data dataBytes rec1 rec2
-      let V[lhs, rhs] := dataBytes
-      simp_all +arith
   }
   well_formed_later data dataBytes rec_wf := by
     let V[lhs, rhs] := dataBytes
@@ -151,17 +147,12 @@ def Concat.invariants [BytesCtors]: BytesCtorInvariants.Internal Concat.ctor whe
 
   usage := {
     func data dataBytes rec tr := Usage.nothing
-    func_wf := by grind
   }
   usage_later data dataBytes rec_wf rec_usg := by grind [GetUsageLaterT]
 
   label := {
     func := fun () V[lhs, rhs] rec tr =>
       Label.meet (rec lhs tr) (rec rhs tr)
-    func_wf := by
-      intro data dataBytes rec1 rec2
-      let V[lhs, rhs] := dataBytes
-      simp_all +arith
   }
   label_later data dataBytes rec_wf rec_usg := by
     let V[lhs, rhs] := dataBytes
@@ -171,10 +162,6 @@ def Concat.invariants [BytesCtors]: BytesCtorInvariants.Internal Concat.ctor whe
   invariant := {
     func := fun () V[lhs, rhs] rec tr =>
       rec lhs tr ∧ rec rhs tr
-    func_wf := by
-      intro data dataBytes rec1 rec2
-      let V[lhs, rhs] := dataBytes
-      simp_all +arith
   }
   invariant_implies_wellformed data dataBytes rec_inv rec_wf := by
     let V[lhs, rhs] := dataBytes

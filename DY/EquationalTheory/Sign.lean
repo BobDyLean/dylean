@@ -131,10 +131,6 @@ def Vk.invariants [BytesCtors]: BytesCtorInvariants.Internal Vk.ctor where
   well_formed := {
     func := fun () V[sk] rec tr =>
       rec sk tr
-    func_wf := by
-      intro data dataBytes rec1 rec2
-      let V[sk] := dataBytes
-      simp_all +arith
   }
   well_formed_later data dataBytes rec_wf := by
     let V[sk] := dataBytes
@@ -143,17 +139,12 @@ def Vk.invariants [BytesCtors]: BytesCtorInvariants.Internal Vk.ctor where
 
   usage := {
     func data dataBytes rec tr := Usage.nothing
-    func_wf := by grind
   }
   usage_later data dataBytes rec_wf rec_usg := by grind [GetUsageLaterT]
 
   label := {
     func := fun () V[sk] rec tr =>
       Label.pub
-    func_wf := by
-      intro data dataBytes rec1 rec2
-      let V[sk] := dataBytes
-      simp_all +arith
   }
   label_later data dataBytes rec_wf rec_usg := by
     let V[sk] := dataBytes
@@ -162,10 +153,6 @@ def Vk.invariants [BytesCtors]: BytesCtorInvariants.Internal Vk.ctor where
   invariant := {
     func := fun () V[sk] rec tr =>
       rec sk tr
-    func_wf := by
-      intro data dataBytes rec1 rec2
-      let V[sk] := dataBytes
-      simp_all +arith
   }
   invariant_implies_wellformed data dataBytes rec_inv rec_wf := by
     let V[sk] := dataBytes
@@ -307,10 +294,6 @@ def Sign.invariants [BytesCtors] [SignPred] [Bytes.HasCtors ctors]: BytesCtorInv
       rec sk tr ∧
       rec nonce tr ∧
       rec msg tr
-    func_wf := by
-      intro data dataBytes rec1 rec2
-      let V[sk, nonce, msg] := dataBytes
-      simp_all +arith
   }
   well_formed_later data dataBytes rec_wf := by
     let V[sk, nonce, msg] := dataBytes
@@ -319,17 +302,12 @@ def Sign.invariants [BytesCtors] [SignPred] [Bytes.HasCtors ctors]: BytesCtorInv
 
   usage := {
     func data dataBytes rec tr := Usage.nothing
-    func_wf := by grind
   }
   usage_later data dataBytes rec_wf rec_usg := by grind [GetUsageLaterT]
 
   label := {
     func := fun () V[sk, nonce, msg] rec tr =>
       rec msg tr
-    func_wf := by
-      intro data dataBytes rec1 rec2
-      let V[sk, nonce, msg] := dataBytes
-      simp_all +arith
   }
   label_later data dataBytes rec_wf rec_usg := by
     let V[sk, nonce, msg] := dataBytes
@@ -371,11 +349,6 @@ def Sign.invariants [BytesCtors] [SignPred] [Bytes.HasCtors ctors]: BytesCtorInv
           (sk.label tr).canFlow Label.pub tr
         )
       )
-
-    func_wf := by
-      intro data dataBytes rec1 rec2
-      let V[sk, nonce, msg] := dataBytes
-      simp_all +arith
   }
   invariant_implies_wellformed data dataBytes rec_inv rec_wf := by
     let V[sk, nonce, msg] := dataBytes

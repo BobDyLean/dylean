@@ -80,10 +80,6 @@ def Hash.invariants [BytesCtors]: BytesCtorInvariants.Internal Hash.ctor where
   well_formed := {
     func := fun () V[inp] rec tr =>
       rec inp tr
-    func_wf := by
-      intro data dataBytes rec1 rec2
-      let V[inp] := dataBytes
-      simp_all +arith
   }
   well_formed_later data dataBytes rec_wf := by
     let V[inp] := dataBytes
@@ -92,17 +88,12 @@ def Hash.invariants [BytesCtors]: BytesCtorInvariants.Internal Hash.ctor where
 
   usage := {
     func data dataBytes rec tr := Usage.nothing
-    func_wf := by grind
   }
   usage_later data dataBytes rec_wf rec_usg := by grind [GetUsageLaterT]
 
   label := {
     func := fun () V[inp] rec tr =>
       rec inp tr
-    func_wf := by
-      intro data dataBytes rec1 rec2
-      let V[inp] := dataBytes
-      simp_all +arith
   }
   label_later data dataBytes rec_wf rec_usg := by
     let V[inp] := dataBytes
@@ -112,10 +103,6 @@ def Hash.invariants [BytesCtors]: BytesCtorInvariants.Internal Hash.ctor where
   invariant := {
     func := fun () V[inp] rec tr =>
       rec inp tr
-    func_wf := by
-      intro data dataBytes rec1 rec2
-      let V[inp] := dataBytes
-      simp_all +arith
   }
   invariant_implies_wellformed data dataBytes rec_inv rec_wf := by
     let V[inp] := dataBytes

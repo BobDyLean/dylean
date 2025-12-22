@@ -95,7 +95,6 @@ theorem Literal.attacker_knows_literalToBytes
 def Literal.invariants [BytesCtors]: BytesCtorInvariants.Internal Literal.ctor where
   well_formed := {
     func data dataBytes rec tr := True
-    func_wf := by grind
   }
   well_formed_later data dataBytes rec_wf := by
     let V[] := dataBytes
@@ -103,19 +102,16 @@ def Literal.invariants [BytesCtors]: BytesCtorInvariants.Internal Literal.ctor w
 
   usage := {
     func data dataBytes rec tr := Usage.nothing
-    func_wf := by grind
   }
   usage_later data dataBytes rec_wf rec_usg := by grind [GetUsageLaterT]
 
   label := {
     func data dataBytes rec tr := Label.pub
-    func_wf := by grind
   }
   label_later data dataBytes rec_wf rec_usg := by grind [GetLabelLaterT]
 
   invariant := {
     func data dataBytes rec tr := True
-    func_wf := by grind
   }
   invariant_implies_wellformed data dataBytes rec_inv rec_wf := by grind [BytesInvariantImpliesBytesWellFormedT]
   invariant_later data dataBytes rec := by grind [BytesInvariantLaterT]

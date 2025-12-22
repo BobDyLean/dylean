@@ -369,6 +369,18 @@ structure BytesFunCtor.Internal [BytesCtors] (ctor: BytesCtor) (a: Type u) where
     ∀ data dataBytes rec1 rec2,
       (∀ b, sizeOf b < sizeOf dataBytes → rec1 b = rec2 b) →
       func data dataBytes rec1 = func data dataBytes rec2
+    := by
+      intro data dataBytes rec1 rec2
+      -- The following is equivalent `let V[b1, b2, ...] := dataBytes`
+      repeat (
+        cases dataBytes
+        rename_i b dataBytes
+        -- if dataBytes was a Vect.nil, the following will fail
+        obtain dataBytes: Vect _ _ := dataBytes
+      )
+      -- destruct the Vect.nil
+      cases dataBytes
+      simp_all +arith
 
 def BytesFunCtor.ById [BytesCtors] (id: CtorId) (a: Type u) := BytesFunCtor.Internal (BytesCtors.ctors id) a
 def BytesFunCtor [BytesCtors] (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] (a: Type u) := BytesFunCtor.Internal ctor a
