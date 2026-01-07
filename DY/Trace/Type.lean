@@ -2,7 +2,7 @@ import DY.Bytes.Type
 
 namespace DY
 
-variable [BytesCtors]
+variable {CtorId} [BytesCtors CtorId]
 
 inductive Trace.Entry (a:Type) where
   | rand_gen: a -> Trace.Entry a

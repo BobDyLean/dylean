@@ -217,7 +217,7 @@ elab "hoist" : tactic => do
   replaceMainGoal ([← hoist (← getMainGoal)])
 
 namespace Test
-  variable [BytesCtors]
+  variable [EquationalTheories]
   def g (foo: Bytes) (bar: Bytes) := foo
   def send_message (b: Bytes): Traceful Nat := sorry
 
@@ -240,7 +240,7 @@ namespace Test
     sorry
 
   example:
-    wp (
+    wp (self := DY.instWPTraceful) (
       do
         let i ← send_message (g (g (g b1 b2) (g b3 b4)) (g (g b5 b6) (g b7 b8)));
         pure i

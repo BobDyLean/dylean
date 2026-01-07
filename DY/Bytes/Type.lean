@@ -4,6 +4,7 @@ structure BytesCtor where
   data: Type 0
   nBytes: Nat
   -- TODO: we might want to move these outside BytesCtor(s) so that they only contain typing information
+  [dataDecidableEq: DecidableEq data]
   [dataOrd: Ord data]
   [dataReflOrd: Std.ReflOrd data]
   [dataLawfulEqOrd: Std.LawfulEqOrd data]
@@ -26,19 +27,49 @@ macro_rules
   | `(V[ $elems,* ]) => do
     pure (← elems.getElems.foldrM (fun elem acc => ``(Vect.cons $elem $acc)) (← ``(Vect.nil)))
 
-class BytesCtors where
-  n: Nat
-  ctors: Fin n -> BytesCtor
+class BytesCtors (CtorId: outParam Type) where
+  ctors: CtorId -> BytesCtor
 
-abbrev CtorId [BytesCtors] := Fin BytesCtors.n
+-- abbrev CtorId {CtorId: Type} [BytesCtors CtorId] := CtorId
 
-structure Bytes [BytesCtors] where
+variable {CtorId: Type}
+variable [BytesCtors CtorId]
+
+structure Bytes where
   id: CtorId
   data: (BytesCtors.ctors id).data
   dataBytes: Vect (Bytes) ((BytesCtors.ctors id).nBytes)
 
 mutual
-def compareVectBytes [BytesCtors] {n: Nat} (v1 v2: Vect Bytes n): Ordering :=
+def decideEqVectBytes [DecidableEq CtorId] {n: Nat} (v1 v2: Vect Bytes n): Decidable (v1 = v2) := by
+  cases v1 <;> cases v2
+  · right
+    rfl
+  · rename_i h1 t1 h2 t2
+    cases decideEqBytes h1 h2
+    · left; simp_all
+    cases decideEqVectBytes t1 t2
+    · left; simp_all
+    right; simp_all
+
+def decideEqBytes [DecidableEq CtorId] (b1 b2: Bytes): Decidable (b1 = b2) := by
+  let {id := id1, data := data1, dataBytes := dataBytes1} := b1
+  let {id := id2, data := data2, dataBytes := dataBytes2} := b2
+  by_cases id1 = id2
+  · rename_i heq
+    subst heq
+    cases (BytesCtors.ctors id1).dataDecidableEq data1 data2
+    · left; simp_all
+    cases decideEqVectBytes dataBytes1 dataBytes2
+    · left; simp_all
+    · right; simp_all
+  · left; simp_all
+end
+
+instance [DecidableEq CtorId]: DecidableEq Bytes := decideEqBytes
+
+mutual
+def compareVectBytes [Ord CtorId] [Std.LawfulEqOrd CtorId] {n: Nat} (v1 v2: Vect Bytes n): Ordering :=
   match v1, v2 with
   | .nil, .nil => .eq
   | .cons h1 t1, .cons h2 t2 =>
@@ -46,7 +77,7 @@ def compareVectBytes [BytesCtors] {n: Nat} (v1 v2: Vect Bytes n): Ordering :=
     | .lt => .lt
     | .gt => .gt
     | .eq => compareVectBytes t1 t2
-def compareBytes [BytesCtors] (b1 b2: Bytes): Ordering :=
+def compareBytes [Ord CtorId] [Std.LawfulEqOrd CtorId] (b1 b2: Bytes): Ordering :=
   let {id := id1, data := data1, dataBytes := dataBytes1} := b1
   let {id := id2, data := data2, dataBytes := dataBytes2} := b2
   match h: compare id1 id2 with
@@ -66,15 +97,16 @@ def compareBytes [BytesCtors] (b1 b2: Bytes): Ordering :=
     )
 end
 
-instance [BytesCtors] {id: CtorId}: Ord ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataOrd
-instance [BytesCtors] {id: CtorId}: Std.ReflOrd ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataReflOrd
-instance [BytesCtors] {id: CtorId}: Std.LawfulEqOrd ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataLawfulEqOrd
-instance [BytesCtors] {id: CtorId}: Std.OrientedOrd ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataOrientedOrd
-instance [BytesCtors] {id: CtorId}: Std.TransOrd ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataTransOrd
+instance {id: CtorId}: Ord ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataOrd
+instance {id: CtorId}: Std.ReflOrd ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataReflOrd
+instance {id: CtorId}: Std.LawfulEqOrd ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataLawfulEqOrd
+instance {id: CtorId}: Std.OrientedOrd ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataOrientedOrd
+instance {id: CtorId}: Std.TransOrd ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataTransOrd
 
 mutual
 theorem compareVectBytes_Refl
-  [BytesCtors] {n: Nat}
+  [Ord CtorId] [Std.LawfulEqOrd CtorId]
+  {n: Nat}
   (v: Vect Bytes n)
   : compareVectBytes v v = .eq
   := by
@@ -85,7 +117,7 @@ theorem compareVectBytes_Refl
       simp [compareBytes_Refl h, compareVectBytes_Refl t]
 
 theorem compareBytes_Refl
-  [BytesCtors]
+  [Ord CtorId] [Std.LawfulEqOrd CtorId]
   (b: Bytes)
   : compareBytes b b = .eq
   := by
@@ -99,7 +131,8 @@ end
 
 mutual
 theorem compareVectBytes_LawfulEq
-  [BytesCtors] {n: Nat}
+  [Ord CtorId] [Std.LawfulEqOrd CtorId]
+  {n: Nat}
   (v1 v2: Vect Bytes n)
   : compareVectBytes v1 v2 = .eq → v1 = v2
   := by
@@ -116,7 +149,7 @@ theorem compareVectBytes_LawfulEq
         simp_all
 
 theorem compareBytes_LawfulEq
-  [BytesCtors]
+  [Ord CtorId] [Std.LawfulEqOrd CtorId]
   (b1 b2: Bytes)
   : compareBytes b1 b2 = .eq → b1 = b2
   := by
@@ -142,7 +175,8 @@ end
 
 mutual
 theorem compareVectBytes_Oriented
-  [BytesCtors] {n: Nat}
+  [Ord CtorId] [Std.LawfulEqOrd CtorId] [Std.OrientedOrd CtorId]
+  {n: Nat}
   (v1 v2: Vect Bytes n)
   : compareVectBytes v1 v2 = (compareVectBytes v2 v1).swap
   := by
@@ -158,7 +192,7 @@ theorem compareVectBytes_Oriented
       split <;> simp_all
 
 theorem compareBytes_Oriented
-  [BytesCtors]
+  [Ord CtorId] [Std.LawfulEqOrd CtorId] [Std.OrientedOrd CtorId]
   (b1 b2: Bytes)
   : compareBytes b1 b2 = (compareBytes b2 b1).swap
   := by
@@ -194,7 +228,8 @@ theorem mkTransitive
 
 mutual
 theorem compareVectBytes_TransLt
-  [BytesCtors] {n: Nat}
+  [Ord CtorId] [Std.LawfulEqOrd CtorId] [Std.TransOrd CtorId]
+  {n: Nat}
   (v1 v2 v3: Vect Bytes n)
   : (compareVectBytes v1 v2) = .lt → (compareVectBytes v2 v3) = .lt → (compareVectBytes v1 v3) = .lt
   := by
@@ -219,7 +254,7 @@ theorem compareVectBytes_TransLt
         · exact compareVectBytes_TransLt t1 t2 t3 h12 h23
 
 theorem compareBytes_TransLt
-  [BytesCtors]
+  [Ord CtorId] [Std.LawfulEqOrd CtorId] [Std.TransOrd CtorId]
   (b1 b2 b3: Bytes)
   : (compareBytes b1 b2) = .lt → (compareBytes b2 b3) = .lt → (compareBytes b1 b3) = .lt
   := by
@@ -263,60 +298,49 @@ theorem compareBytes_TransLt
 end
 
 theorem compareBytes_Trans
-  [BytesCtors]
+  [Ord CtorId] [Std.LawfulEqOrd CtorId] [Std.TransOrd CtorId]
   (b1 b2 b3: Bytes)
   : (compareBytes b1 b2).isLE → (compareBytes b2 b3).isLE → (compareBytes b1 b3).isLE
   := mkTransitive compareBytes compareBytes_LawfulEq compareBytes_TransLt b1 b2 b3
 
-instance [BytesCtors]: Ord Bytes where
+instance [Ord CtorId] [Std.LawfulEqOrd CtorId]: Ord Bytes where
   compare := compareBytes
 
-instance [BytesCtors]: Std.ReflOrd Bytes where
+instance [Ord CtorId] [Std.LawfulEqOrd CtorId]: Std.ReflOrd Bytes where
   compare_self {b} := compareBytes_Refl b
 
-instance [BytesCtors]: Std.LawfulEqOrd Bytes where
+instance [Ord CtorId] [Std.LawfulEqOrd CtorId]: Std.LawfulEqOrd Bytes where
   eq_of_compare {a b} := compareBytes_LawfulEq a b
 
-instance [BytesCtors]: Std.OrientedOrd Bytes where
+instance [Ord CtorId] [Std.LawfulEqOrd CtorId] [Std.OrientedOrd CtorId]: Std.OrientedOrd Bytes where
   eq_swap {a b} := compareBytes_Oriented a b
 
-instance [BytesCtors]: Std.TransOrd Bytes where
+instance [Ord CtorId] [Std.LawfulEqOrd CtorId] [Std.TransOrd CtorId]: Std.TransOrd Bytes where
   isLE_trans {a b c} := compareBytes_Trans a b c
 
-instance [BytesCtors]: DecidableEq Bytes :=
-  fun b1 b2 =>
-    if h: compare b1 b2 = .eq then
-      .isTrue (Std.LawfulEqOrd.eq_of_compare h)
-    else
-      .isFalse (by
-        intro h_eq
-        subst h_eq
-        exact (h Std.ReflOrd.compare_self)
-      )
+instance [Ord CtorId] [Std.LawfulEqOrd CtorId]: LE Bytes := leOfOrd
 
-instance [BytesCtors]: LE Bytes := leOfOrd
-
-class BytesCtor.HasCtorAt [BytesCtors] (id: CtorId) (ctor: outParam BytesCtor) where
+class BytesCtor.HasCtorAt (id: CtorId) (ctor: outParam BytesCtor) where
   pf (id): BytesCtors.ctors id = ctor
 
-class BytesCtor.HasCtor [BytesCtors] (ctor: BytesCtor) where
+class BytesCtor.HasCtor (ctor: BytesCtor) where
   id: CtorId
   pf: BytesCtors.ctors id = ctor
 
-def BytesCtor.id [BytesCtors] (ctor: BytesCtor) [ctor.HasCtor]: CtorId :=
+def BytesCtor.id (ctor: BytesCtor) [ctor.HasCtor]: CtorId :=
   BytesCtor.HasCtor.id ctor
 
-instance [BytesCtors] {ctor: BytesCtor} [tc: ctor.HasCtor]: ctor.HasCtorAt ctor.id where
+instance {ctor: BytesCtor} [tc: ctor.HasCtor]: ctor.HasCtorAt ctor.id where
   pf := tc.pf
 
-class Bytes.HasCtors [BytesCtors] (ctors: List BytesCtor) where
+class Bytes.HasCtors (ctors: List BytesCtor) where
   tc: (id: Fin ctors.length) → ctors[id].HasCtor
 
-structure BytesView [BytesCtors] (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] where
+structure BytesView (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] where
   data: ctor.data
   dataBytes: Vect Bytes ctor.nBytes
 
-def Bytes.view? [BytesCtors] (b: Bytes) (id: CtorId) {ctor: BytesCtor} [tc: ctor.HasCtorAt id] : Option (BytesView id) :=
+def Bytes.view? [DecidableEq CtorId] (b: Bytes) (id: CtorId) {ctor: BytesCtor} [tc: ctor.HasCtorAt id] : Option (BytesView id) :=
   if h_id: b.id = id then
     some {
       data := tc.pf ▸ h_id ▸ b.data
@@ -326,7 +350,6 @@ def Bytes.view? [BytesCtors] (b: Bytes) (id: CtorId) {ctor: BytesCtor} [tc: ctor
     none
 
 def BytesView.pack
-  [BytesCtors]
   (id: CtorId) {ctor: BytesCtor} [tc: ctor.HasCtorAt id]
   (b: BytesView id)
   : Bytes
@@ -338,7 +361,7 @@ def BytesView.pack
   }
 
 theorem Bytes.pack_view?
-  [BytesCtors]
+  [DecidableEq CtorId]
   (b: Bytes)
   (id: CtorId) {ctor: BytesCtor} [tc: ctor.HasCtorAt id]
   :
@@ -353,7 +376,8 @@ theorem Bytes.pack_view?
 grind_pattern Bytes.pack_view? => b.view? id
 
 theorem BytesView.view_pack
-  [BytesCtors] {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id]
+  [DecidableEq CtorId]
+  {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id]
   (b: BytesView id)
   : (b.pack).view? id = some b
   := by
@@ -363,7 +387,7 @@ theorem BytesView.view_pack
 
 grind_pattern BytesView.view_pack => b.pack
 
-structure BytesFunCtor.Internal [BytesCtors] (ctor: BytesCtor) (a: Type u) where
+structure BytesFunCtor.Internal (ctor: BytesCtor) (a: Type u) where
   func: ctor.data → Vect Bytes ctor.nBytes → (Bytes → a) → a
   func_wf:
     ∀ data dataBytes rec1 rec2,
@@ -382,11 +406,11 @@ structure BytesFunCtor.Internal [BytesCtors] (ctor: BytesCtor) (a: Type u) where
       cases dataBytes
       simp_all +arith
 
-def BytesFunCtor.ById [BytesCtors] (id: CtorId) (a: Type u) := BytesFunCtor.Internal (BytesCtors.ctors id) a
-def BytesFunCtor [BytesCtors] (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] (a: Type u) := BytesFunCtor.Internal ctor a
+def BytesFunCtor.ById (id: CtorId) (a: Type u) := BytesFunCtor.Internal (BytesCtors.ctors id) a
+def BytesFunCtor (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] (a: Type u) := BytesFunCtor.Internal ctor a
 
 def BytesFunCtor.into
-  [BytesCtors] {id: CtorId} {a: Type u} {ctor: BytesCtor} [ctor.HasCtorAt id]
+  {id: CtorId} {a: Type u} {ctor: BytesCtor} [ctor.HasCtorAt id]
   (f: BytesFunCtor id a)
   : BytesFunCtor.ById id a
   :=
@@ -395,12 +419,11 @@ def BytesFunCtor.into
     func_wf := BytesCtor.HasCtorAt.pf id ▸ f.func_wf
   }
 
-def BytesFunCtors [BytesCtors] (a: Type u) :=
+def BytesFunCtors (a: Type u) :=
   (id: CtorId) → BytesFunCtor.ById id a
 
 noncomputable
 def Bytes.mkRec
-  [BytesCtors]
   {a: Type u}
   (funs: BytesFunCtors a)
   (default: a)
@@ -416,7 +439,6 @@ def Bytes.mkRec
     )
 
 theorem Bytes.mkRec.eq
-  [BytesCtors]
   {a: Type u}
   (funs: BytesFunCtors a)
   (default: a)
@@ -430,7 +452,6 @@ theorem Bytes.mkRec.eq
     grind
 
 theorem Bytes.mkRec.eqView
-  [BytesCtors]
   (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id]
   {a: Type u}
   (funs: BytesFunCtors a)
@@ -444,13 +465,12 @@ theorem Bytes.mkRec.eqView
     simp_all [BytesView.pack, BytesFunCtor.into]
     grind
 
-def Bytes.Proof [BytesCtors] (p: Bytes → Prop) :=
+def Bytes.Proof (p: Bytes → Prop) :=
   ∀ id data dataBytes,
     (∀ b, sizeOf b < sizeOf dataBytes → p b) →
     p ({id, data, dataBytes})
 
 theorem Bytes.proveRec
-  [BytesCtors]
   (p: Bytes → Prop)
   (pf: Bytes.Proof p)
   (b: Bytes)
@@ -459,28 +479,27 @@ theorem Bytes.proveRec
     let {id, data, dataBytes} := b
     pf id data dataBytes (fun b _ => Bytes.proveRec p pf b)
 
-def BytesFunCtorProof1.Internal [BytesCtors] {ctor: BytesCtor} {a: Type u} (func: Bytes → a) (f: BytesFunCtor.Internal ctor a) (p: a → Prop) :=
+def BytesFunCtorProof1.Internal {ctor: BytesCtor} {a: Type u} (func: Bytes → a) (f: BytesFunCtor.Internal ctor a) (p: a → Prop) :=
   ∀ data dataBytes,
     (∀ b, sizeOf b < sizeOf dataBytes → p (func b)) →
     p (f.func data dataBytes func)
 
-def BytesFunCtorProof1.ById [BytesCtors] {id: CtorId} {a: Type u} (func: Bytes → a) (f: BytesFunCtor.ById id a) (p: a → Prop) := BytesFunCtorProof1.Internal func f p
+def BytesFunCtorProof1.ById {id: CtorId} {a: Type u} (func: Bytes → a) (f: BytesFunCtor.ById id a) (p: a → Prop) := BytesFunCtorProof1.Internal func f p
 
-def BytesFunCtorProof1 [BytesCtors] {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id] {a: Type u} (func: Bytes → a) (f: BytesFunCtor id a) (p: a → Prop) := BytesFunCtorProof1.Internal func f p
+def BytesFunCtorProof1 {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id] {a: Type u} (func: Bytes → a) (f: BytesFunCtor id a) (p: a → Prop) := BytesFunCtorProof1.Internal func f p
 
 def BytesFunCtorProof1.into
-  [BytesCtors] {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id] {a: Type u}
+  {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id] {a: Type u}
   {func: Bytes → a} {f: BytesFunCtor id a} {p: a → Prop}
   (pf: BytesFunCtorProof1 func f p)
   : BytesFunCtorProof1.ById func f.into p
   := fun data dataBytes pfRec =>
     pf (BytesCtor.HasCtorAt.pf id ▸ data) (BytesCtor.HasCtorAt.pf id ▸ dataBytes) (BytesCtor.HasCtorAt.pf id ▸ pfRec)
 
-def BytesFunCtorsProof1 [BytesCtors] {a: Type u} (f: BytesFunCtors a) (default: a) (p: a → Prop) :=
+def BytesFunCtorsProof1 {a: Type u} (f: BytesFunCtors a) (default: a) (p: a → Prop) :=
   (id: CtorId) → BytesFunCtorProof1.ById (Bytes.mkRec f default) (f id) p
 
 def BytesFunCtorsProof1.prove
-  [BytesCtors]
   {a: Type u}
   {funs: BytesFunCtors a} {default: a} {p: a → Prop}
   (pfuns: BytesFunCtorsProof1 funs default p)
@@ -492,28 +511,27 @@ def BytesFunCtorsProof1.prove
     rewrite [Bytes.mkRec.eq funs default {id, data, dataBytes}]
     exact pfuns _ _ _ pfRec
 
-def BytesFunCtorProof2.Internal [BytesCtors] {ctor: BytesCtor} {a: Type u} {b: Type v} (func1: Bytes → a) (func2: Bytes → b) (f1: BytesFunCtor.Internal ctor a) (f2: BytesFunCtor.Internal ctor b) (p: a × b → Prop) :=
+def BytesFunCtorProof2.Internal {ctor: BytesCtor} {a: Type u} {b: Type v} (func1: Bytes → a) (func2: Bytes → b) (f1: BytesFunCtor.Internal ctor a) (f2: BytesFunCtor.Internal ctor b) (p: a × b → Prop) :=
   ∀ data dataBytes,
     (∀ b, sizeOf b < sizeOf dataBytes → p (func1 b, func2 b)) →
     p (f1.func data dataBytes func1, f2.func data dataBytes func2)
 
-def BytesFunCtorProof2.ById [BytesCtors] {id: CtorId} {a: Type u} {b: Type v} (func1: Bytes → a) (func2: Bytes → b) (f1: BytesFunCtor.ById id a) (f2: BytesFunCtor.ById id b) (p: a × b → Prop) := BytesFunCtorProof2.Internal func1 func2 f1 f2 p
+def BytesFunCtorProof2.ById {id: CtorId} {a: Type u} {b: Type v} (func1: Bytes → a) (func2: Bytes → b) (f1: BytesFunCtor.ById id a) (f2: BytesFunCtor.ById id b) (p: a × b → Prop) := BytesFunCtorProof2.Internal func1 func2 f1 f2 p
 
-def BytesFunCtorProof2 [BytesCtors] {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id] {a: Type u} {b: Type v} (func1: Bytes → a) (func2: Bytes → b) (f1: BytesFunCtor id a) (f2: BytesFunCtor id b) (p: a × b → Prop) := BytesFunCtorProof2.Internal func1 func2 f1 f2 p
+def BytesFunCtorProof2 {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id] {a: Type u} {b: Type v} (func1: Bytes → a) (func2: Bytes → b) (f1: BytesFunCtor id a) (f2: BytesFunCtor id b) (p: a × b → Prop) := BytesFunCtorProof2.Internal func1 func2 f1 f2 p
 
 def BytesFunCtorProof2.into
-  [BytesCtors] {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id] {a: Type u} {b: Type v}
+  {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id] {a: Type u} {b: Type v}
   {func1: Bytes → a} {func2: Bytes → b} {f1: BytesFunCtor id a} {f2: BytesFunCtor id b} {p: a × b → Prop}
   (pf: BytesFunCtorProof2 func1 func2 f1 f2 p)
   : BytesFunCtorProof2.ById func1 func2 f1.into f2.into p
   := fun data dataBytes pfRec =>
     pf (BytesCtor.HasCtorAt.pf id ▸ data) (BytesCtor.HasCtorAt.pf id ▸ dataBytes) (BytesCtor.HasCtorAt.pf id ▸ pfRec)
 
-def BytesFunCtorsProof2 [BytesCtors] {a: Type u} {b: Type v} (f1: BytesFunCtors a) (f2: BytesFunCtors b) (default1: a) (default2: b) (p: a × b → Prop) :=
+def BytesFunCtorsProof2 {a: Type u} {b: Type v} (f1: BytesFunCtors a) (f2: BytesFunCtors b) (default1: a) (default2: b) (p: a × b → Prop) :=
   (id: CtorId) → BytesFunCtorProof2.ById (Bytes.mkRec f1 default1) (Bytes.mkRec f2 default2) (f1 id) (f2 id) p
 
 def BytesFunCtorsProof2.prove
-  [BytesCtors]
   {a: Type u} {b: Type v}
   {funs1: BytesFunCtors a} {funs2: BytesFunCtors b}
   {default1: a} {default2: b}

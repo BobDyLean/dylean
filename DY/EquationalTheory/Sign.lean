@@ -20,19 +20,23 @@ export CanSign (verify)
 
 -- Constructors
 
+section Constructors
+
+variable {CtorId} [BytesCtors CtorId] [DecidableEq CtorId]
+
 def Vk.ctor: BytesCtor where
   data := Unit
   nBytes := 1
 
-def Vk.View [BytesCtors] [Vk.ctor.HasCtor] := BytesView Vk.ctor.id
+def Vk.View [Vk.ctor.HasCtor] := BytesView Vk.ctor.id
 
 def Sign.ctor: BytesCtor where
   data := Unit
   nBytes := 3
 
-def Sign.View [BytesCtors] [Sign.ctor.HasCtor] := BytesView Sign.ctor.id
+def Sign.View [Sign.ctor.HasCtor] := BytesView Sign.ctor.id
 
-instance [BytesCtors] [Vk.ctor.HasCtor] [Sign.ctor.HasCtor]: CanSign Bytes where
+instance [Vk.ctor.HasCtor] [Sign.ctor.HasCtor]: CanSign Bytes where
   vk sk :=
     ({
       data := (),
@@ -53,7 +57,7 @@ instance [BytesCtors] [Vk.ctor.HasCtor] [Sign.ctor.HasCtor]: CanSign Bytes where
     | none => false
 
 theorem verify_sign
-  [BytesCtors] [Vk.ctor.HasCtor] [Sign.ctor.HasCtor]
+  [Vk.ctor.HasCtor] [Sign.ctor.HasCtor]
   (sk nonce msg: Bytes)
   :
     verify (vk sk) msg (sign sk nonce msg)
@@ -63,12 +67,14 @@ theorem verify_sign
 
 def ctors := [Vk.ctor, Sign.ctor]
 
-instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Vk.ctor.HasCtor := tc.tc (Fin.mk 0 (by simp [ctors]))
-instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Sign.ctor.HasCtor := tc.tc (Fin.mk 1 (by simp [ctors]))
+instance {CtorId} [BytesCtors CtorId] [tc: Bytes.HasCtors ctors]: Vk.ctor.HasCtor := tc.tc (Fin.mk 0 (by simp [ctors]))
+instance {CtorId} [BytesCtors CtorId] [tc: Bytes.HasCtors ctors]: Sign.ctor.HasCtor := tc.tc (Fin.mk 1 (by simp [ctors]))
+
+end Constructors
 
 -- Equational theory
 
-def attKnowsVk [BytesCtors] [Bytes.HasCtors ctors]: AttackerKnowledge where
+def attKnowsVk {CtorId} [DecidableEq CtorId] [BytesCtors CtorId] [Bytes.HasCtors ctors]: AttackerKnowledge where
   pred p out :=
     ∃ sk,
       out = vk sk ∧
@@ -76,7 +82,7 @@ def attKnowsVk [BytesCtors] [Bytes.HasCtors ctors]: AttackerKnowledge where
   pred_scott_continuous := by
     sorry
 
-def attKnowsSign [BytesCtors] [Bytes.HasCtors ctors]: AttackerKnowledge where
+def attKnowsSign {CtorId} [DecidableEq CtorId] [BytesCtors CtorId] [Bytes.HasCtors ctors]: AttackerKnowledge where
   pred p out :=
     ∃ sk nonce msg,
       out = sign sk nonce msg ∧
@@ -127,7 +133,7 @@ theorem attacker_knows_sign
 
 -- Invariants
 
-def Vk.invariants [BytesCtors]: BytesCtorInvariants.Internal Vk.ctor where
+def Vk.invariants [EquationalTheories]: BytesCtorInvariants.Internal Vk.ctor where
   well_formed := {
     func := fun () V[sk] rec tr =>
       rec sk tr
@@ -162,11 +168,11 @@ def Vk.invariants [BytesCtors]: BytesCtorInvariants.Internal Vk.ctor where
     simp_all +arith [BytesInvariantLaterT]
     grind
 
-class abbrev Vk.HasInvariants [BytesCtors] [Vk.ctor.HasCtor] [BytesCtorsInvariants] := HasBytesInvariants (Vk.ctor.id) Vk.invariants
+class abbrev Vk.HasInvariants [EquationalTheories] [Vk.ctor.HasCtor] [BytesCtorsInvariants] := HasBytesInvariants (Vk.ctor.id) Vk.invariants
 
 @[simp]
 theorem vk.WellFormed
-  [BytesCtors] [BytesWellFormed]
+  [EquationalTheories] [BytesWellFormed]
   [Bytes.HasCtors ctors] [HasBytesWellFormed Vk.ctor.id Vk.invariants.well_formed]
   (inp: Bytes) (tr: ProofTrace)
   :
@@ -176,7 +182,7 @@ theorem vk.WellFormed
 
 @[simp]
 theorem vk.label
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Bytes.HasCtors ctors] [Vk.HasInvariants]
   (inp: Bytes) (tr: ProofTrace)
   : (vk inp).label tr = Label.pub
@@ -185,7 +191,7 @@ theorem vk.label
 
 @[simp]
 theorem vk.Invariant
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Bytes.HasCtors ctors] [Vk.HasInvariants]
   (inp: Bytes) (tr: ProofTrace)
   :
@@ -195,13 +201,13 @@ theorem vk.Invariant
     simp [vk, Bytes.Invariant.eq, Vk.invariants]
 
 noncomputable
-def extractSignkey [BytesCtors] [Vk.ctor.HasCtor] (vk: Bytes): Option Bytes :=
+def extractSignkey [EquationalTheories] [Vk.ctor.HasCtor] (vk: Bytes): Option Bytes :=
   match vk.view? Vk.ctor.id with
   | some { data := (), dataBytes := V[sk] } =>
     some sk
   | none => none
 
-theorem vk_extractSignkey [BytesCtors] [Vk.ctor.HasCtor] [Sign.ctor.HasCtor] (b: Bytes):
+theorem vk_extractSignkey [EquationalTheories] [Vk.ctor.HasCtor] [Sign.ctor.HasCtor] (b: Bytes):
   match extractSignkey b with
   | none => True
   | some sk => b = vk sk
@@ -209,18 +215,18 @@ theorem vk_extractSignkey [BytesCtors] [Vk.ctor.HasCtor] [Sign.ctor.HasCtor] (b:
     simp [extractSignkey, vk]
     grind
 
-theorem extractSignkey.preserves_WellFormed [BytesCtors] [BytesWellFormed] [Bytes.HasCtors ctors] [HasBytesWellFormed Vk.ctor.id Vk.invariants.well_formed]: ExtractPreservesWellFormed extractSignkey
+theorem extractSignkey.preserves_WellFormed [EquationalTheories] [BytesWellFormed] [Bytes.HasCtors ctors] [HasBytesWellFormed Vk.ctor.id Vk.invariants.well_formed]: ExtractPreservesWellFormed extractSignkey
   := by
     simp [ExtractPreservesWellFormed]
     grind [vk_extractSignkey, vk.WellFormed]
 
 end Signature
 
-def Bytes.SignkeyHasUsage [BytesCtors] [GetUsage] [GetLabel] [Signature.Vk.ctor.HasCtor] (vk: Bytes) (skUsg: Usage) (tr: ProofTrace): Prop :=
+def Bytes.SignkeyHasUsage [EquationalTheories] [GetUsage] [GetLabel] [Signature.Vk.ctor.HasCtor] (vk: Bytes) (skUsg: Usage) (tr: ProofTrace): Prop :=
   Bytes.XXXHasUsage Signature.extractSignkey vk skUsg tr
 
 theorem Bytes.SignkeyHasUsage_vk
-  [BytesCtors] [GetUsage] [GetLabel] [Bytes.HasCtors Signature.ctors]
+  [EquationalTheories] [GetUsage] [GetLabel] [Bytes.HasCtors Signature.ctors]
   (sk: Bytes) (skUsg: Usage) (tr: ProofTrace)
   : (Signature.vk sk).SignkeyHasUsage skUsg tr = sk.HasUsage skUsg tr
   := by
@@ -230,7 +236,7 @@ theorem Bytes.SignkeyHasUsage_vk
 grind_pattern Bytes.SignkeyHasUsage_vk => (Signature.vk sk).SignkeyHasUsage skUsg tr
 
 theorem Bytes.SignkeyHasUsage_later
-  [BytesCtors] [BytesWellFormed] [GetUsage] [GetUsageLater] [GetLabel] [GetLabelLater]
+  [EquationalTheories] [BytesWellFormed] [GetUsage] [GetUsageLater] [GetLabel] [GetLabelLater]
   [HasCtors Signature.ctors] [HasBytesWellFormed Signature.Vk.ctor.id Signature.Vk.invariants.well_formed]
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
   :
@@ -245,11 +251,11 @@ theorem Bytes.SignkeyHasUsage_later
 grind_pattern Bytes.SignkeyHasUsage_later => tr1 ≤ tr2, b.SignkeyHasUsage usg tr1
 
 noncomputable
-def Bytes.signkeyLabel [BytesCtors] [GetLabel] [Signature.Vk.ctor.HasCtor] (vk: Bytes) (tr: ProofTrace): Label :=
+def Bytes.signkeyLabel [EquationalTheories] [GetLabel] [Signature.Vk.ctor.HasCtor] (vk: Bytes) (tr: ProofTrace): Label :=
   Bytes.xxxLabel Signature.extractSignkey vk tr
 
 theorem Bytes.signkeyLabel_vk
-  [BytesCtors] [GetLabel] [Bytes.HasCtors Signature.ctors]
+  [EquationalTheories] [GetLabel] [Bytes.HasCtors Signature.ctors]
   (sk: Bytes) (tr: ProofTrace)
   : (Signature.vk sk).signkeyLabel tr = sk.label tr
   := by
@@ -259,7 +265,7 @@ theorem Bytes.signkeyLabel_vk
 grind_pattern Bytes.signkeyLabel_vk => (Signature.vk sk).signkeyLabel tr
 
 theorem Bytes.signkeyLabel_later
-  [BytesCtors] [BytesWellFormed] [GetUsage] [GetLabel] [GetLabelLater]
+  [EquationalTheories] [BytesWellFormed] [GetUsage] [GetLabel] [GetLabelLater]
   [HasCtors Signature.ctors] [HasBytesWellFormed Signature.Vk.ctor.id Signature.Vk.invariants.well_formed]
   (b: Bytes) (tr1 tr2: ProofTrace)
   :
@@ -274,7 +280,7 @@ grind_pattern Bytes.signkeyLabel_later => tr1 ≤ tr2, b.signkeyLabel tr1
 
 namespace Signature
 
-class SignPred [BytesCtors] where
+class SignPred [EquationalTheories] where
   pred: [GetUsage] → [GetLabel] → Usage → Bytes → Bytes → ProofTrace → Prop
   pred_later:
     [BytesWellFormed] → [GetUsage] → [GetLabel] →
@@ -288,7 +294,7 @@ class SignPred [BytesCtors] where
 
 grind_pattern SignPred.pred_later => tr1 ≤ tr2, SignPred.pred skUsg vk msg tr1
 
-def Sign.invariants [BytesCtors] [SignPred] [Bytes.HasCtors ctors]: BytesCtorInvariants.Internal Sign.ctor where
+def Sign.invariants [EquationalTheories] [SignPred] [Bytes.HasCtors ctors]: BytesCtorInvariants.Internal Sign.ctor where
   well_formed := {
     func := fun () V[sk, nonce, msg] rec tr =>
       rec sk tr ∧
@@ -358,11 +364,11 @@ def Sign.invariants [BytesCtors] [SignPred] [Bytes.HasCtors ctors]: BytesCtorInv
     simp_all +arith [BytesInvariantLaterT]
     grind [SignPred.pred_later]
 
-class abbrev Sign.HasInvariants [BytesCtors] [Bytes.HasCtors ctors] [BytesCtorsInvariants] [SignPred] := HasBytesInvariants (Sign.ctor.id) Sign.invariants
+class abbrev Sign.HasInvariants [EquationalTheories] [Bytes.HasCtors ctors] [BytesCtorsInvariants] [SignPred] := HasBytesInvariants (Sign.ctor.id) Sign.invariants
 
 @[simp]
 theorem sign.WellFormed
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Bytes.HasCtors ctors] [SignPred] [Sign.HasInvariants]
   (sk nonce msg: Bytes) (tr: ProofTrace)
   :
@@ -376,7 +382,7 @@ theorem sign.WellFormed
 
 @[simp]
 theorem sign.label
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Bytes.HasCtors ctors] [SignPred] [Sign.HasInvariants]
   (sk nonce msg: Bytes) (tr: ProofTrace)
   : (sign sk nonce msg).label tr = msg.label tr
@@ -385,7 +391,7 @@ theorem sign.label
 
 @[simp]
 theorem sign.Invariant
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Bytes.HasCtors ctors] [SignPred] [Vk.HasInvariants] [Sign.HasInvariants]
   (sk nonce msg: Bytes) (sk_usg: Usage) (tr: ProofTrace)
   :
@@ -413,7 +419,7 @@ theorem sign.Invariant
 
 @[simp]
 theorem verify.Invariant
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Bytes.HasCtors ctors] [SignPred] [Vk.HasInvariants] [Sign.HasInvariants]
   (vk msg sig: Bytes) (skUsg: Usage) (tr: ProofTrace)
   :
@@ -462,7 +468,7 @@ instance
 -- Preserve publishability
 
 def Sign.attKnowsVk.preserves_publishability
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Bytes.HasCtors ctors] [SignPred] [Vk.HasInvariants]: attKnowsVk.PreservesPublishability :=
   by
     simp only [AttackerKnowledge.PreservesPublishability, attKnowsVk]
@@ -473,7 +479,7 @@ def Sign.attKnowsVk.preserves_publishability
     grind
 
 def Sign.attKnowsSign.preserves_publishability
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Bytes.HasCtors ctors] [SignPred] [Vk.HasInvariants] [Sign.HasInvariants]: attKnowsSign.PreservesPublishability :=
   by
     simp only [AttackerKnowledge.PreservesPublishability, attKnowsSign]

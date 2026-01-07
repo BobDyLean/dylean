@@ -3,7 +3,7 @@ import DY.Trace.Type
 
 namespace DY
 
-variable [BytesCtors]
+variable {CtorId} [BytesCtors CtorId]
 
 structure LabelCtor where
   isCorrupt: Trace Unit → Prop

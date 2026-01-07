@@ -14,13 +14,17 @@ export CanHash (hash)
 
 -- Constructors
 
+section Constructors
+
+variable {CtorId} [BytesCtors CtorId] [DecidableEq CtorId]
+
 def Hash.ctor: BytesCtor where
   data := Unit
   nBytes := 1
 
-def Hash.View [BytesCtors] [Hash.ctor.HasCtor] := BytesView Hash.ctor.id
+def Hash.View [Hash.ctor.HasCtor] := BytesView Hash.ctor.id
 
-instance [BytesCtors] [Hash.ctor.HasCtor]: CanHash Bytes where
+instance [Hash.ctor.HasCtor]: CanHash Bytes where
   hash inp :=
     ({
       data := (),
@@ -28,7 +32,7 @@ instance [BytesCtors] [Hash.ctor.HasCtor]: CanHash Bytes where
     } : Hash.View).pack
 
 theorem hash_inj
-  [BytesCtors] [Hash.ctor.HasCtor]
+  [Hash.ctor.HasCtor]
   (inp1 inp2: Bytes)
   :
     hash inp1 = hash inp2 →
@@ -39,11 +43,13 @@ theorem hash_inj
 
 def ctors := [Hash.ctor]
 
-instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Hash.ctor.HasCtor := tc.tc (Fin.mk 0 (by simp [ctors]))
+instance [tc: Bytes.HasCtors ctors]: Hash.ctor.HasCtor := tc.tc (Fin.mk 0 (by simp [ctors]))
+
+end Constructors
 
 -- Equational theory
 
-def attKnowsHash [BytesCtors] [Bytes.HasCtors ctors]: AttackerKnowledge where
+def attKnowsHash {CtorId} [BytesCtors CtorId] [Bytes.HasCtors ctors]: AttackerKnowledge where
   pred p out :=
     ∃ inp,
       out = hash inp ∧
@@ -76,7 +82,7 @@ theorem attacker_knows_hash
 
 -- Invariants
 
-def Hash.invariants [BytesCtors]: BytesCtorInvariants.Internal Hash.ctor where
+def Hash.invariants [EquationalTheories]: BytesCtorInvariants.Internal Hash.ctor where
   well_formed := {
     func := fun () V[inp] rec tr =>
       rec inp tr
@@ -112,11 +118,11 @@ def Hash.invariants [BytesCtors]: BytesCtorInvariants.Internal Hash.ctor where
     simp_all +arith [BytesInvariantLaterT]
     grind
 
-class abbrev Hash.HasInvariants [BytesCtors] [Hash.ctor.HasCtor] [BytesCtorsInvariants] := HasBytesInvariants (Hash.ctor.id) Hash.invariants
+class abbrev Hash.HasInvariants [EquationalTheories] [Hash.ctor.HasCtor] [BytesCtorsInvariants] := HasBytesInvariants (Hash.ctor.id) Hash.invariants
 
 @[simp]
 theorem hash.WellFormed
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Hash.ctor.HasCtor] [Hash.HasInvariants]
   (inp: Bytes) (tr: ProofTrace)
   :
@@ -126,7 +132,7 @@ theorem hash.WellFormed
 
 @[simp]
 theorem hash.label
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Hash.ctor.HasCtor] [Hash.HasInvariants]
   (inp: Bytes) (tr: ProofTrace)
   : (hash inp).label tr = inp.label tr
@@ -135,7 +141,7 @@ theorem hash.label
 
 @[simp]
 theorem hash.Invariant
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Hash.ctor.HasCtor] [Hash.HasInvariants]
   (inp: Bytes) (tr: ProofTrace)
   :
@@ -157,7 +163,7 @@ instance
 -- Preserve publishability
 
 def attKnowsHash.preserves_publishability
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Bytes.HasCtors ctors] [Hash.HasInvariants]: attKnowsHash.PreservesPublishability :=
   by
     simp only [AttackerKnowledge.PreservesPublishability, attKnowsHash]

@@ -218,9 +218,9 @@ def massageNextGoal
     -- get old and mid trace FVarId
     -- how: unify ?tr_old ≤ ?tr_mid with the hypthesis we introduced
     let (trOldFv, trMidFv) ← do
-      let oldTraceMVarId ← mkFreshExprMVar (← mkAppOptM `DY.ProofTrace #[none])
-      let midTraceMVarId ← mkFreshExprMVar (← mkAppOptM `DY.ProofTrace #[none])
-      let trLeToUnify ← mkAppOptM `LE.le #[none, none, oldTraceMVarId, midTraceMVarId]
+      let oldTraceMVarId ← mkFreshExprMVar (← mkAppOptM ``DY.ProofTrace #[none, none])
+      let midTraceMVarId ← mkFreshExprMVar (← mkAppOptM ``DY.ProofTrace #[none, none])
+      let trLeToUnify ← mkAppOptM ``LE.le #[none, none, oldTraceMVarId, midTraceMVarId]
       trace[Step] "finding old trace fvarid by unifying {trLeToUnify} and {(← trGrowsFv.getType)}"
       unless (← isDefEq trLeToUnify (← trGrowsFv.getType)) do
         throwError "cannot unify {trLeToUnify} and {(← trGrowsFv.getType)}"
@@ -237,7 +237,7 @@ def massageNextGoal
     -- get trace invariant for old trace
     -- how: unify Trace.invariant tr_old with an assumption
     let trInvOldFv ← do
-      let trInvOldType ← mkAppOptM `DY.Trace.invariant #[none, mkFVar trOldFv]
+      let trInvOldType ← mkAppOptM ``DY.Trace.invariant #[none, mkFVar trOldFv]
       let trInvOldMVarId ← mkFreshExprMVar trInvOldType
       trace[Step] "finding in assumptions {trInvOldType}"
       trInvOldMVarId.mvarId!.assumption
@@ -267,9 +267,9 @@ def massageNextGoal
       let isTcInstance := (← fvar.getBinderInfo).isInstImplicit
       pure (
         isTcInstance ∨
-        name = `DY.ProofTrace ∨
-        name = `DY.Trace.invariant ∨
-        name = `LE.le
+        name = ``DY.ProofTrace ∨
+        name = ``DY.Trace.invariant ∨
+        name = ``LE.le
       )
     )
     trace[Step] "reverted goal: {← goal.getType}"
@@ -348,7 +348,7 @@ def assignGhostParameterAux
     unless (← isDefEq expectedGhostType gotGhostType) do
       throwError "Ghost parameter has type {gotGhostType}, expected type {expectedGhostType}.\nHint: use `step ... with ⟨ ... ⟩`"
     ghostMVarId.safeAssign args.xGhostTerm
-#check outParam
+
 /--
   If no ghost parameter was provided,
   try to use a user-provided meta-program
@@ -502,8 +502,8 @@ def evalStepFinal
     }
 
 def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Unit :=
-  do
   goal.withContext do
+  withTraceNode `Step (fun _ => pure m!"Apply let theorem") do
     let letValue := (← letFv.getDecl).value
     let letName := (← letFv.getDecl).userName
 
@@ -534,6 +534,8 @@ def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Uni
     guard (applyMVars.size = 11);
     for i in [0:11] do
       guard (← applyMVars[i]!.isAssigned)
+
+    trace[Step] "using theorem {applyTheoremExpr} of type {applyTheoremType}"
 
     let goal ← goal.assert .anonymous applyTheoremType applyTheoremExpr
     let goal ← introAndMassagePostX letName goal

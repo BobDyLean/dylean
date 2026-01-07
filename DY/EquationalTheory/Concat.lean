@@ -17,13 +17,17 @@ export CanConcat (split)
 
 -- Constructors
 
+section Constructors
+
+variable {CtorId} [BytesCtors CtorId] [DecidableEq CtorId]
+
 def Concat.ctor: BytesCtor where
   data := Unit
   nBytes := 2
 
-def Concat.View [BytesCtors] [Concat.ctor.HasCtor] := BytesView Concat.ctor.id
+def Concat.View [Concat.ctor.HasCtor] := BytesView Concat.ctor.id
 
-instance [BytesCtors] [Concat.ctor.HasCtor]: CanConcat Bytes where
+instance [Concat.ctor.HasCtor]: CanConcat Bytes where
   concat lhs rhs :=
     ({
       data := (),
@@ -37,7 +41,7 @@ instance [BytesCtors] [Concat.ctor.HasCtor]: CanConcat Bytes where
     | none => none
 
 theorem split_concat
-  [BytesCtors] [Concat.ctor.HasCtor]
+  [Concat.ctor.HasCtor]
   (lhs rhs: Bytes)
   : split (concat lhs rhs) = some (lhs, rhs)
   := by
@@ -45,7 +49,7 @@ theorem split_concat
     grind
 
 theorem concat_split
-  [BytesCtors] [Concat.ctor.HasCtor]
+  [Concat.ctor.HasCtor]
   (buf lhs rhs: Bytes)
   : split buf = some (lhs, rhs) → concat lhs rhs = buf
   := by
@@ -54,11 +58,13 @@ theorem concat_split
 
 def ctors := [Concat.ctor]
 
-instance [BytesCtors] [tc: Bytes.HasCtors ctors]: Concat.ctor.HasCtor := tc.tc (Fin.mk 0 (by simp [ctors]))
+instance [tc: Bytes.HasCtors ctors]: Concat.ctor.HasCtor := tc.tc (Fin.mk 0 (by simp [ctors]))
+
+end Constructors
 
 -- Equational theory
 
-def attKnowsConcat [BytesCtors] [Bytes.HasCtors ctors]: AttackerKnowledge where
+def attKnowsConcat {CtorId} [BytesCtors CtorId] [DecidableEq CtorId] [Bytes.HasCtors ctors]: AttackerKnowledge where
   pred p out :=
     ∃ lhs rhs,
       out = concat lhs rhs ∧
@@ -67,7 +73,7 @@ def attKnowsConcat [BytesCtors] [Bytes.HasCtors ctors]: AttackerKnowledge where
   pred_scott_continuous := by
     sorry
 
-def attKnowsSplitLeft [BytesCtors] [Bytes.HasCtors ctors]: AttackerKnowledge where
+def attKnowsSplitLeft {CtorId} [BytesCtors CtorId] [DecidableEq CtorId] [Bytes.HasCtors ctors]: AttackerKnowledge where
   pred p out :=
     ∃ inp rhs,
       some (out, rhs) = split inp ∧
@@ -75,7 +81,7 @@ def attKnowsSplitLeft [BytesCtors] [Bytes.HasCtors ctors]: AttackerKnowledge whe
   pred_scott_continuous := by
     sorry
 
-def attKnowsSplitRight [BytesCtors] [Bytes.HasCtors ctors]: AttackerKnowledge where
+def attKnowsSplitRight {CtorId} [BytesCtors CtorId] [DecidableEq CtorId] [Bytes.HasCtors ctors]: AttackerKnowledge where
   pred p out :=
     ∃ inp lhs,
       some (lhs, out) = split inp ∧
@@ -135,7 +141,7 @@ theorem attacker_knows_split
 
 -- Invariants
 
-def Concat.invariants [BytesCtors]: BytesCtorInvariants.Internal Concat.ctor where
+def Concat.invariants [EquationalTheories]: BytesCtorInvariants.Internal Concat.ctor where
   well_formed := {
     func := fun () V[lhs, rhs] rec tr =>
       rec lhs tr ∧ rec rhs tr
@@ -171,11 +177,11 @@ def Concat.invariants [BytesCtors]: BytesCtorInvariants.Internal Concat.ctor whe
     simp_all +arith [BytesInvariantLaterT]
     grind
 
-class abbrev Concat.HasInvariants [BytesCtors] [Concat.ctor.HasCtor] [BytesCtorsInvariants] := HasBytesInvariants (Concat.ctor.id) Concat.invariants
+class abbrev Concat.HasInvariants [EquationalTheories] [Concat.ctor.HasCtor] [BytesCtorsInvariants] := HasBytesInvariants (Concat.ctor.id) Concat.invariants
 
 @[simp]
 theorem concat.WellFormed
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Concat.ctor.HasCtor] [Concat.HasInvariants]
   (lhs rhs: Bytes) (tr: ProofTrace)
   :
@@ -185,7 +191,7 @@ theorem concat.WellFormed
 
 @[simp]
 theorem concat.label
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Concat.ctor.HasCtor] [Concat.HasInvariants]
   (lhs rhs: Bytes) (tr: ProofTrace)
   : (concat lhs rhs).label tr = Label.meet (lhs.label tr) (rhs.label tr)
@@ -194,7 +200,7 @@ theorem concat.label
 
 @[simp]
 theorem concat.Invariant
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Concat.ctor.HasCtor] [Concat.HasInvariants]
   (lhs rhs: Bytes) (tr: ProofTrace)
   : (concat lhs rhs).Invariant tr = (lhs.Invariant tr ∧ rhs.Invariant tr)
@@ -204,7 +210,7 @@ theorem concat.Invariant
 
 @[simp]
 theorem split.WellFormed
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Concat.ctor.HasCtor] [Concat.HasInvariants]
   (buf: Bytes) (tr: ProofTrace)
   :
@@ -221,7 +227,7 @@ theorem split.WellFormed
 
 @[simp]
 theorem split.label
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Concat.ctor.HasCtor] [Concat.HasInvariants]
   (buf: Bytes) (tr: ProofTrace)
   :
@@ -238,7 +244,7 @@ theorem split.label
 
 @[simp]
 theorem split.Invariant
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Concat.ctor.HasCtor] [Concat.HasInvariants]
   (buf: Bytes) (tr: ProofTrace)
   :
@@ -268,7 +274,7 @@ instance
 -- Preserve publishability
 
 def attKnowsConcat.preserves_publishability
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Bytes.HasCtors ctors] [Concat.HasInvariants]: attKnowsConcat.PreservesPublishability :=
   by
     simp only [AttackerKnowledge.PreservesPublishability, attKnowsConcat]
@@ -278,7 +284,7 @@ def attKnowsConcat.preserves_publishability
     grind
 
 def attKnowsSplitLeft.preserves_publishability
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Bytes.HasCtors ctors] [Concat.HasInvariants]: attKnowsSplitLeft.PreservesPublishability :=
   by
     simp only [AttackerKnowledge.PreservesPublishability, attKnowsSplitLeft]
@@ -289,7 +295,7 @@ def attKnowsSplitLeft.preserves_publishability
     grind
 
 def attKnowsSplitRight.preserves_publishability
-  [BytesCtors] [BytesCtorsInvariants]
+  [EquationalTheories] [BytesCtorsInvariants]
   [Bytes.HasCtors ctors] [Concat.HasInvariants]: attKnowsSplitRight.PreservesPublishability :=
   by
     simp only [AttackerKnowledge.PreservesPublishability, attKnowsSplitRight]
