@@ -49,7 +49,9 @@ instance: ALaCarte.RepresentableDecidableEq Concat where
 instance: ALaCarte.RepresentableOrd Concat where
 instance: SubBytesFunctor Concat where
 
-variable [BytesFunctor] [BytesFunctor.Has Concat]
+abbrev SubF := Concat
+
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 abbrev Concat.pack (x: Concat Bytes) := BytesView.pack x
 
@@ -80,7 +82,7 @@ end Constructors
 
 section AttackerKnowledge
 
-variable [BytesFunctor] [BytesFunctor.Has Concat]
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 def attKnowsConcat: SubAttackerKnowledge Concat where
   pred p out :=
@@ -100,22 +102,22 @@ def attKnowsSplitRight: SubAttackerKnowledge Concat where
       some (lhs, out) = split inp ∧
       DY.Kleene.Forall p [inp]
 
-def Concat.attackerKnowledge.func (id: Fin 3): SubAttackerKnowledge Concat :=
+def attackerKnowledge.internal (id: Fin 3): SubAttackerKnowledge Concat :=
   match id with
   | 0 => attKnowsConcat
   | 1 => attKnowsSplitLeft
   | 2 => attKnowsSplitRight
 
-def Concat.attackerKnowledge: SubAttackerKnowledge Concat :=
-  SubAttackerKnowledge.combine' Concat.attackerKnowledge.func
+def attackerKnowledge: SubAttackerKnowledge Concat :=
+  SubAttackerKnowledge.combine' attackerKnowledge.internal
 
-instance: AttackerKnowledge.HasStep attKnowsConcat Concat.attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (Concat.attackerKnowledge.func 0) (SubAttackerKnowledge.combine' Concat.attackerKnowledge.func))
-instance: AttackerKnowledge.HasStep attKnowsSplitLeft Concat.attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (Concat.attackerKnowledge.func 1) (SubAttackerKnowledge.combine' Concat.attackerKnowledge.func))
-instance: AttackerKnowledge.HasStep attKnowsSplitRight Concat.attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (Concat.attackerKnowledge.func 2) (SubAttackerKnowledge.combine' Concat.attackerKnowledge.func))
+instance: AttackerKnowledge.HasStep attKnowsConcat attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 0) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
+instance: AttackerKnowledge.HasStep attKnowsSplitLeft attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 1) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
+instance: AttackerKnowledge.HasStep attKnowsSplitRight attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 2) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
+
+variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
 theorem attacker_knows_concat
-  [AttackerKnowledge]
-  [AttackerKnowledge.Has Concat.attackerKnowledge]
   (lhs rhs: Bytes) (tr: Trace α)
   :
     lhs.AttackerKnows tr →
@@ -128,8 +130,6 @@ theorem attacker_knows_concat
     grind
 
 theorem attacker_knows_split
-  [AttackerKnowledge]
-  [AttackerKnowledge.Has Concat.attackerKnowledge]
   (buf: Bytes) (tr: Trace α)
   :
     buf.AttackerKnows tr →
@@ -155,7 +155,7 @@ end AttackerKnowledge
 
 section Invariants
 
-variable [BytesFunctor] [BytesFunctor.Has Concat]
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 def Concat.invariants: Bytes.PartialInvariants Concat where
   well_formed := fun {lhs, rhs} rec tr =>
@@ -169,7 +169,9 @@ def Concat.invariants: Bytes.PartialInvariants Concat where
   invariant := fun {lhs, rhs} rec tr =>
     (rec lhs) tr ∧ (rec rhs) tr
 
-variable [BytesInvariants] [BytesInvariants.Has Concat.invariants]
+abbrev invariants: Bytes.PartialInvariants SubF := Concat.Concat.invariants
+
+variable [BytesInvariants] [BytesInvariants.Has invariants]
 
 @[simp]
 theorem concat.WellFormed
@@ -246,8 +248,8 @@ end Invariants
 section AttackerKnowledgeTheorem
 
 variable [BytesFunctor] [BytesInvariants]
-variable [BytesFunctor.Has Concat]
-variable [BytesInvariants.Has Concat.invariants]
+variable [BytesFunctor.Has SubF]
+variable [BytesInvariants.Has invariants]
 
 instance: SubAttackerKnowledgeTheorem attKnowsConcat where
   pf := by
@@ -278,12 +280,12 @@ instance: SubAttackerKnowledgeTheorem attKnowsSplitRight where
     have := split.Invariant inp tr
     grind
 
-instance: ∀ id, SubAttackerKnowledgeTheorem (Concat.attackerKnowledge.func id)
+instance: ∀ id, SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)
   | 0 => inferInstanceAs (SubAttackerKnowledgeTheorem attKnowsConcat)
   | 1 => inferInstanceAs (SubAttackerKnowledgeTheorem attKnowsSplitLeft)
   | 2 => inferInstanceAs (SubAttackerKnowledgeTheorem attKnowsSplitRight)
 
-instance: SubAttackerKnowledgeTheorem Concat.attackerKnowledge := inferInstanceAs (SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine' Concat.attackerKnowledge.func))
+instance: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstanceAs (SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine' attackerKnowledge.internal))
 
 end AttackerKnowledgeTheorem
 

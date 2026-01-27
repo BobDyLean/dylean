@@ -46,7 +46,9 @@ instance: ALaCarte.RepresentableDecidableEq Hash where
 instance: ALaCarte.RepresentableOrd Hash where
 instance: SubBytesFunctor Hash where
 
-variable [BytesFunctor] [BytesFunctor.Has Hash]
+abbrev SubF := Hash
+
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 abbrev Hash.pack (x: Hash Bytes) := BytesView.pack x
 
@@ -66,7 +68,7 @@ end Constructors
 
 section AttackerKnowledge
 
-variable [BytesFunctor] [BytesFunctor.Has Hash]
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 def attKnowsHash: SubAttackerKnowledge Hash where
   pred p out :=
@@ -74,11 +76,11 @@ def attKnowsHash: SubAttackerKnowledge Hash where
       out = hash inp ∧
       p inp
 
-abbrev Hash.attackerKnowledge := attKnowsHash
+abbrev attackerKnowledge := attKnowsHash
+
+variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
 theorem attacker_knows_hash
-  [AttackerKnowledge]
-  [AttackerKnowledge.Has Hash.attackerKnowledge]
   (inp: Bytes) (tr: Trace α)
   :
     inp.AttackerKnows tr →
@@ -93,7 +95,7 @@ end AttackerKnowledge
 
 section Invariants
 
-variable [BytesFunctor] [BytesFunctor.Has Hash]
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 def Hash.invariants: Bytes.PartialInvariants Hash where
   well_formed := fun {input := input} rec tr =>
@@ -107,7 +109,9 @@ def Hash.invariants: Bytes.PartialInvariants Hash where
   invariant := fun {input := input} rec tr =>
     (rec input) tr
 
-variable [BytesInvariants] [BytesInvariants.Has Hash.invariants]
+abbrev invariants: Bytes.PartialInvariants SubF := Hash.Hash.invariants
+
+variable [BytesInvariants] [BytesInvariants.Has invariants]
 
 @[simp]
 theorem hash.WellFormed
@@ -138,8 +142,8 @@ end Invariants
 section AttackerKnowledgeTheorem
 
 variable [BytesFunctor] [BytesInvariants]
-variable [BytesFunctor.Has Hash]
-variable [BytesInvariants.Has Hash.invariants]
+variable [BytesFunctor.Has SubF]
+variable [BytesInvariants.Has invariants]
 
 instance: SubAttackerKnowledgeTheorem attKnowsHash where
   pf := by
@@ -148,7 +152,7 @@ instance: SubAttackerKnowledgeTheorem attKnowsHash where
     subst h_out
     simp_all [Bytes.Publishable]
 
-example: SubAttackerKnowledgeTheorem Hash.attackerKnowledge := inferInstance
+example: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstance
 
 end AttackerKnowledgeTheorem
 

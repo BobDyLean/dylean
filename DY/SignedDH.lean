@@ -14,8 +14,8 @@ namespace Test
 variable [BytesFunctor]
 variable [BytesInvariants]
 
-variable [BytesFunctor.Has Hash.Hash]
-variable [BytesInvariants.Has Hash.Hash.invariants]
+variable [BytesFunctor.Has Hash.SubF]
+variable [BytesInvariants.Has Hash.invariants]
 
 variable [BytesFunctor.Has Signature.SubF]
 
@@ -846,7 +846,7 @@ end SignedDH
 end Test
 
 abbrev SubF.internal: (id: Fin 2) → (Type → Type)
-  | 0 => Hash.Hash
+  | 0 => Hash.SubF
   | 1 => Signature.SubF
 
 abbrev SubF := BytesFunctor.combine SubF.internal
@@ -855,7 +855,7 @@ instance: ∀ id, SubBytesFunctor (SubF.internal id)
   | 0 => inferInstance
   | 1 => inferInstance
 
-instance: BytesFunctor.HasStep Hash.Hash SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) SubF)
+instance: BytesFunctor.HasStep Hash.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) SubF)
 instance: BytesFunctor.HasStep Signature.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 1) SubF)
 
 instance: BytesFunctor where
@@ -863,18 +863,18 @@ instance: BytesFunctor where
 
 instance: BytesFunctor.Has SubF := inferInstanceAs (BytesFunctor.Has BytesF)
 
-example: BytesFunctor.Has Hash.Hash := inferInstance
+example: BytesFunctor.Has Hash.SubF := inferInstance
 example: BytesFunctor.Has Signature.SubF := inferInstance
 
 def attackerKnowledge.internal (id: Fin 2): SubAttackerKnowledge (SubF.internal id) :=
   match id with
-  | 0 => Hash.attKnowsHash
+  | 0 => Hash.attackerKnowledge
   | 1 => Signature.attackerKnowledge
 
 def attackerKnowledge: SubAttackerKnowledge SubF :=
   SubAttackerKnowledge.combine attackerKnowledge.internal
 
-instance: AttackerKnowledge.HasStep Hash.attKnowsHash attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 0) (SubAttackerKnowledge.combine attackerKnowledge.internal))
+instance: AttackerKnowledge.HasStep Hash.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 0) (SubAttackerKnowledge.combine attackerKnowledge.internal))
 instance: AttackerKnowledge.HasStep Signature.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 1) (SubAttackerKnowledge.combine attackerKnowledge.internal))
 
 instance: AttackerKnowledge where
@@ -882,17 +882,17 @@ instance: AttackerKnowledge where
 
 instance: AttackerKnowledge.Has attackerKnowledge := inferInstanceAs (AttackerKnowledge.Has AttackerKnowledge.attackerKnowledge)
 
-example: AttackerKnowledge.Has Hash.attKnowsHash := inferInstance
+example: AttackerKnowledge.Has Hash.attackerKnowledge := inferInstance
 example: AttackerKnowledge.Has Signature.attackerKnowledge := inferInstance
 
 def invariants.internal: (id: Fin 2) → Bytes.PartialInvariants (SubF.internal id)
-  | 0 => Hash.Hash.invariants
+  | 0 => Hash.invariants
   | 1 => Signature.invariants
 
 abbrev invariants: Bytes.PartialInvariants SubF :=
   Bytes.PartialInvariants.combine invariants.internal
 
-instance [BytesInvariants]: BytesInvariants.HasStep Hash.Hash.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 0) invariants)
+instance [BytesInvariants]: BytesInvariants.HasStep Hash.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 0) invariants)
 instance [BytesInvariants]: BytesInvariants.HasStep Signature.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 1) invariants)
 
 instance: BytesInvariants where
@@ -900,11 +900,11 @@ instance: BytesInvariants where
 
 instance: BytesInvariants.Has invariants := inferInstance
 
-example: BytesInvariants.Has Hash.Hash.invariants := inferInstance
+example: BytesInvariants.Has Hash.invariants := inferInstance
 example: BytesInvariants.Has Signature.invariants := inferInstance
 
 instance: (id: Fin 2) → SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)
-  | 0 => inferInstanceAs (SubAttackerKnowledgeTheorem Hash.attKnowsHash)
+  | 0 => inferInstanceAs (SubAttackerKnowledgeTheorem Hash.attackerKnowledge)
   | 1 => inferInstanceAs (SubAttackerKnowledgeTheorem Signature.attackerKnowledge)
 
 instance: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstanceAs (SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine attackerKnowledge.internal))

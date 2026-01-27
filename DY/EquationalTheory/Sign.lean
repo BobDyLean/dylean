@@ -157,9 +157,9 @@ def attackerKnowledge: SubAttackerKnowledge SubF :=
 instance: AttackerKnowledge.HasStep attKnowsVk attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 0) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
 instance: AttackerKnowledge.HasStep attKnowsSign attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 1) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
 
+variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
+
 theorem attacker_knows_vk
-  [AttackerKnowledge]
-  [AttackerKnowledge.Has attackerKnowledge]
   (sk: Bytes) (tr: Trace α)
   :
     sk.AttackerKnows tr →
@@ -171,8 +171,6 @@ theorem attacker_knows_vk
     grind
 
 theorem attacker_knows_sign
-  [AttackerKnowledge]
-  [AttackerKnowledge.Has attackerKnowledge]
   (sk nonce msg: Bytes) (tr: Trace α)
   :
     sk.AttackerKnows tr →

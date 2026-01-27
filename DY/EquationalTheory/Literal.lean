@@ -47,9 +47,11 @@ instance: ALaCarte.RepresentableDecidableEq Literal where
 instance: ALaCarte.RepresentableOrd Literal where
 instance: SubBytesFunctor Literal where
 
-abbrev Literal.pack [BytesFunctor] [BytesFunctor.Has Literal] (x: Literal Bytes) := BytesView.pack x
+abbrev SubF := Literal
 
-instance [BytesFunctor] [BytesFunctor.Has Literal]: CanMkLiteral Bytes where
+abbrev Literal.pack [BytesFunctor] [BytesFunctor.Has SubF] (x: Literal Bytes) := BytesView.pack x
+
+instance [BytesFunctor] [BytesFunctor.Has SubF]: CanMkLiteral Bytes where
   literalToBytes lit :=
     ({ lit }: Literal Bytes).pack
 
@@ -60,7 +62,7 @@ instance [BytesFunctor] [BytesFunctor.Has Literal]: CanMkLiteral Bytes where
     | none => none
 
 theorem bytesToLiteral_literalToBytes
-  [BytesFunctor] [BytesFunctor.Has Literal]
+  [BytesFunctor] [BytesFunctor.Has SubF]
   (lit: Nat)
   : bytesToLiteral (literalToBytes lit: Bytes) = some lit
   := by
@@ -68,7 +70,7 @@ theorem bytesToLiteral_literalToBytes
     grind
 
 theorem literalToBytes_bytesToLiteral
-  [BytesFunctor] [BytesFunctor.Has Literal]
+  [BytesFunctor] [BytesFunctor.Has SubF]
   (buf: Bytes)
   :
     match bytesToLiteral buf with
@@ -83,18 +85,18 @@ end Constructors
 
 section AttackerKnowledge
 
-variable [BytesFunctor] [BytesFunctor.Has Literal]
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 def attKnowsLit: SubAttackerKnowledge Literal where
   pred p out :=
     ∃ lit,
       out = literalToBytes lit
 
-abbrev Literal.attackerKnowledge := attKnowsLit
+abbrev attackerKnowledge := attKnowsLit
 
-theorem Literal.attacker_knows_literalToBytes
+theorem attacker_knows_literalToBytes
   [AttackerKnowledge]
-  [AttackerKnowledge.Has Literal.attackerKnowledge]
+  [AttackerKnowledge.Has attackerKnowledge]
   (lit: Nat) (tr: Trace α)
   : (literalToBytes lit: Bytes).AttackerKnows tr
   := by
@@ -106,7 +108,7 @@ end AttackerKnowledge
 
 section Invariants
 
-variable [BytesFunctor] [BytesFunctor.Has Literal]
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 def Literal.invariants: Bytes.PartialInvariants Literal where
   well_formed := fun {lit := _} rec tr =>
@@ -120,7 +122,9 @@ def Literal.invariants: Bytes.PartialInvariants Literal where
   invariant := fun {lit := _} rec tr =>
     True
 
-variable [BytesInvariants] [BytesInvariants.Has Literal.invariants]
+abbrev invariants: Bytes.PartialInvariants SubF := Literal.Literal.invariants
+
+variable [BytesInvariants] [BytesInvariants.Has invariants]
 
 @[simp]
 theorem literalToBytes.WellFormed
@@ -148,8 +152,8 @@ end Invariants
 section AttackerKnowledgeTheorem
 
 variable [BytesFunctor] [BytesInvariants]
-variable [BytesFunctor.Has Literal]
-variable [BytesInvariants.Has Literal.invariants]
+variable [BytesFunctor.Has SubF]
+variable [BytesInvariants.Has invariants]
 
 instance: SubAttackerKnowledgeTheorem attKnowsLit where
   pf := by
@@ -159,7 +163,7 @@ instance: SubAttackerKnowledgeTheorem attKnowsLit where
     simp [Bytes.Publishable]
     grind
 
-example: SubAttackerKnowledgeTheorem Literal.attackerKnowledge := inferInstance
+example: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstance
 
 end AttackerKnowledgeTheorem
 
