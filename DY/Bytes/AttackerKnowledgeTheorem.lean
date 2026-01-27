@@ -1,0 +1,65 @@
+import DY.Bytes.Type
+import DY.Trace
+import DY.Bytes.Invariants
+import DY.Bytes.AttackerKnowledge
+
+namespace DY
+
+variable [BytesFunctor]
+variable [BytesInvariants]
+
+class SubAttackerKnowledgeTheorem {SubF: Type → Type} (att: SubAttackerKnowledge SubF) where
+  pf: ∀ b: Bytes, ∀ tr: ProofTrace, tr.invariant → att.pred (·.Publishable tr) b → b.Publishable tr
+
+class AttackerKnowledgeTheorem [AttackerKnowledge] where
+  inst: SubAttackerKnowledgeTheorem (AttackerKnowledge.attackerKnowledge)
+
+section AttackerKnowledgeTheorem
+
+instance
+  {SubF: Type → Type}
+  {t: Type}
+  (atts: t → SubAttackerKnowledge SubF)
+  [pfs: ∀ id, SubAttackerKnowledgeTheorem (atts id)]
+  : SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine' atts)
+  where
+    pf := by
+      intro b tr h_tr
+      apply SubAttackerKnowledge.combine'.implies
+      intro id b
+      exact (pfs id).pf b tr h_tr
+
+instance
+  {t: Type}
+  {SubFs: t → Type → Type}
+  (atts: ∀ id, SubAttackerKnowledge (SubFs id))
+  [pfs: ∀ id, SubAttackerKnowledgeTheorem (atts id)]
+  : SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine atts)
+  where
+    pf := by
+      intro b tr h_tr
+      apply SubAttackerKnowledge.combine.implies
+      intro id b
+      exact (pfs id).pf b tr h_tr
+
+end AttackerKnowledgeTheorem
+
+axiom Bytes.MessageSent_implies_Publishable (b: Bytes) (tr: ProofTrace): tr.invariant → tr.MessageSent b → b.Publishable tr
+
+theorem Bytes.AttackerKnows_implies_Publishable
+  [AttackerKnowledge]
+  [inst: AttackerKnowledgeTheorem]
+  (b: Bytes) (tr: ProofTrace)
+  :
+    tr.invariant →
+    Bytes.AttackerKnows b tr →
+    b.Publishable tr
+  := by
+    intro h_tr
+    apply Bytes.AttackerKnows.is_least_fixpoint (·.Publishable tr) b tr
+    · intro b
+      exact inst.inst.pf b tr h_tr
+    · intro b
+      exact Bytes.MessageSent_implies_Publishable b tr h_tr
+
+end DY

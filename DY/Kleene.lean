@@ -187,31 +187,57 @@ theorem mkWeakestFixpoint_is_weakest
     have := mkWeakestFixpoint_is_weakest_aux f h_scott set n h
     simp_all [Subset]
 
-def combine {α: Type u} (fs: List (Set α → Set α)) (set: Set α): Set α :=
-  fun x =>
-    ∃ f,
-      f ∈ fs ∧
-      f set x
+
+def combine {α: Type u} {Id: Type} (fs: Id → (Set α → Set α)) (set: Set α): Set α :=
+  fun x => ∃ id, fs id set x
 
 theorem combine_isScottContinuous
   {α: Type u}
-  (fs: List (Set α → Set α))
-  (h_fs: ∀ f, f ∈ fs → IsScottContinuous f)
+  {Id: Type}
+  (fs: Id → (Set α → Set α))
+  (h_fs: ∀ id, IsScottContinuous (fs id))
   : IsScottContinuous (combine fs)
   := by
     intro chain h_chain
     unfold combine
     ext x
     constructor
-    · intro ⟨f, ⟨h_f1, h_f2⟩⟩
-      have := h_fs f h_f1 chain h_chain
+    · intro ⟨id, h_f⟩
+      have := h_fs id chain h_chain
       simp_all [Chain.union, Chain.map]
       grind
     · intro h
-      have ⟨n, f, ⟨h_f1, h_f2⟩⟩ := h
-      have := h_fs f h_f1 chain h_chain
-      exists f
-      simp_all only [Chain.union, Chain.map, true_and]
+      have ⟨n, id, h_id⟩ := h
+      have := h_fs id chain h_chain
+      exists id
+      simp_all only
       exists n
+
+def Forall {α: Type u} (p: α → Prop) (l: List α): Prop :=
+  ∀ x, x ∈ l → p x
+
+theorem isScottContinuous_Forall_lemma
+  {α: Type u}
+  (chain: Chain α)
+  (h_chain: chain.IsDirected)
+  (l: List α)
+  :
+    Forall (chain.union) l =
+    exists n, Forall (chain n) l
+  := by
+    simp only [eq_iff_iff]
+    constructor
+    · induction l with
+      | nil => simp [Forall, Chain.union]
+      | cons h t ih =>
+        simp only [Forall, List.mem_cons, Chain.union, forall_eq_or_imp, and_imp, forall_exists_index]
+        intro nh h_nh h_t
+        have ⟨nt, h_nt⟩ : exists nt, Forall (chain nt) t := by simp_all [Forall, Chain.union]
+        exists (max nh nt)
+        have := h_chain nh (max nh nt) (by grind)
+        have := h_chain nt (max nh nt) (by grind)
+        simp_all [Forall, Subset]
+    · simp [Forall, Chain.union]
+      grind
 
 end DY.Kleene

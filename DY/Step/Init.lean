@@ -218,8 +218,8 @@ def massageNextGoal
     -- get old and mid trace FVarId
     -- how: unify ?tr_old ≤ ?tr_mid with the hypthesis we introduced
     let (trOldFv, trMidFv) ← do
-      let oldTraceMVarId ← mkFreshExprMVar (← mkAppOptM ``DY.ProofTrace #[none, none])
-      let midTraceMVarId ← mkFreshExprMVar (← mkAppOptM ``DY.ProofTrace #[none, none])
+      let oldTraceMVarId ← mkFreshExprMVar (← mkAppOptM ``DY.ProofTrace #[none])
+      let midTraceMVarId ← mkFreshExprMVar (← mkAppOptM ``DY.ProofTrace #[none])
       let trLeToUnify ← mkAppOptM ``LE.le #[none, none, oldTraceMVarId, midTraceMVarId]
       trace[Step] "finding old trace fvarid by unifying {trLeToUnify} and {(← trGrowsFv.getType)}"
       unless (← isDefEq trLeToUnify (← trGrowsFv.getType)) do

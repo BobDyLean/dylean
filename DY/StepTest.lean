@@ -1,14 +1,14 @@
 import DY.Trace
-import DY.Bytes.EquationalTheory
-import DY.Bytes.EquationalTheoryInvariants
+import DY.Bytes.Type
+import DY.Bytes.Invariants
 import DY.Step
 
 open DY
 
 namespace StepTest
 
-variable [EquationalTheories]
-variable [EquationalTheories.Invariants]
+variable [BytesFunctor]
+variable [BytesInvariants]
 
 def hash (b: Bytes): Bytes := sorry
 def test_publishable (b: Bytes): Bool := sorry

@@ -1,548 +1,231 @@
+import DY.ALaCarte.Basic
+import DY.ALaCarte.DecidableEq
+import DY.ALaCarte.Ordering
+
 namespace DY
 
-structure BytesCtor where
-  data: Type 0
-  nBytes: Nat
-  -- TODO: we might want to move these outside BytesCtor(s) so that they only contain typing information
-  [dataDecidableEq: DecidableEq data]
-  [dataOrd: Ord data]
-  [dataReflOrd: Std.ReflOrd data]
-  [dataLawfulEqOrd: Std.LawfulEqOrd data]
-  [dataOrientedOrd: Std.OrientedOrd data]
-  [dataTransOrd: Std.TransOrd data]
+class SubBytesFunctor (SubF: Type → Type) where
+  [sizeOf: ALaCarte.FunctorSizeOf SubF]
+  [repr: ALaCarte.Representable SubF]
+  [deq: ALaCarte.RepresentableDecidableEq SubF]
+  [ord: ALaCarte.RepresentableOrd SubF]
 
--- TODO: if we want to compute bytes term, this Vect type is slow for performance
--- because it contains the length of each subvector (classic issue)
--- we cannot use list + subtype because Lean tries to unfold it into a big mutually recursive type
--- (see https://lean-lang.org/doc/reference/latest/find/?domain=Verso.Genre.Manual.section&name=nested-inductive-types )
--- possible solution: Use List or Vector (no length constraints),
--- but then subtype Bytes by the fact that each length is correct?
-inductive Vect (a:Type u): Nat -> Type u where
-  | nil: Vect a 0
-  | cons: a -> Vect a n -> Vect a (n+1)
+instance (SubF: Type → Type) [inst: SubBytesFunctor SubF]: ALaCarte.FunctorSizeOf SubF := inst.sizeOf
+instance (SubF: Type → Type) [inst: SubBytesFunctor SubF]: ALaCarte.Representable SubF := inst.repr
+instance (SubF: Type → Type) [inst: SubBytesFunctor SubF]: ALaCarte.RepresentableDecidableEq SubF := inst.deq
+instance (SubF: Type → Type) [inst: SubBytesFunctor SubF]: ALaCarte.RepresentableOrd SubF := inst.ord
 
-syntax "V[" withoutPosition(term,*,?) "]"  : term
+class BytesFunctor where
+  BytesF: Type → Type
+  [inst: SubBytesFunctor BytesF]
+export BytesFunctor (BytesF)
 
-macro_rules
-  | `(V[ $elems,* ]) => do
-    pure (← elems.getElems.foldrM (fun elem acc => ``(Vect.cons $elem $acc)) (← ``(Vect.nil)))
+instance [inst: BytesFunctor]: SubBytesFunctor BytesF := inst.inst
 
-class BytesCtors (CtorId: outParam Type) where
-  ctors: CtorId -> BytesCtor
+-- Sanity checks
 
--- abbrev CtorId {CtorId: Type} [BytesCtors CtorId] := CtorId
+example [inst: BytesFunctor]: ALaCarte.FunctorSizeOf BytesF := inferInstance
+example [inst: BytesFunctor]: ALaCarte.Representable BytesF := inferInstance
+example [inst: BytesFunctor]: ALaCarte.RepresentableDecidableEq BytesF := inferInstance
+example [inst: BytesFunctor]: ALaCarte.RepresentableOrd BytesF := inferInstance
 
-variable {CtorId: Type}
-variable [BytesCtors CtorId]
+variable [BytesFunctor]
+-- TODO: Bytes or SymbolicBytes?
+def Bytes := ALaCarte.ContainerFor BytesF
 
-structure Bytes where
-  id: CtorId
-  data: (BytesCtors.ctors id).data
-  dataBytes: Vect (Bytes) ((BytesCtors.ctors id).nBytes)
+instance: DecidableEq Bytes := inferInstanceAs (DecidableEq (ALaCarte.ContainerFor BytesF))
 
-mutual
-def decideEqVectBytes [DecidableEq CtorId] {n: Nat} (v1 v2: Vect Bytes n): Decidable (v1 = v2) := by
-  cases v1 <;> cases v2
-  · right
-    rfl
-  · rename_i h1 t1 h2 t2
-    cases decideEqBytes h1 h2
-    · left; simp_all
-    cases decideEqVectBytes t1 t2
-    · left; simp_all
-    right; simp_all
+instance: Ord Bytes := inferInstanceAs (Ord (ALaCarte.ContainerFor BytesF))
+instance: Std.ReflOrd Bytes := inferInstanceAs (Std.ReflOrd (ALaCarte.ContainerFor BytesF))
+instance: Std.LawfulEqOrd Bytes := inferInstanceAs (Std.LawfulEqOrd (ALaCarte.ContainerFor BytesF))
+instance: Std.OrientedOrd Bytes := inferInstanceAs (Std.OrientedOrd (ALaCarte.ContainerFor BytesF))
+instance: Std.TransOrd Bytes := inferInstanceAs (Std.TransOrd (ALaCarte.ContainerFor BytesF))
 
-def decideEqBytes [DecidableEq CtorId] (b1 b2: Bytes): Decidable (b1 = b2) := by
-  let {id := id1, data := data1, dataBytes := dataBytes1} := b1
-  let {id := id2, data := data2, dataBytes := dataBytes2} := b2
-  by_cases id1 = id2
-  · rename_i heq
-    subst heq
-    cases (BytesCtors.ctors id1).dataDecidableEq data1 data2
-    · left; simp_all
-    cases decideEqVectBytes dataBytes1 dataBytes2
-    · left; simp_all
-    · right; simp_all
-  · left; simp_all
-end
+class BytesFunctor.HasStep (SubF1: Type → Type) (SubF2: semiOutParam (Type → Type)) [SubBytesFunctor SubF1] [semiOutParam (SubBytesFunctor SubF2)] extends ALaCarte.SubFunctor SubF1 SubF2
+class BytesFunctor.Has (SubF: Type → Type) [SubBytesFunctor SubF] extends ALaCarte.SubFunctorTC SubF BytesF
 
-instance [DecidableEq CtorId]: DecidableEq Bytes := decideEqBytes
+-- To avoid instance name clashing with other files
+namespace BytesFunctor
 
-mutual
-def compareVectBytes [Ord CtorId] [Std.LawfulEqOrd CtorId] {n: Nat} (v1 v2: Vect Bytes n): Ordering :=
-  match v1, v2 with
-  | .nil, .nil => .eq
-  | .cons h1 t1, .cons h2 t2 =>
-    match compareBytes h1 h2 with
-    | .lt => .lt
-    | .gt => .gt
-    | .eq => compareVectBytes t1 t2
-def compareBytes [Ord CtorId] [Std.LawfulEqOrd CtorId] (b1 b2: Bytes): Ordering :=
-  let {id := id1, data := data1, dataBytes := dataBytes1} := b1
-  let {id := id2, data := data2, dataBytes := dataBytes2} := b2
-  match h: compare id1 id2 with
-  | .lt => .lt
-  | .gt => .gt
-  | .eq => by
-    simp at h
-    subst h
-    generalize BytesCtors.ctors id1 = ctor at *
-    exact (
-      match ctor.dataOrd.compare data1 data2 with
-      | .lt => .lt
-      | .gt => .gt
-      | .eq => (
-        compareVectBytes dataBytes1 dataBytes2
-      )
-    )
-end
+instance: BytesFunctor.Has BytesF where
+instance
+  (SubF1 SubF2: Type → Type)
+  [SubBytesFunctor SubF1] [SubBytesFunctor SubF2]
+  [BytesFunctor.HasStep SubF1 SubF2]
+  [BytesFunctor.Has SubF2]
+  : BytesFunctor.Has SubF1
+  where
 
-instance {id: CtorId}: Ord ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataOrd
-instance {id: CtorId}: Std.ReflOrd ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataReflOrd
-instance {id: CtorId}: Std.LawfulEqOrd ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataLawfulEqOrd
-instance {id: CtorId}: Std.OrientedOrd ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataOrientedOrd
-instance {id: CtorId}: Std.TransOrd ((BytesCtors.ctors id).data) := (BytesCtors.ctors id).dataTransOrd
+end BytesFunctor
 
-mutual
-theorem compareVectBytes_Refl
-  [Ord CtorId] [Std.LawfulEqOrd CtorId]
-  {n: Nat}
-  (v: Vect Bytes n)
-  : compareVectBytes v v = .eq
-  := by
-    cases v
-    · rfl
-    · rename_i h t
-      unfold compareVectBytes
-      simp [compareBytes_Refl h, compareVectBytes_Refl t]
+abbrev BytesFunctor.combine {a: Type} (SubFs: a → Type → Type): Type → Type :=
+  ALaCarte.FunctorUnion SubFs
 
-theorem compareBytes_Refl
-  [Ord CtorId] [Std.LawfulEqOrd CtorId]
-  (b: Bytes)
-  : compareBytes b b = .eq
-  := by
-    let {id := id, data := data, dataBytes := dataBytes} := b
-    simp only [compareBytes]
-    have id_Refl : compare id id = .eq := by simp
-    rewrite [id_Refl]
-    dsimp only
-    simp [compareVectBytes_Refl]
-end
+instance {a: Type} [DecidableEq a] [Ord a] [Std.LawfulEqOrd a] [Std.TransOrd a] (SubFs: a → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]: SubBytesFunctor (BytesFunctor.combine SubFs) where
+  sizeOf := inferInstance
+  repr := inferInstance
+  deq := inferInstance
+  ord := inferInstance
 
-mutual
-theorem compareVectBytes_LawfulEq
-  [Ord CtorId] [Std.LawfulEqOrd CtorId]
-  {n: Nat}
-  (v1 v2: Vect Bytes n)
-  : compareVectBytes v1 v2 = .eq → v1 = v2
-  := by
-    cases v1 <;> cases v2
-    · simp [compareVectBytes]
-    · simp [compareVectBytes]
-      split
-      · simp
-      · simp
-      · rename_i heq
-        have := compareBytes_LawfulEq _ _ heq
-        intro heq
-        have := compareVectBytes_LawfulEq _ _ heq
-        simp_all
+instance
+  {a: Type} [DecidableEq a] [Ord a] [Std.LawfulEqOrd a] [Std.TransOrd a]
+  (SubFs: a → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]
+  (id: a)
+  : BytesFunctor.HasStep (SubFs id) (BytesFunctor.combine SubFs)
+  where
 
-theorem compareBytes_LawfulEq
-  [Ord CtorId] [Std.LawfulEqOrd CtorId]
-  (b1 b2: Bytes)
-  : compareBytes b1 b2 = .eq → b1 = b2
-  := by
-    let {id := id1, data := data1, dataBytes := dataBytes1} := b1
-    let {id := id2, data := data2, dataBytes := dataBytes2} := b2
-    simp only [compareBytes, Bytes.mk.injEq]
-    split
-    · simp
-    · simp
-    rename_i heq
-    have heq := Std.LawfulEqOrd.eq_of_compare heq
-    subst heq
-    dsimp only
-    split
-    · simp
-    · simp
-    rename_i heq
-    have := Std.LawfulEqOrd.eq_of_compare heq
-    intro heq
-    have := compareVectBytes_LawfulEq _ _ heq
-    grind
-end
+def BytesView (SubF: Type → Type) := SubF Bytes
 
-mutual
-theorem compareVectBytes_Oriented
-  [Ord CtorId] [Std.LawfulEqOrd CtorId] [Std.OrientedOrd CtorId]
-  {n: Nat}
-  (v1 v2: Vect Bytes n)
-  : compareVectBytes v1 v2 = (compareVectBytes v2 v1).swap
-  := by
-    cases v1 <;> cases v2
-    · simp [compareVectBytes]
-    · rename_i h1 t1 h2 t2
-      simp only [compareVectBytes]
-      have := compareBytes_Oriented h1 h2
-      split
-      · split <;> simp_all
-      · split <;> simp_all
-      have := compareVectBytes_Oriented t1 t2
-      split <;> simp_all
-
-theorem compareBytes_Oriented
-  [Ord CtorId] [Std.LawfulEqOrd CtorId] [Std.OrientedOrd CtorId]
-  (b1 b2: Bytes)
-  : compareBytes b1 b2 = (compareBytes b2 b1).swap
-  := by
-    let {id := id1, data := data1, dataBytes := dataBytes1} := b1
-    let {id := id2, data := data2, dataBytes := dataBytes2} := b2
-    simp only [compareBytes]
-    have id_swap: compare id1 id2 = (compare id2 id1).swap := Std.OrientedOrd.eq_swap
-    split
-    · split <;> grind
-    · split <;> grind
-    rename_i heq
-    have heq' := Std.LawfulEqOrd.eq_of_compare heq
-    subst heq'
-    dsimp only
-    have data_swap: compare data1 data2 = (compare data2 data1).swap := Std.OrientedOrd.eq_swap
-    split
-    · split <;> grind
-    · split <;> grind
-    have dataBytes_swap := compareVectBytes_Oriented dataBytes1 dataBytes2
-    split <;> grind
-end
-
-theorem mkTransitive
-  {a: Type u}
-  (r: a → a → Ordering)
-  (hlawful: ∀ x y, (r x y) = .eq → x = y)
-  (htranslt: ∀ x y z, (r x y) = .lt → (r y z) = .lt → (r x z) = .lt)
-  : ∀ x y z, (r x y).isLE → (r y z).isLE → (r x z).isLE
-  := by
-    intros x y z
-    simp only [Ordering.isLE]
-    grind [cases Ordering]
-
-mutual
-theorem compareVectBytes_TransLt
-  [Ord CtorId] [Std.LawfulEqOrd CtorId] [Std.TransOrd CtorId]
-  {n: Nat}
-  (v1 v2 v3: Vect Bytes n)
-  : (compareVectBytes v1 v2) = .lt → (compareVectBytes v2 v3) = .lt → (compareVectBytes v1 v3) = .lt
-  := by
-    cases v1 <;> cases v2 <;> cases v3
-    · simp [compareVectBytes]
-    · rename_i h1 t1 h2 t2 h3 t3
-      simp only [compareVectBytes]
-      intros h12 h23
-      split at h12 <;> rename_i h_cmp12
-      · split at h23 <;> rename_i h_cmp23
-        · have := compareBytes_TransLt h1 h2 h3 h_cmp12 h_cmp23
-          grind
-        · contradiction
-        · have h_eq23 := compareBytes_LawfulEq h2 h3 h_cmp23
-          grind
-      · contradiction
-      · have h_eq12 := compareBytes_LawfulEq h1 h2 h_cmp12
-        subst h_eq12
-        split at h23 <;> rename_i h_cmp23
-        · rfl
-        · contradiction
-        · exact compareVectBytes_TransLt t1 t2 t3 h12 h23
-
-theorem compareBytes_TransLt
-  [Ord CtorId] [Std.LawfulEqOrd CtorId] [Std.TransOrd CtorId]
-  (b1 b2 b3: Bytes)
-  : (compareBytes b1 b2) = .lt → (compareBytes b2 b3) = .lt → (compareBytes b1 b3) = .lt
-  := by
-    let {id := id1, data := data1, dataBytes := dataBytes1} := b1
-    let {id := id2, data := data2, dataBytes := dataBytes2} := b2
-    let {id := id3, data := data3, dataBytes := dataBytes3} := b3
-    simp only [compareBytes]
-    intro h12 h23
-    split at h12 <;> rename_i h_id12
-    · split at h23 <;> rename_i h_id23
-      · have := Std.TransCmp.lt_trans h_id12 h_id23
-        grind
-      · contradiction
-      · grind
-    · contradiction
-    · split at h23 <;> rename_i h_id23
-      · grind
-      · contradiction
-      · have h_id12_eq := Std.LawfulEqOrd.eq_of_compare h_id12
-        have h_id23_eq := Std.LawfulEqOrd.eq_of_compare h_id23
-        subst h_id12_eq
-        subst h_id23_eq
-        dsimp only at *
-        rewrite [h_id12]
-        dsimp only
-        split at h12 <;> rename_i h_data12
-        · split at h23 <;> rename_i h_data23
-          · have := Std.TransCmp.lt_trans h_data12 h_data23
-            grind
-          · contradiction
-          · grind
-        · contradiction
-        · split at h23 <;> rename_i h_data23
-          · grind
-          · contradiction
-          · have h_data12_eq := Std.LawfulEqOrd.eq_of_compare h_data12
-            have h_data23_eq := Std.LawfulEqOrd.eq_of_compare h_data23
-            subst h_data12_eq
-            subst h_data23_eq
-            simp [compareVectBytes_TransLt dataBytes1 dataBytes2 dataBytes3 h12 h23]
-end
-
-theorem compareBytes_Trans
-  [Ord CtorId] [Std.LawfulEqOrd CtorId] [Std.TransOrd CtorId]
-  (b1 b2 b3: Bytes)
-  : (compareBytes b1 b2).isLE → (compareBytes b2 b3).isLE → (compareBytes b1 b3).isLE
-  := mkTransitive compareBytes compareBytes_LawfulEq compareBytes_TransLt b1 b2 b3
-
-instance [Ord CtorId] [Std.LawfulEqOrd CtorId]: Ord Bytes where
-  compare := compareBytes
-
-instance [Ord CtorId] [Std.LawfulEqOrd CtorId]: Std.ReflOrd Bytes where
-  compare_self {b} := compareBytes_Refl b
-
-instance [Ord CtorId] [Std.LawfulEqOrd CtorId]: Std.LawfulEqOrd Bytes where
-  eq_of_compare {a b} := compareBytes_LawfulEq a b
-
-instance [Ord CtorId] [Std.LawfulEqOrd CtorId] [Std.OrientedOrd CtorId]: Std.OrientedOrd Bytes where
-  eq_swap {a b} := compareBytes_Oriented a b
-
-instance [Ord CtorId] [Std.LawfulEqOrd CtorId] [Std.TransOrd CtorId]: Std.TransOrd Bytes where
-  isLE_trans {a b c} := compareBytes_Trans a b c
-
-instance [Ord CtorId] [Std.LawfulEqOrd CtorId]: LE Bytes := leOfOrd
-
-class BytesCtor.HasCtorAt (id: CtorId) (ctor: outParam BytesCtor) where
-  pf (id): BytesCtors.ctors id = ctor
-
-class BytesCtor.HasCtor (ctor: BytesCtor) where
-  id: CtorId
-  pf: BytesCtors.ctors id = ctor
-
-def BytesCtor.id (ctor: BytesCtor) [ctor.HasCtor]: CtorId :=
-  BytesCtor.HasCtor.id ctor
-
-instance {ctor: BytesCtor} [tc: ctor.HasCtor]: ctor.HasCtorAt ctor.id where
-  pf := tc.pf
-
-class Bytes.HasCtors (ctors: List BytesCtor) where
-  tc: (id: Fin ctors.length) → ctors[id].HasCtor
-
-structure BytesView (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] where
-  data: ctor.data
-  dataBytes: Vect Bytes ctor.nBytes
-
-def Bytes.view? [DecidableEq CtorId] (b: Bytes) (id: CtorId) {ctor: BytesCtor} [tc: ctor.HasCtorAt id] : Option (BytesView id) :=
-  if h_id: b.id = id then
-    some {
-      data := tc.pf ▸ h_id ▸ b.data
-      dataBytes := tc.pf ▸ h_id ▸ b.dataBytes,
-    }
-  else
-    none
+def Bytes.view? (b: Bytes) (SubF: Type → Type) [SubBytesFunctor SubF] [BytesFunctor.Has SubF] : Option (BytesView SubF) :=
+  ALaCarte.Container.view SubF b
 
 def BytesView.pack
-  (id: CtorId) {ctor: BytesCtor} [tc: ctor.HasCtorAt id]
-  (b: BytesView id)
+  {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
+  (b: BytesView SubF)
   : Bytes
   :=
-  {
-    id := id,
-    data := tc.pf ▸ b.data,
-    dataBytes := tc.pf ▸ b.dataBytes,
-  }
+  ALaCarte.Container.pack SubF b
 
 theorem Bytes.pack_view?
-  [DecidableEq CtorId]
+  (SubF: Type → Type) [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
   (b: Bytes)
-  (id: CtorId) {ctor: BytesCtor} [tc: ctor.HasCtorAt id]
   :
-  match b.view? id with
+  match b.view? SubF with
   | some bview => bview.pack = b
   | none => True
   := by
     simp only [BytesView.pack, Bytes.view?]
-    cases b
-    grind
+    grind [ALaCarte.Container.pack_view]
 
-grind_pattern Bytes.pack_view? => b.view? id
+grind_pattern Bytes.pack_view? => b.view? SubF
 
 theorem BytesView.view_pack
-  [DecidableEq CtorId]
-  {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id]
-  (b: BytesView id)
-  : (b.pack).view? id = some b
+  {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
+  (b: BytesView SubF)
+  : (b.pack).view? SubF = some b
   := by
     simp only [BytesView.pack, Bytes.view?]
-    cases b
-    grind
+    grind [ALaCarte.Container.view_pack]
 
 grind_pattern BytesView.view_pack => b.pack
 
-structure BytesFunCtor.Internal (ctor: BytesCtor) (a: Type u) where
-  func: ctor.data → Vect Bytes ctor.nBytes → (Bytes → a) → a
-  func_wf:
-    ∀ data dataBytes rec1 rec2,
-      (∀ b, sizeOf b < sizeOf dataBytes → rec1 b = rec2 b) →
-      func data dataBytes rec1 = func data dataBytes rec2
-    := by
-      intro data dataBytes rec1 rec2
-      -- The following is equivalent `let V[b1, b2, ...] := dataBytes`
-      repeat (
-        cases dataBytes
-        rename_i b dataBytes
-        -- if dataBytes was a Vect.nil, the following will fail
-        obtain dataBytes: Vect _ _ := dataBytes
-      )
-      -- destruct the Vect.nil
-      cases dataBytes
-      simp_all +arith
+def Bytes.PartialFunction (SubF: Type → Type) [SubBytesFunctor SubF] (a: Type) := ALaCarte.Container.PartialFun SubF BytesF a
+def Bytes.Function (a: Type) := Bytes.PartialFunction BytesF a
 
-def BytesFunCtor.ById (id: CtorId) (a: Type u) := BytesFunCtor.Internal (BytesCtors.ctors id) a
-def BytesFunCtor (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id] (a: Type u) := BytesFunCtor.Internal ctor a
+def Bytes.rec {a: Type} (f: Bytes.Function a) (x: Bytes) : a :=
+  ALaCarte.Container.rec f x
 
-def BytesFunCtor.into
-  {id: CtorId} {a: Type u} {ctor: BytesCtor} [ctor.HasCtorAt id]
-  (f: BytesFunCtor id a)
-  : BytesFunCtor.ById id a
-  :=
-  {
-    func data dataBytes rec := f.func (BytesCtor.HasCtorAt.pf id ▸ data) (BytesCtor.HasCtorAt.pf id ▸ dataBytes) rec
-    func_wf := BytesCtor.HasCtorAt.pf id ▸ f.func_wf
-  }
+class Bytes.SubFunctionStep
+  {SubF1 SubF2: Type → Type} {a: Type}
+  [SubBytesFunctor SubF1] [SubBytesFunctor SubF2]
+  [BytesFunctor.HasStep SubF1 SubF2]
+  (partialFun1: Bytes.PartialFunction SubF1 a)
+  (partialFun2: semiOutParam (Bytes.PartialFunction SubF2 a))
+  extends ALaCarte.SubPartialFun partialFun1 partialFun2
 
-def BytesFunCtors (a: Type u) :=
-  (id: CtorId) → BytesFunCtor.ById id a
+class Bytes.SubFunction
+  {SubF: Type → Type}
+  [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
+  {a: Type}
+  (partialFun: Bytes.PartialFunction SubF a)
+  (totalFun: Bytes.Function a)
+  extends ALaCarte.SubPartialFunTC partialFun totalFun
 
-noncomputable
-def Bytes.mkRec
-  {a: Type u}
-  (funs: BytesFunCtors a)
-  (default: a)
-  (b: Bytes)
-  : a
-  :=
-    let {id, data, dataBytes} := b
-    (funs id).func data dataBytes (fun bChild =>
-      if sizeOf bChild < sizeOf dataBytes then
-        mkRec funs default bChild
-      else
-        default
-    )
+instance
+  {a: Type}
+  (totalFun: Bytes.Function a)
+  : Bytes.SubFunction totalFun totalFun
+  where
 
-theorem Bytes.mkRec.eq
-  {a: Type u}
-  (funs: BytesFunCtors a)
-  (default: a)
-  (b: Bytes)
-  : Bytes.mkRec funs default b = (funs b.id).func b.data b.dataBytes (Bytes.mkRec funs default)
+instance
+  {SubF1 SubF2: Type → Type}
+  [SubBytesFunctor SubF1] [SubBytesFunctor SubF2]
+  [BytesFunctor.HasStep SubF1 SubF2]
+  [BytesFunctor.Has SubF2]
+  {a: Type}
+  (partialFun1: Bytes.PartialFunction SubF1 a)
+  (partialFun2: Bytes.PartialFunction SubF2 a)
+  (totalFun: Bytes.Function a)
+  [Bytes.SubFunctionStep partialFun1 partialFun2]
+  [Bytes.SubFunction partialFun2 totalFun]
+  : Bytes.SubFunction partialFun1 totalFun
+  where
+
+def Bytes.PartialFunction.combine
+  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
+  {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {a: Type}
+  (funs: (id: t) → Bytes.PartialFunction (SubFs id) a)
+  : Bytes.PartialFunction (BytesFunctor.combine SubFs) a
+  := ALaCarte.Container.PartialFun.combine funs
+
+instance
+  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
+  {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {a: Type}
+  (funs: (id: t) → Bytes.PartialFunction (SubFs id) a)
+  (id: t)
+  : Bytes.SubFunctionStep (funs id) (Bytes.PartialFunction.combine funs)
   := by
-    unfold Bytes.mkRec
-    cases b
-    rename_i id data dataBytes
-    apply (funs id).func_wf
-    grind
+    unfold Bytes.PartialFunction.combine
+    exact {}
 
-theorem Bytes.mkRec.eqView
-  (id: CtorId) {ctor: BytesCtor} [ctor.HasCtorAt id]
-  {a: Type u}
-  (funs: BytesFunCtors a)
-  (default: a)
-  (func: BytesFunCtor id a)
-  (pf: funs id = func.into)
-  (b: BytesView id)
-  : Bytes.mkRec funs default (b.pack) = func.func b.data b.dataBytes (Bytes.mkRec funs default)
-  := by
-    rewrite [Bytes.mkRec.eq funs default b.pack]
-    simp_all [BytesView.pack, BytesFunCtor.into]
-    grind
+theorem Bytes.rec_eq
+  {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
+  {a: Type}
+  (partialFun: Bytes.PartialFunction SubF a)
+  (totalFun: Bytes.Function a)
+  [Bytes.SubFunction partialFun totalFun]
+  (x: BytesView SubF)
+  : x.pack.rec totalFun = partialFun x (fun y _ => y.rec totalFun)
+  := ALaCarte.Container.rec_eq partialFun totalFun x
 
-def Bytes.Proof (p: Bytes → Prop) :=
-  ∀ id data dataBytes,
-    (∀ b, sizeOf b < sizeOf dataBytes → p b) →
-    p ({id, data, dataBytes})
+def Bytes.PartialProof1 {SubF: Type → Type} [SubBytesFunctor SubF] {a: Type} (fn: Bytes.PartialFunction SubF a) (rec: Bytes → a) (p: a → Prop) := ALaCarte.Container.PartialProof1 fn rec p
 
-theorem Bytes.proveRec
-  (p: Bytes → Prop)
-  (pf: Bytes.Proof p)
-  (b: Bytes)
-  : p b
-  :=
-    let {id, data, dataBytes} := b
-    pf id data dataBytes (fun b _ => Bytes.proveRec p pf b)
+def Bytes.Proof1 {a: Type} (fn: Bytes.Function a) (p: a → Prop) := Bytes.PartialProof1 fn (Bytes.rec fn) p
 
-def BytesFunCtorProof1.Internal {ctor: BytesCtor} {a: Type u} (func: Bytes → a) (f: BytesFunCtor.Internal ctor a) (p: a → Prop) :=
-  ∀ data dataBytes,
-    (∀ b, sizeOf b < sizeOf dataBytes → p (func b)) →
-    p (f.func data dataBytes func)
+theorem Bytes.Proof1.prove
+  {a: Type}
+  {fn: Bytes.Function a}
+  {p: a → Prop}
+  (pf: Bytes.Proof1 fn p)
+  (x: Bytes)
+  : p (x.rec fn)
+  := ALaCarte.Container.rec (ALaCarte.Container.PartialProof1.into pf) x
 
-def BytesFunCtorProof1.ById {id: CtorId} {a: Type u} (func: Bytes → a) (f: BytesFunCtor.ById id a) (p: a → Prop) := BytesFunCtorProof1.Internal func f p
+def Bytes.PartialProof1.combine
+  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
+  {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {a: Type}
+  {funs: (id: t) → Bytes.PartialFunction (SubFs id) a}
+  {rec: Bytes → a} {p: a → Prop}
+  (pfs: (id: t) → Bytes.PartialProof1 (funs id) rec p)
+  : Bytes.PartialProof1 (Bytes.PartialFunction.combine funs) rec p
+  := ALaCarte.Container.PartialProof1.combine pfs
 
-def BytesFunCtorProof1 {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id] {a: Type u} (func: Bytes → a) (f: BytesFunCtor id a) (p: a → Prop) := BytesFunCtorProof1.Internal func f p
+def Bytes.PartialProof2 {SubF: Type → Type} [SubBytesFunctor SubF] {a b: Type} (fn1: Bytes.PartialFunction SubF a) (fn2: Bytes.PartialFunction SubF b) (rec1: Bytes → a) (rec2: Bytes → b) (p: a × b → Prop) := ALaCarte.Container.PartialProof2 fn1 fn2 rec1 rec2 p
 
-def BytesFunCtorProof1.into
-  {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id] {a: Type u}
-  {func: Bytes → a} {f: BytesFunCtor id a} {p: a → Prop}
-  (pf: BytesFunCtorProof1 func f p)
-  : BytesFunCtorProof1.ById func f.into p
-  := fun data dataBytes pfRec =>
-    pf (BytesCtor.HasCtorAt.pf id ▸ data) (BytesCtor.HasCtorAt.pf id ▸ dataBytes) (BytesCtor.HasCtorAt.pf id ▸ pfRec)
+def Bytes.Proof2 {a b: Type} (fn1: Bytes.Function a) (fn2: Bytes.Function b) (p: a × b → Prop) := Bytes.PartialProof2 fn1 fn2 (Bytes.rec fn1) (Bytes.rec fn2) p
 
-def BytesFunCtorsProof1 {a: Type u} (f: BytesFunCtors a) (default: a) (p: a → Prop) :=
-  (id: CtorId) → BytesFunCtorProof1.ById (Bytes.mkRec f default) (f id) p
-
-def BytesFunCtorsProof1.prove
-  {a: Type u}
-  {funs: BytesFunCtors a} {default: a} {p: a → Prop}
-  (pfuns: BytesFunCtorsProof1 funs default p)
-  (b: Bytes)
-  : p (Bytes.mkRec funs default b)
-  := by
-    apply Bytes.proveRec (fun b => p (Bytes.mkRec funs default b))
-    intros id data dataBytes pfRec
-    rewrite [Bytes.mkRec.eq funs default {id, data, dataBytes}]
-    exact pfuns _ _ _ pfRec
-
-def BytesFunCtorProof2.Internal {ctor: BytesCtor} {a: Type u} {b: Type v} (func1: Bytes → a) (func2: Bytes → b) (f1: BytesFunCtor.Internal ctor a) (f2: BytesFunCtor.Internal ctor b) (p: a × b → Prop) :=
-  ∀ data dataBytes,
-    (∀ b, sizeOf b < sizeOf dataBytes → p (func1 b, func2 b)) →
-    p (f1.func data dataBytes func1, f2.func data dataBytes func2)
-
-def BytesFunCtorProof2.ById {id: CtorId} {a: Type u} {b: Type v} (func1: Bytes → a) (func2: Bytes → b) (f1: BytesFunCtor.ById id a) (f2: BytesFunCtor.ById id b) (p: a × b → Prop) := BytesFunCtorProof2.Internal func1 func2 f1 f2 p
-
-def BytesFunCtorProof2 {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id] {a: Type u} {b: Type v} (func1: Bytes → a) (func2: Bytes → b) (f1: BytesFunCtor id a) (f2: BytesFunCtor id b) (p: a × b → Prop) := BytesFunCtorProof2.Internal func1 func2 f1 f2 p
-
-def BytesFunCtorProof2.into
-  {id: CtorId} {ctor: BytesCtor} [ctor.HasCtorAt id] {a: Type u} {b: Type v}
-  {func1: Bytes → a} {func2: Bytes → b} {f1: BytesFunCtor id a} {f2: BytesFunCtor id b} {p: a × b → Prop}
-  (pf: BytesFunCtorProof2 func1 func2 f1 f2 p)
-  : BytesFunCtorProof2.ById func1 func2 f1.into f2.into p
-  := fun data dataBytes pfRec =>
-    pf (BytesCtor.HasCtorAt.pf id ▸ data) (BytesCtor.HasCtorAt.pf id ▸ dataBytes) (BytesCtor.HasCtorAt.pf id ▸ pfRec)
-
-def BytesFunCtorsProof2 {a: Type u} {b: Type v} (f1: BytesFunCtors a) (f2: BytesFunCtors b) (default1: a) (default2: b) (p: a × b → Prop) :=
-  (id: CtorId) → BytesFunCtorProof2.ById (Bytes.mkRec f1 default1) (Bytes.mkRec f2 default2) (f1 id) (f2 id) p
-
-def BytesFunCtorsProof2.prove
-  {a: Type u} {b: Type v}
-  {funs1: BytesFunCtors a} {funs2: BytesFunCtors b}
-  {default1: a} {default2: b}
+theorem Bytes.Proof2.prove
+  {a b: Type}
+  {fn1: Bytes.Function a}
+  {fn2: Bytes.Function b}
   {p: a × b → Prop}
-  (pfuns: BytesFunCtorsProof2 funs1 funs2 default1 default2 p)
-  (b: Bytes)
-  : p (Bytes.mkRec funs1 default1 b, Bytes.mkRec funs2 default2 b)
-  := by
-    apply Bytes.proveRec (fun b => p (Bytes.mkRec funs1 default1 b, Bytes.mkRec funs2 default2 b))
-    intros id data dataBytes pfRec
-    rewrite [Bytes.mkRec.eq funs1 default1 {id, data, dataBytes}, Bytes.mkRec.eq funs2 default2 {id, data, dataBytes}]
-    exact pfuns _ _ _ pfRec
+  (pf: Bytes.Proof2 fn1 fn2 p)
+  (x: Bytes)
+  : p (x.rec fn1, x.rec fn2)
+  := ALaCarte.Container.rec (ALaCarte.Container.PartialProof2.into pf) x
+
+def Bytes.PartialProof2.combine
+  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
+  {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {a: Type} {b: Type}
+  {funs1: (id: t) → Bytes.PartialFunction (SubFs id) a}
+  {funs2: (id: t) → Bytes.PartialFunction (SubFs id) b}
+  {rec1: Bytes → a} {rec2: Bytes → b} {p: a × b → Prop}
+  (pfs: (id: t) → Bytes.PartialProof2 (funs1 id) (funs2 id) rec1 rec2 p)
+  : Bytes.PartialProof2 (Bytes.PartialFunction.combine funs1) (Bytes.PartialFunction.combine funs2) rec1 rec2 p
+  := ALaCarte.Container.PartialProof2.combine pfs
 
 end DY

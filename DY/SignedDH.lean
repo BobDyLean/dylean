@@ -1,7 +1,7 @@
 import DY.Trace
 import DY.Step
-import DY.Bytes.EquationalTheory
-import DY.Bytes.EquationalTheoryInvariants
+import DY.Bytes.Type
+import DY.Bytes.Invariants
 import DY.EquationalTheory.Literal
 import DY.EquationalTheory.Concat
 import DY.EquationalTheory.Hash
@@ -11,13 +11,13 @@ open DY
 
 namespace Test
 
-variable [EquationalTheories]
-variable [EquationalTheories.Invariants]
+variable [BytesFunctor]
+variable [BytesInvariants]
 
-variable [HasEquationalTheory Hash.equationalTheory]
-variable [Hash.EquationalTheoryInvariant.Has]
+variable [BytesFunctor.Has Hash.Hash]
+variable [BytesInvariants.Has Hash.Hash.invariants]
 
-variable [HasEquationalTheory Signature.equationalTheory]
+variable [BytesFunctor.Has Signature.SubF]
 
 instance:
   HoareTriple
@@ -238,7 +238,7 @@ instance: Signature.SignPred where
     )
   pred_later := sorry
 
-variable [Signature.EquationalTheoryInvariant.Has]
+variable [BytesInvariants.Has Signature.invariants]
 
 def client_state_inv (me: Principal) (sid: Nat) (st: ClientState) (tr: ProofTrace) :=
   match st with
@@ -333,9 +333,9 @@ where
 def signMetaprog: GhostParameterFinder where
   findGhost mvar e :=
   Lean.withTraceNode `Step (fun _ => pure m!"signMetaprog") do
-    let sk_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none, none]))
-    let nonce_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none, none]))
-    let msg_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none, none]))
+    let sk_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
+    let nonce_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
+    let msg_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
     let signToUnify ← Lean.Meta.mkAppM ``Signature.sign #[sk_mvar, nonce_mvar, msg_mvar]
     trace[Step] "gonna unify {e} and {signToUnify}"
     unless ← Lean.Meta.isDefEq e signToUnify do
@@ -343,8 +343,8 @@ def signMetaprog: GhostParameterFinder where
     trace[Step] "got {signToUnify}"
 
     let usg_mvar: Lean.Expr := .mvar mvar
-    let tr_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``ProofTrace #[none, none]))
-    let hasUsageToUnify ← Lean.Meta.mkAppOptM ``Bytes.HasUsage #[none, none, none, none, sk_mvar, usg_mvar, tr_mvar]
+    let tr_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``ProofTrace #[none]))
+    let hasUsageToUnify ← Lean.Meta.mkAppOptM ``Bytes.HasUsage #[none, none, none, sk_mvar, usg_mvar, tr_mvar]
     trace[Step] "gonna find {hasUsageToUnify} in assumptions"
     let .mvar hasUsageMvar ← Lean.Meta.mkFreshExprMVar hasUsageToUnify
       | throwError ""
@@ -392,9 +392,9 @@ where
 def verifyMetaprog: GhostParameterFinder where
   findGhost mvar e :=
   Lean.withTraceNode `Step (fun _ => pure m!"verifyMetaprog") do
-    let vkey_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none, none]))
-    let msg_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none, none]))
-    let sig_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none, none]))
+    let vkey_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
+    let msg_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
+    let sig_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
     let verifyToUnify ← Lean.Meta.mkAppM ``Signature.verify #[vkey_mvar, msg_mvar, sig_mvar]
     trace[Step] "gonna unify {e} and {verifyToUnify}"
     unless ← Lean.Meta.isDefEq e verifyToUnify do
@@ -402,8 +402,8 @@ def verifyMetaprog: GhostParameterFinder where
     trace[Step] "got {verifyToUnify}"
 
     let usg_mvar: Lean.Expr := .mvar mvar
-    let tr_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``ProofTrace #[none, none]))
-    let hasUsageToUnify ← Lean.Meta.mkAppOptM ``Bytes.SignkeyHasUsage #[none, none, none, none, vkey_mvar, usg_mvar, tr_mvar]
+    let tr_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``ProofTrace #[none]))
+    let hasUsageToUnify ← Lean.Meta.mkAppOptM ``Bytes.SignkeyHasUsage #[none, none, none, vkey_mvar, usg_mvar, tr_mvar]
     trace[Step] "gonna find {hasUsageToUnify} in assumptions"
     let .mvar hasUsageMvar ← Lean.Meta.mkFreshExprMVar hasUsageToUnify
       | throwError ""
@@ -845,29 +845,76 @@ end SignedDH
 
 end Test
 
-instance: EquationalTheories where
-  theories := [Hash.equationalTheory, Signature.equationalTheory]
+abbrev SubF.internal: (id: Fin 2) → (Type → Type)
+  | 0 => Hash.Hash
+  | 1 => Signature.SubF
 
-instance: NeZero EquationalTheories.theories.length where
-  out := by simp [EquationalTheories.theories]
+abbrev SubF := BytesFunctor.combine SubF.internal
 
-instance: HasEquationalTheory Hash.equationalTheory where
-  id := 0
-  pf := rfl
+instance: ∀ id, SubBytesFunctor (SubF.internal id)
+  | 0 => inferInstance
+  | 1 => inferInstance
 
-instance: HasEquationalTheory Signature.equationalTheory where
-  id := 1
-  pf := rfl
+instance: BytesFunctor.HasStep Hash.Hash SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) SubF)
+instance: BytesFunctor.HasStep Signature.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 1) SubF)
 
-instance: EquationalTheories.Invariants where
-  invariants
-    | 0 => Hash.EquationalTheoryInvariant
-    | 1 => Signature.EquationalTheoryInvariant
+instance: BytesFunctor where
+  BytesF := SubF
 
-instance: Hash.EquationalTheoryInvariant.Has := inferInstanceAs ((EquationalTheories.Invariants.invariants 0).Has)
+instance: BytesFunctor.Has SubF := inferInstanceAs (BytesFunctor.Has BytesF)
 
-instance: Signature.EquationalTheoryInvariant.Has := inferInstanceAs ((EquationalTheories.Invariants.invariants 1).Has)
+example: BytesFunctor.Has Hash.Hash := inferInstance
+example: BytesFunctor.Has Signature.SubF := inferInstance
 
+def attackerKnowledge.internal (id: Fin 2): SubAttackerKnowledge (SubF.internal id) :=
+  match id with
+  | 0 => Hash.attKnowsHash
+  | 1 => Signature.attackerKnowledge
 
+def attackerKnowledge: SubAttackerKnowledge SubF :=
+  SubAttackerKnowledge.combine attackerKnowledge.internal
 
+instance: AttackerKnowledge.HasStep Hash.attKnowsHash attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 0) (SubAttackerKnowledge.combine attackerKnowledge.internal))
+instance: AttackerKnowledge.HasStep Signature.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 1) (SubAttackerKnowledge.combine attackerKnowledge.internal))
 
+instance: AttackerKnowledge where
+  attackerKnowledge
+
+instance: AttackerKnowledge.Has attackerKnowledge := inferInstanceAs (AttackerKnowledge.Has AttackerKnowledge.attackerKnowledge)
+
+example: AttackerKnowledge.Has Hash.attKnowsHash := inferInstance
+example: AttackerKnowledge.Has Signature.attackerKnowledge := inferInstance
+
+def invariants.internal: (id: Fin 2) → Bytes.PartialInvariants (SubF.internal id)
+  | 0 => Hash.Hash.invariants
+  | 1 => Signature.invariants
+
+abbrev invariants: Bytes.PartialInvariants SubF :=
+  Bytes.PartialInvariants.combine invariants.internal
+
+instance [BytesInvariants]: BytesInvariants.HasStep Hash.Hash.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 0) invariants)
+instance [BytesInvariants]: BytesInvariants.HasStep Signature.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 1) invariants)
+
+instance: BytesInvariants where
+  invs := invariants
+
+instance: BytesInvariants.Has invariants := inferInstance
+
+example: BytesInvariants.Has Hash.Hash.invariants := inferInstance
+example: BytesInvariants.Has Signature.invariants := inferInstance
+
+instance: (id: Fin 2) → SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)
+  | 0 => inferInstanceAs (SubAttackerKnowledgeTheorem Hash.attKnowsHash)
+  | 1 => inferInstanceAs (SubAttackerKnowledgeTheorem Signature.attackerKnowledge)
+
+instance: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstanceAs (SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine attackerKnowledge.internal))
+
+instance: AttackerKnowledgeTheorem where
+  inst := inferInstanceAs (SubAttackerKnowledgeTheorem attackerKnowledge)
+
+example (b: Bytes) (tr: ProofTrace) :
+    tr.invariant →
+    Bytes.AttackerKnows b tr →
+    b.Publishable tr
+  := by
+    apply Bytes.AttackerKnows_implies_Publishable

@@ -1,8 +1,9 @@
 import DY.Bytes.Type
 import DY.Label.Type
 import DY.Trace.Type
-import DY.Bytes.EquationalTheoryInvariants
+import DY.Bytes.Invariants
 import DY.Bytes.AttackerKnowledge
+import DY.Bytes.AttackerKnowledgeTheorem
 import DY.Misc
 
 namespace DY.Signature
@@ -22,42 +23,104 @@ export CanSign (verify)
 
 section Constructors
 
-variable {CtorId} [BytesCtors CtorId] [DecidableEq CtorId]
+structure Vk (Bytes: Type) where
+  sk: Bytes
 
-def Vk.ctor: BytesCtor where
-  data := Unit
-  nBytes := 1
+instance: ALaCarte.FunctorSizeOf Vk where
+  sizeOf | {sk} => sizeOf sk
 
-def Vk.View [Vk.ctor.HasCtor] := BytesView Vk.ctor.id
+instance: ALaCarte.Representable Vk where
+  CtorId := Unit
+  ctors | () => { Data := Unit, nRec := 1 }
 
-def Sign.ctor: BytesCtor where
-  data := Unit
-  nBytes := 3
+  toRepr | {sk} => {
+    id := ()
+    data := ()
+    as := #v[sk]
+  }
+  fromRepr
+  | {id, data, as} =>
+    let sk := as[0]
+    { sk }
+  from_to | {sk} => by rfl
+  to_from
+  | {id, data, as} => by
+    simp_all <;> grind
+  sizeOf_eq | {sk} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-def Sign.View [Sign.ctor.HasCtor] := BytesView Sign.ctor.id
+instance: ALaCarte.RepresentableDecidableEq Vk where
+instance: ALaCarte.RepresentableOrd Vk where
+instance: SubBytesFunctor Vk where
 
-instance [Vk.ctor.HasCtor] [Sign.ctor.HasCtor]: CanSign Bytes where
+structure Sign (Bytes: Type) where
+  sk: Bytes
+  nonce: Bytes
+  msg: Bytes
+
+instance: ALaCarte.FunctorSizeOf Sign where
+  sizeOf | {sk, nonce, msg} => sizeOf sk + sizeOf nonce + sizeOf msg
+
+instance: ALaCarte.Representable Sign where
+  CtorId := Unit
+  ctors | () => { Data := Unit, nRec := 3 }
+
+  toRepr | {sk, nonce, msg} => {
+    id := ()
+    data := ()
+    as := #v[sk, nonce, msg]
+  }
+  fromRepr
+  | {id, data, as} =>
+    let sk := as[0]
+    let nonce := as[1]
+    let msg := as[2]
+    { sk, nonce, msg }
+  from_to | {sk, nonce, msg} => by rfl
+  to_from
+  | {id, data, as} => by
+    simp_all <;> grind
+  sizeOf_eq | {sk, nonce, msg} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
+
+instance: ALaCarte.RepresentableDecidableEq Sign where
+instance: ALaCarte.RepresentableOrd Sign where
+instance: SubBytesFunctor Sign where
+
+abbrev SubF.internal (id: Fin 2): Type → Type :=
+  match id with
+  | 0 => Vk
+  | 1 => Sign
+
+abbrev SubF := BytesFunctor.combine SubF.internal
+
+instance: ∀ id, SubBytesFunctor (SubF.internal id)
+  | 0 => inferInstance
+  | 1 => inferInstance
+
+instance: SubBytesFunctor SubF := inferInstance
+
+instance: BytesFunctor.HasStep Vk SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) SubF)
+instance: BytesFunctor.HasStep Sign SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 1) SubF)
+
+variable [BytesFunctor] [BytesFunctor.Has SubF]
+
+abbrev Vk.pack (x: Vk Bytes) := BytesView.pack x
+abbrev Sign.pack (x: Sign Bytes) := BytesView.pack x
+
+instance: CanSign Bytes where
   vk sk :=
-    ({
-      data := (),
-      dataBytes := V[sk]
-    } : Vk.View).pack
+    ({sk}: Vk Bytes).pack
 
   sign sk nonce msg :=
-    ({
-      data := (),
-      dataBytes := V[sk, nonce, msg]
-    } : Sign.View).pack
+    ({sk, nonce, msg}: Sign Bytes).pack
 
   verify vk msg sig :=
-    match sig.view? Sign.ctor.id with
-    | some { data := (), dataBytes := V[sk, _nonce, msg'] } =>
+    match sig.view? Sign with
+    | some { sk, nonce := _, msg := msg' } =>
       msg = msg' &&
-      vk = ({ data := (), dataBytes := V[sk] } : Vk.View).pack
+      vk = ({sk} : Vk Bytes).pack
     | none => false
 
 theorem verify_sign
-  [Vk.ctor.HasCtor] [Sign.ctor.HasCtor]
   (sk nonce msg: Bytes)
   :
     verify (vk sk) msg (sign sk nonce msg)
@@ -65,59 +128,51 @@ theorem verify_sign
     simp only [verify, vk, sign]
     grind
 
-def ctors := [Vk.ctor, Sign.ctor]
-
-instance {CtorId} [BytesCtors CtorId] [tc: Bytes.HasCtors ctors]: Vk.ctor.HasCtor := tc.tc (Fin.mk 0 (by simp [ctors]))
-instance {CtorId} [BytesCtors CtorId] [tc: Bytes.HasCtors ctors]: Sign.ctor.HasCtor := tc.tc (Fin.mk 1 (by simp [ctors]))
-
 end Constructors
 
--- Equational theory
+section AttackerKnowledge
 
-def attKnowsVk {CtorId} [DecidableEq CtorId] [BytesCtors CtorId] [Bytes.HasCtors ctors]: AttackerKnowledge where
+variable [BytesFunctor] [BytesFunctor.Has SubF]
+
+def attKnowsVk: SubAttackerKnowledge SubF where
   pred p out :=
     ∃ sk,
       out = vk sk ∧
       p sk
-  pred_scott_continuous := by
-    sorry
 
-def attKnowsSign {CtorId} [DecidableEq CtorId] [BytesCtors CtorId] [Bytes.HasCtors ctors]: AttackerKnowledge where
+def attKnowsSign: SubAttackerKnowledge SubF where
   pred p out :=
     ∃ sk nonce msg,
       out = sign sk nonce msg ∧
-      p sk ∧
-      p nonce ∧
-      p msg
-  pred_scott_continuous := by
-    sorry
+      Kleene.Forall p [sk, nonce, msg]
 
-def equationalTheory: EquationalTheory where
-  ctors := ctors
-  attackerKnowledge := [attKnowsVk, attKnowsSign]
+def attackerKnowledge.internal (id: Fin 2): SubAttackerKnowledge SubF :=
+  match id with
+  | 0 => attKnowsVk
+  | 1 => attKnowsSign
 
-instance: EquationalTheory.CtorsEq equationalTheory ctors where pf := rfl
+def attackerKnowledge: SubAttackerKnowledge SubF :=
+  SubAttackerKnowledge.combine' attackerKnowledge.internal
 
-instance: NeZero equationalTheory.ctors.length where
-  out := by simp [equationalTheory, ctors]
+instance: AttackerKnowledge.HasStep attKnowsVk attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 0) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
+instance: AttackerKnowledge.HasStep attKnowsSign attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 1) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
 
 theorem attacker_knows_vk
-  [EquationalTheories]
-  [HasEquationalTheory equationalTheory]
+  [AttackerKnowledge]
+  [AttackerKnowledge.Has attackerKnowledge]
   (sk: Bytes) (tr: Trace α)
   :
     sk.AttackerKnows tr →
     (vk sk).AttackerKnows tr
   := by
     intro h_inp
-    apply Bytes.AttackerKnows.prove equationalTheory attKnowsVk
-    · simp [equationalTheory]
+    apply Bytes.AttackerKnows.prove attKnowsVk
     simp only [attKnowsVk]
     grind
 
 theorem attacker_knows_sign
-  [EquationalTheories]
-  [HasEquationalTheory equationalTheory]
+  [AttackerKnowledge]
+  [AttackerKnowledge.Has attackerKnowledge]
   (sk nonce msg: Bytes) (tr: Trace α)
   :
     sk.AttackerKnows tr →
@@ -126,161 +181,30 @@ theorem attacker_knows_sign
     (sign sk nonce msg).AttackerKnows tr
   := by
     intro h_inp h_nonce h_msg
-    apply Bytes.AttackerKnows.prove equationalTheory attKnowsSign
-    · simp [equationalTheory]
-    simp only [attKnowsSign]
+    apply Bytes.AttackerKnows.prove attKnowsSign
+    simp only [attKnowsSign, Kleene.Forall]
     grind
 
--- Invariants
+end AttackerKnowledge
 
-def Vk.invariants [EquationalTheories]: BytesCtorInvariants.Internal Vk.ctor where
-  well_formed := {
-    func := fun () V[sk] rec tr =>
-      rec sk tr
-  }
-  well_formed_later data dataBytes rec_wf := by
-    let V[sk] := dataBytes
-    simp_all +arith [BytesWellFormedLaterT]
-    grind
+section Invariants
 
-  usage := {
-    func data dataBytes rec tr := Usage.nothing
-  }
-  usage_later data dataBytes rec_wf rec_usg := by grind [GetUsageLaterT]
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 
-  label := {
-    func := fun () V[sk] rec tr =>
-      Label.pub
-  }
-  label_later data dataBytes rec_wf rec_usg := by
-    let V[sk] := dataBytes
-    simp_all +arith [GetLabelLaterT]
+def Vk.invariants: Bytes.PartialInvariants Vk where
+  well_formed := fun {sk := sk} rec tr =>
+    (rec sk) tr
 
-  invariant := {
-    func := fun () V[sk] rec tr =>
-      rec sk tr
-  }
-  invariant_implies_wellformed data dataBytes rec_inv rec_wf := by
-    let V[sk] := dataBytes
-    simp_all +arith [BytesInvariantImpliesBytesWellFormedT]
-  invariant_later data dataBytes rec := by
-    let V[sk] := dataBytes
-    simp_all +arith [BytesInvariantLaterT]
-    grind
+  usage := fun {sk := sk} rec tr =>
+    Usage.nothing
 
-class abbrev Vk.HasInvariants [EquationalTheories] [Vk.ctor.HasCtor] [BytesCtorsInvariants] := HasBytesInvariants (Vk.ctor.id) Vk.invariants
+  label := fun {sk := sk} rec tr =>
+    Label.pub
 
-@[simp]
-theorem vk.WellFormed
-  [EquationalTheories] [BytesWellFormed]
-  [Bytes.HasCtors ctors] [HasBytesWellFormed Vk.ctor.id Vk.invariants.well_formed]
-  (inp: Bytes) (tr: ProofTrace)
-  :
-    (vk inp).WellFormed tr = inp.WellFormed tr
-  := by
-    simp [vk, Bytes.WellFormed.eq, Vk.invariants]
+  invariant := fun {sk := sk} rec tr =>
+    (rec sk) tr
 
-@[simp]
-theorem vk.label
-  [EquationalTheories] [BytesCtorsInvariants]
-  [Bytes.HasCtors ctors] [Vk.HasInvariants]
-  (inp: Bytes) (tr: ProofTrace)
-  : (vk inp).label tr = Label.pub
-  := by
-    simp [vk, Bytes.label.eq, Vk.invariants]
-
-@[simp]
-theorem vk.Invariant
-  [EquationalTheories] [BytesCtorsInvariants]
-  [Bytes.HasCtors ctors] [Vk.HasInvariants]
-  (inp: Bytes) (tr: ProofTrace)
-  :
-    (vk inp).Invariant tr →
-    inp.Invariant tr
-  := by
-    simp [vk, Bytes.Invariant.eq, Vk.invariants]
-
-noncomputable
-def extractSignkey [EquationalTheories] [Vk.ctor.HasCtor] (vk: Bytes): Option Bytes :=
-  match vk.view? Vk.ctor.id with
-  | some { data := (), dataBytes := V[sk] } =>
-    some sk
-  | none => none
-
-theorem vk_extractSignkey [EquationalTheories] [Vk.ctor.HasCtor] [Sign.ctor.HasCtor] (b: Bytes):
-  match extractSignkey b with
-  | none => True
-  | some sk => b = vk sk
-  := by
-    simp [extractSignkey, vk]
-    grind
-
-theorem extractSignkey.preserves_WellFormed [EquationalTheories] [BytesWellFormed] [Bytes.HasCtors ctors] [HasBytesWellFormed Vk.ctor.id Vk.invariants.well_formed]: ExtractPreservesWellFormed extractSignkey
-  := by
-    simp [ExtractPreservesWellFormed]
-    grind [vk_extractSignkey, vk.WellFormed]
-
-end Signature
-
-def Bytes.SignkeyHasUsage [EquationalTheories] [GetUsage] [GetLabel] [Signature.Vk.ctor.HasCtor] (vk: Bytes) (skUsg: Usage) (tr: ProofTrace): Prop :=
-  Bytes.XXXHasUsage Signature.extractSignkey vk skUsg tr
-
-theorem Bytes.SignkeyHasUsage_vk
-  [EquationalTheories] [GetUsage] [GetLabel] [Bytes.HasCtors Signature.ctors]
-  (sk: Bytes) (skUsg: Usage) (tr: ProofTrace)
-  : (Signature.vk sk).SignkeyHasUsage skUsg tr = sk.HasUsage skUsg tr
-  := by
-    simp [Bytes.SignkeyHasUsage, Bytes.XXXHasUsage, Signature.extractSignkey, Signature.vk]
-    grind
-
-grind_pattern Bytes.SignkeyHasUsage_vk => (Signature.vk sk).SignkeyHasUsage skUsg tr
-
-theorem Bytes.SignkeyHasUsage_later
-  [EquationalTheories] [BytesWellFormed] [GetUsage] [GetUsageLater] [GetLabel] [GetLabelLater]
-  [HasCtors Signature.ctors] [HasBytesWellFormed Signature.Vk.ctor.id Signature.Vk.invariants.well_formed]
-  (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
-  :
-    b.WellFormed tr1 →
-    tr1 ≤ tr2 →
-    b.SignkeyHasUsage usg tr1 →
-    b.SignkeyHasUsage usg tr2
-  := by
-    simp [Bytes.SignkeyHasUsage]
-    apply Bytes.XXXHasUsage_later Signature.extractSignkey Signature.extractSignkey.preserves_WellFormed
-
-grind_pattern Bytes.SignkeyHasUsage_later => tr1 ≤ tr2, b.SignkeyHasUsage usg tr1
-
-noncomputable
-def Bytes.signkeyLabel [EquationalTheories] [GetLabel] [Signature.Vk.ctor.HasCtor] (vk: Bytes) (tr: ProofTrace): Label :=
-  Bytes.xxxLabel Signature.extractSignkey vk tr
-
-theorem Bytes.signkeyLabel_vk
-  [EquationalTheories] [GetLabel] [Bytes.HasCtors Signature.ctors]
-  (sk: Bytes) (tr: ProofTrace)
-  : (Signature.vk sk).signkeyLabel tr = sk.label tr
-  := by
-    simp [Bytes.signkeyLabel, Bytes.xxxLabel, Signature.extractSignkey, Signature.vk]
-    grind
-
-grind_pattern Bytes.signkeyLabel_vk => (Signature.vk sk).signkeyLabel tr
-
-theorem Bytes.signkeyLabel_later
-  [EquationalTheories] [BytesWellFormed] [GetUsage] [GetLabel] [GetLabelLater]
-  [HasCtors Signature.ctors] [HasBytesWellFormed Signature.Vk.ctor.id Signature.Vk.invariants.well_formed]
-  (b: Bytes) (tr1 tr2: ProofTrace)
-  :
-    b.WellFormed tr1 →
-    tr1 ≤ tr2 →
-    b.signkeyLabel tr1 = b.signkeyLabel tr2
-  := by
-    simp [Bytes.signkeyLabel]
-    apply Bytes.xxxLabel_later Signature.extractSignkey Signature.extractSignkey.preserves_WellFormed
-
-grind_pattern Bytes.signkeyLabel_later => tr1 ≤ tr2, b.signkeyLabel tr1
-
-namespace Signature
-
-class SignPred [EquationalTheories] where
+class SignPred where
   pred: [GetUsage] → [GetLabel] → Usage → Bytes → Bytes → ProofTrace → Prop
   pred_later:
     [BytesWellFormed] → [GetUsage] → [GetLabel] →
@@ -294,44 +218,30 @@ class SignPred [EquationalTheories] where
 
 grind_pattern SignPred.pred_later => tr1 ≤ tr2, SignPred.pred skUsg vk msg tr1
 
-def Sign.invariants [EquationalTheories] [SignPred] [Bytes.HasCtors ctors]: BytesCtorInvariants.Internal Sign.ctor where
-  well_formed := {
-    func := fun () V[sk, nonce, msg] rec tr =>
-      rec sk tr ∧
-      rec nonce tr ∧
-      rec msg tr
-  }
-  well_formed_later data dataBytes rec_wf := by
-    let V[sk, nonce, msg] := dataBytes
-    simp_all +arith [BytesWellFormedLaterT]
-    grind
+def Sign.invariants [SignPred]: Bytes.PartialInvariants Sign where
+  well_formed := fun {sk, nonce, msg} rec tr =>
+      (rec sk) tr ∧
+      (rec nonce) tr ∧
+      (rec msg) tr
 
-  usage := {
-    func data dataBytes rec tr := Usage.nothing
-  }
-  usage_later data dataBytes rec_wf rec_usg := by grind [GetUsageLaterT]
+  usage := fun {sk, nonce, msg} rec tr =>
+    Usage.nothing
 
-  label := {
-    func := fun () V[sk, nonce, msg] rec tr =>
-      rec msg tr
-  }
-  label_later data dataBytes rec_wf rec_usg := by
-    let V[sk, nonce, msg] := dataBytes
-    simp_all +arith [GetLabelLaterT]
-    grind
+  label := fun {sk, nonce, msg} rec tr =>
+    (rec msg) tr
 
-  invariant := {
-    func := fun () V[sk, nonce, msg] rec tr =>
-      rec sk tr ∧
-      rec nonce tr ∧
-      rec msg tr ∧
+  invariant := fun {sk, nonce, msg} rec tr =>
+      let sk: Bytes := sk
+      let nonce: Bytes := nonce
+      (rec sk) tr ∧
+      (rec nonce) tr ∧
+      (rec msg) tr ∧
       (vk sk).WellFormed tr ∧
       (
         (
           exists sk_usg,
           -- Honest case:
           -- - the key has the usage of signature key
-          -- TODO has usage
           sk.HasUsage sk_usg tr ∧
           sk_usg.type = "SigKey" ∧
           -- - the custom (protocol-specific) invariant hold (authentication)
@@ -355,21 +265,149 @@ def Sign.invariants [EquationalTheories] [SignPred] [Bytes.HasCtors ctors]: Byte
           (sk.label tr).canFlow Label.pub tr
         )
       )
-  }
-  invariant_implies_wellformed data dataBytes rec_inv rec_wf := by
-    let V[sk, nonce, msg] := dataBytes
-    simp_all +arith [BytesInvariantImpliesBytesWellFormedT]
-  invariant_later data dataBytes rec := by
-    let V[sk, nonce, msg] := dataBytes
-    simp_all +arith [BytesInvariantLaterT]
-    grind [SignPred.pred_later]
 
-class abbrev Sign.HasInvariants [EquationalTheories] [Bytes.HasCtors ctors] [BytesCtorsInvariants] [SignPred] := HasBytesInvariants (Sign.ctor.id) Sign.invariants
+def invariants.internal [SignPred]: (id: Fin 2) → Bytes.PartialInvariants (SubF.internal id)
+  | 0 => Vk.invariants
+  | 1 => Sign.invariants
+
+abbrev invariants [SignPred]: Bytes.PartialInvariants SubF :=
+  Bytes.PartialInvariants.combine invariants.internal
+
+instance [BytesInvariants] [SignPred]: BytesInvariants.HasStep Vk.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 0) invariants)
+instance [BytesInvariants] [SignPred]: BytesInvariants.HasStep Sign.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 1) invariants)
+
+variable [SignPred]
+variable [BytesInvariants] [BytesInvariants.Has invariants]
+
+@[simp]
+theorem vk.WellFormed
+  (inp: Bytes) (tr: ProofTrace)
+  :
+    (vk inp).WellFormed tr = inp.WellFormed tr
+  := by
+    simp [vk, Bytes.WellFormed.eq, Vk.invariants]
+
+@[simp]
+theorem vk.label
+  (inp: Bytes) (tr: ProofTrace)
+  : (vk inp).label tr = Label.pub
+  := by
+    simp [vk, Bytes.label.eq, Vk.invariants]
+
+@[simp]
+theorem vk.Invariant
+  (inp: Bytes) (tr: ProofTrace)
+  :
+    (vk inp).Invariant tr →
+    inp.Invariant tr
+  := by
+    simp [vk, Bytes.Invariant.eq, Vk.invariants]
+
+end Invariants
+end Signature
+
+section ExtractSignKey
+
+variable [BytesFunctor]
+variable [BytesFunctor.Has Signature.SubF]
+
+noncomputable
+def Signature.extractSignkey (vk: Bytes): Option Bytes :=
+  match vk.view? Signature.Vk with
+  | some { sk } =>
+    some sk
+  | none => none
+
+theorem Signature.vk_extractSignkey (b: Bytes):
+  match extractSignkey b with
+  | none => True
+  | some sk => b = Signature.vk sk
+  := by
+    simp [extractSignkey, Signature.vk]
+    grind
+
+theorem Signature.extractSignkey.preserves_WellFormed
+  [BytesInvariants] [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
+: ExtractPreservesWellFormed extractSignkey
+  := by
+    simp [ExtractPreservesWellFormed]
+    grind [Signature.vk_extractSignkey, Signature.vk.WellFormed]
+
+def Bytes.SignkeyHasUsage
+  [BytesInvariants]
+  (vk: Bytes) (skUsg: Usage) (tr: ProofTrace): Prop :=
+  Bytes.XXXHasUsage Signature.extractSignkey vk skUsg tr
+
+theorem Bytes.SignkeyHasUsage_vk
+  [BytesInvariants]
+  (sk: Bytes) (skUsg: Usage) (tr: ProofTrace)
+  : (Signature.vk sk).SignkeyHasUsage skUsg tr = sk.HasUsage skUsg tr
+  := by
+    simp [Bytes.SignkeyHasUsage, Bytes.XXXHasUsage, Signature.extractSignkey, Signature.vk]
+    grind
+
+grind_pattern Bytes.SignkeyHasUsage_vk => (Signature.vk sk).SignkeyHasUsage skUsg tr
+
+theorem Bytes.SignkeyHasUsage_later
+  [BytesInvariants]
+  [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
+  (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
+  :
+    b.WellFormed tr1 →
+    tr1 ≤ tr2 →
+    b.SignkeyHasUsage usg tr1 →
+    b.SignkeyHasUsage usg tr2
+  := by
+    simp [Bytes.SignkeyHasUsage]
+    apply Bytes.XXXHasUsage_later Signature.extractSignkey Signature.extractSignkey.preserves_WellFormed
+
+grind_pattern Bytes.SignkeyHasUsage_later => tr1 ≤ tr2, b.SignkeyHasUsage usg tr1
+
+noncomputable
+def Bytes.signkeyLabel
+  [BytesInvariants]
+  (vk: Bytes) (tr: ProofTrace): Label :=
+  Bytes.xxxLabel Signature.extractSignkey vk tr
+
+theorem Bytes.signkeyLabel_vk
+  [BytesInvariants]
+  [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
+  (sk: Bytes) (tr: ProofTrace)
+  : (Signature.vk sk).signkeyLabel tr = sk.label tr
+  := by
+    simp [Bytes.signkeyLabel, Bytes.xxxLabel, Signature.extractSignkey, Signature.vk]
+    grind
+
+grind_pattern Bytes.signkeyLabel_vk => (Signature.vk sk).signkeyLabel tr
+
+theorem Bytes.signkeyLabel_later
+  [BytesInvariants] [BytesInvariants.Has Signature.Vk.invariants]
+  [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
+  (b: Bytes) (tr1 tr2: ProofTrace)
+  :
+    b.WellFormed tr1 →
+    tr1 ≤ tr2 →
+    b.signkeyLabel tr1 = b.signkeyLabel tr2
+  := by
+    simp [Bytes.signkeyLabel]
+    apply Bytes.xxxLabel_later Signature.extractSignkey Signature.extractSignkey.preserves_WellFormed
+
+grind_pattern Bytes.signkeyLabel_later => tr1 ≤ tr2, b.signkeyLabel tr1
+
+end ExtractSignKey
+
+namespace Signature
+
+section Invariants
+
+variable [BytesFunctor] [BytesFunctor.Has SubF]
+
+variable [SignPred]
+variable [BytesInvariants]
+variable [BytesInvariants.Has invariants]
 
 @[simp]
 theorem sign.WellFormed
-  [EquationalTheories] [BytesCtorsInvariants]
-  [Bytes.HasCtors ctors] [SignPred] [Sign.HasInvariants]
   (sk nonce msg: Bytes) (tr: ProofTrace)
   :
     (sign sk nonce msg).WellFormed tr = (
@@ -382,8 +420,6 @@ theorem sign.WellFormed
 
 @[simp]
 theorem sign.label
-  [EquationalTheories] [BytesCtorsInvariants]
-  [Bytes.HasCtors ctors] [SignPred] [Sign.HasInvariants]
   (sk nonce msg: Bytes) (tr: ProofTrace)
   : (sign sk nonce msg).label tr = msg.label tr
   := by
@@ -391,8 +427,6 @@ theorem sign.label
 
 @[simp]
 theorem sign.Invariant
-  [EquationalTheories] [BytesCtorsInvariants]
-  [Bytes.HasCtors ctors] [SignPred] [Vk.HasInvariants] [Sign.HasInvariants]
   (sk nonce msg: Bytes) (sk_usg: Usage) (tr: ProofTrace)
   :
     (
@@ -419,8 +453,6 @@ theorem sign.Invariant
 
 @[simp]
 theorem verify.Invariant
-  [EquationalTheories] [BytesCtorsInvariants]
-  [Bytes.HasCtors ctors] [SignPred] [Vk.HasInvariants] [Sign.HasInvariants]
   (vk msg sig: Bytes) (skUsg: Usage) (tr: ProofTrace)
   :
     vk.Invariant tr →
@@ -439,67 +471,50 @@ theorem verify.Invariant
     simp [verify]
     split
     · rename_i sk nonce msg heq
-      have := Bytes.pack_view? sig Sign.ctor.id
+      have := Bytes.pack_view? Sign sig
       simp only [heq] at this
       subst this
-      have: ({ data := (), dataBytes := V[sk] } : Vk.View).pack = CanSign.vk sk := rfl
+      have: ({sk}: Vk Bytes).pack = CanSign.vk sk := rfl
       have := Bytes.HasUsage_inj sk skUsg
       simp_all [Bytes.Invariant.eq, Sign.invariants]
       grind
     · simp
 
-def EquationalTheoryInvariant [EquationalTheories] [HasEquationalTheory equationalTheory] [SignPred]: EquationalTheoryInvariants equationalTheory where
-  invariant
-    | 0 => Vk.invariants
-    | 1 => Sign.invariants
+end Invariants
 
-instance
-  [EquationalTheories] [EquationalTheories.Invariants]
-  [HasEquationalTheory equationalTheory] [SignPred] [EquationalTheoryInvariant.Has]
-  : HasBytesInvariants Vk.ctor.id Vk.invariants :=
-  EquationalTheoryInvariant.mkHasBytesInvariants (Fin.mk 0 (by simp [equationalTheory, ctors]))
+section AttackerKnowledgeTheorem
 
-instance
-  [EquationalTheories] [EquationalTheories.Invariants]
-  [HasEquationalTheory equationalTheory] [SignPred] [EquationalTheoryInvariant.Has]
-  : HasBytesInvariants Sign.ctor.id Sign.invariants :=
-  EquationalTheoryInvariant.mkHasBytesInvariants (Fin.mk 1 (by simp [equationalTheory, ctors]))
+variable [BytesFunctor] [BytesInvariants]
+variable [BytesFunctor.Has SubF]
+variable [SignPred]
+variable [BytesInvariants.Has invariants]
 
 -- Preserve publishability
 
-def Sign.attKnowsVk.preserves_publishability
-  [EquationalTheories] [BytesCtorsInvariants]
-  [Bytes.HasCtors ctors] [SignPred] [Vk.HasInvariants]: attKnowsVk.PreservesPublishability :=
-  by
-    simp only [AttackerKnowledge.PreservesPublishability, attKnowsVk]
-    intro out tr ⟨sk, ⟨ h_out, h_sk ⟩⟩
+instance: SubAttackerKnowledgeTheorem attKnowsVk where
+  pf := by
+    simp only [attKnowsVk]
+    intro out tr h_tr ⟨sk, ⟨ h_out, h_sk ⟩⟩
     subst h_out
     simp_all [Bytes.Publishable]
     simp [vk, Bytes.Invariant.eq, Vk.invariants]
     grind
 
-def Sign.attKnowsSign.preserves_publishability
-  [EquationalTheories] [BytesCtorsInvariants]
-  [Bytes.HasCtors ctors] [SignPred] [Vk.HasInvariants] [Sign.HasInvariants]: attKnowsSign.PreservesPublishability :=
-  by
-    simp only [AttackerKnowledge.PreservesPublishability, attKnowsSign]
-    intro out tr ⟨sk, nonce, msg, ⟨ h_out, h_sk, h_nonce, h_msg ⟩⟩
+instance: SubAttackerKnowledgeTheorem attKnowsSign where
+  pf := by
+    simp only [attKnowsSign]
+    intro out tr h_tr ⟨sk, nonce, msg, ⟨ h_out, h_inputs ⟩⟩
     subst h_out
-    simp_all [Bytes.Publishable]
+    simp_all [Bytes.Publishable, Kleene.Forall]
     simp [sign, Bytes.Invariant.eq, Sign.invariants]
     grind
 
-def Sign.PreservesPublishability
-  [EquationalTheories] [EquationalTheories.Invariants]
-  [HasEquationalTheory equationalTheory]
-  [SignPred]
-  [EquationalTheoryInvariant.Has]
-  : EquationalTheory.PreservesPublishability equationalTheory where
-  pf := by
-    unfold equationalTheory
-    simp
-    constructor
-    · exact Sign.attKnowsVk.preserves_publishability
-    · exact attKnowsSign.preserves_publishability
+instance: ∀ id, SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)
+  | 0 => inferInstanceAs (SubAttackerKnowledgeTheorem attKnowsVk)
+  | 1 => inferInstanceAs (SubAttackerKnowledgeTheorem attKnowsSign)
+
+instance: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstanceAs (SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine' attackerKnowledge.internal))
+
+end AttackerKnowledgeTheorem
 
 end DY.Signature

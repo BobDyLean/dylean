@@ -217,7 +217,7 @@ elab "hoist" : tactic => do
   replaceMainGoal ([← hoist (← getMainGoal)])
 
 namespace Test
-  variable [EquationalTheories]
+  variable [BytesFunctor]
   def g (foo: Bytes) (bar: Bytes) := foo
   def send_message (b: Bytes): Traceful Nat := sorry
 

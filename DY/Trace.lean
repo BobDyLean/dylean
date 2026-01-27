@@ -2,15 +2,14 @@ import Init.Control.Lawful.Basic
 import DY.Trace.Type
 import DY.Label.Type
 import DY.Label
-import DY.Bytes.EquationalTheory
 import Lean
 
 namespace DY
 
-abbrev ExecutionTrace {CtorId} [BytesCtors CtorId] := Trace Unit
-abbrev ProofTrace {CtorId} [BytesCtors CtorId] := Trace Label -- TODO and usage
+variable [BytesFunctor]
 
-variable [EquationalTheories]
+abbrev ExecutionTrace := Trace Unit
+abbrev ProofTrace := Trace Label -- TODO and usage
 
 abbrev Traceful := OptionT (StateT ExecutionTrace Id)
 abbrev Err := OptionT Id
