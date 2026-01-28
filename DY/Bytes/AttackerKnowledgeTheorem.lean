@@ -3,6 +3,14 @@ import DY.Trace
 import DY.Bytes.Invariants
 import DY.Bytes.AttackerKnowledge
 
+/-
+  This module allows to modularly prove the attacker knowledge theorem:
+  this is a key theorem in the DyLean methodology,
+  saying for traces that satisfy the trace invariant,
+  if the attacker knows a `Bytes`,
+  then this `Bytes` must be publishable.
+-/
+
 namespace DY
 
 variable [BytesFunctor]

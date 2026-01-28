@@ -2,6 +2,18 @@ import DY.ALaCarte.Basic
 import DY.ALaCarte.DecidableEq
 import DY.ALaCarte.Ordering
 
+/-
+  This module defines the type for symbolic bytes,
+  and allows doing so modularly (or "à la carte").
+  It is mostly a thin wrapper around `DY.ALaCarte.ContainerFor`, but more opinionated.
+  In particular, we require symbolic bytes to have `DecidableEq` and to have an order.
+  Furthermore, at any point in a Lean file,
+  it never makes sense to work with two different types for symbolic bytes.
+  We capture this with the argumentless typeclass `BytesFunctor`
+  that captures *the* set of constructors in the symbolic bytes term
+  we are currently working with in this context.
+-/
+
 namespace DY
 
 class SubBytesFunctor (SubF: Type → Type) where

@@ -2,6 +2,11 @@ import DY.Bytes.Type
 import DY.Label
 import DY.Trace
 
+/-
+  This module allows to define invariants on `Bytes`.
+  TODO: explain what is happening once things are stabilized
+-/
+
 namespace DY
 
 variable [BytesFunctor]

@@ -1,5 +1,10 @@
 import DY.ALaCarte.Basic
 
+/-
+  This module allows to derive `DecidableEq`
+  on inductives defined modularly through the "à la carte" system
+-/
+
 namespace DY.ALaCarte
 
 theorem BareContainer.decideEquality.aux

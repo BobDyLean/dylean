@@ -94,9 +94,9 @@ def attKnowsLit: SubAttackerKnowledge Literal where
 
 abbrev attackerKnowledge := attKnowsLit
 
+variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
+
 theorem attacker_knows_literalToBytes
-  [AttackerKnowledge]
-  [AttackerKnowledge.Has attackerKnowledge]
   (lit: Nat) (tr: Trace α)
   : (literalToBytes lit: Bytes).AttackerKnows tr
   := by

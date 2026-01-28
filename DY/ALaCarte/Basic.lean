@@ -1,4 +1,153 @@
+/-
+  This module implements "Data types à la carte" (Wouter Swierstra, Journal of Functional Programming, 2008) in Lean.
+  This allows to define inductive types modularly, as well as functions and proofs over them.
+
+  # Context
+
+  This is useful in the context of symbolic bytes: in DY*, the symbolic bytes is a fixed inductive
+
+    inductive Bytes where
+      | Concat: Bytes → Bytes → Bytes
+      | Hash: Bytes → Bytes
+      | AeadEncrypt: Bytes → Bytes → Bytes → Bytes → Bytes
+      ...
+
+  Then, in DY* we define an invariant recursively on the structure of `Bytes`
+  and need to consider exhaustively each constructor:
+
+    def Bytes.Invariant (b: Bytes) (tr: Trace): Prop :=
+      match b with
+      | Concat lhs rhs => ...
+      | Hash input => ...
+      | AeadEncrypt key nonce msg ad => ...
+
+  Then, in DY*, we want to prove a property on this invariant,
+  for example that it is preserved by the trace growing:
+
+    theorem Bytes.Invariant_later
+      (b: Bytes) (tr1 tr2: Trace)
+      : tr1 ≤ tr2 → b.Invariant tr1 → b.Invariant tr2
+      := ...
+
+  In DyLean, we want three things that cannot be done with this monolithic approach,
+  and that this module allows to achieve.
+
+  1. We want users to be able to add new equational theories.
+     Indeed, users may want to analyze a protocol that rely on a cryptographic primitive
+     that we (DyLean developers) did not anticipate.
+     Therefore, we need our type `Bytes` to be modular:
+     users should be able to construct it with the cryptographic primitives they need.
+  2. We want users to choose the security assumptions they require in their analysis.
+     For example, they may want to consider an attacker that can compute a discrete logarithm
+     (and therefore recover private keys from public keys)
+     after the attacker obtain access to a quantum computer,
+     to model Harvest-Now-Decrypt-Later attacks.
+     The choice of security assumption for a primitive
+     will in turn change how we write its invariant.
+     Because the invariant in DY* is fixed,
+     it means that DY* decides on a security assumption
+     and users cannot choose another one.
+  3. We would like to transpose the definition of `Bytes`, `Bytes.Invariant` etc.
+     Instead of saying "here are all the constructors of `Bytes`",
+     then "here are all the invariants for each constructor of `Bytes`", etc,
+     we would like to have a file saying
+     "here is the constructor `Concat` and here is its invariant",
+     then another file saying
+     "here is the constructor `Hash` and here is its invariant",
+     etc.
+
+  # Implementing "Data types à la carte" in Lean
+
+  Let's first briefly explain the approach of "Data types à la carte".
+  Consider the following inductive, that we want to define modularly:
+
+    inductive Test where
+      | foo: Test → Test → Test
+      | bar: Nat → Test
+      | baz: String → Test → Test
+
+  The insight in Section 2. "Fixing the expression problem" is that
+  we can also write this inductive like this:
+
+    inductive TestFunctor (α: Type) where
+      | foo: α → α → TestFunctor α
+      | bar: Nat → TestFunctor α
+      | baz: String → α → TestFunctor α
+
+    inductive Test where
+      | mk: TestFunctor Test → Test
+
+  And then move `TestFunctor` as an argument of `Test`:
+
+    inductive Test (Functor: Type → Type) where
+      | mk: Functor (Test Functor) → Test Functor
+
+  So that the argument `Functor` describes the shape of the inductive we want to define,
+  and `Test Functor` is this inductive.
+  Unfortunately, we cannot do this in Lean (and in proof assistants in general)
+  because of the positivity checker
+  (see https://lean-lang.org/doc/reference/latest/find/?domain=Verso.Genre.Manual.section&name=mutual-inductive-types-positivity )
+
+  To circumvent this problem,
+  we design a typeclass for functors called `Representable`,
+  and for such functors provide a type isomorphic to `Test Functor`.
+  That is, given `[Representable F]`, the type `ContainerFor F`
+  can be converted back and forth from `F (ContainerFor F)`,
+  and furthermore the type `ContainerFor` passes the positivity checker.
+
+  So far, we have seen how to create an inductive from a functor.
+  To define the inductive type modularly,
+  we will then define this functor modularly.
+
+  Similarly to Section 4. "Automating injections",
+  we define a typeclass for sub-functors,
+  such that when F is a sub-functor of G,
+  we have the functions
+
+    inj: ∀ a, F a → G a
+    proj: ∀ a, G a → Option (F a)
+
+  For example, `TestFunctorFoo` is a sub-functor of `TestFunctor`
+
+    inductive TestFunctorFoo (α: Type) where
+      | bar: α → α → TestFunctorFoo α
+
+  This allows to convert `TestFunctorFoo (ContainerFor TestFunctor)`
+  to `TestFunctor (ContainerFor TestFunctor)`
+  and then to `ContainerFor TestFunctor`.
+
+  Suppose we also define
+
+    inductive TestFunctorBar (α: Type) where
+      | bar: Nat → TestFunctorBar α
+
+    inductive TestFunctorBaz (α: Type) where
+      | baz: String → α → TestFunctorBaz α
+
+  then `TestFunctor` is isomorphic to
+
+    def TestFunctor (α: Type) :=
+      Sigma (fun (id: Fin 3) =>
+        match id with
+        | 0 => TestFunctorFoo α
+        | 1 => TestFunctorBar α
+        | 2 => TestFunctorBaz α
+      )
+
+  This is how we define functors modularly,
+  and therefore how we define inductive types modularly.
+
+  # What else
+
+  In this module, we also allow to modularly write functions (or predicates) on modular inductives,
+  as well as modularly write proofs involving modular inductive.
+
+  We take a different approach from Section 3. "Evaluation",
+  and instead allow for well-founded recursion using Lean's built-in `sizeOf`.
+-/
+
 namespace DY.ALaCarte
+
 /--
   Compute the sum of `sizeOf` on the `t` contained by `Functor`.
   This is needed to prove `Representable.sizeOf_eq`.
@@ -6,8 +155,7 @@ namespace DY.ALaCarte
 class FunctorSizeOf (f: Type → Type) where
   sizeOf {t: Type} [SizeOf t]: f t → Nat
 
--- SubFunctor / SubFunctorTC is inspired by Coe / CoeTC
--- Could be split in SubFunctor / LawfulSubFunctor to avoid dependency on FunctorSizeOf?
+-- The combo SubFunctor / SubFunctorTC is inspired by Coe / CoeTC
 class SubFunctor (f: Type → Type) (g: semiOutParam (Type → Type)) [FunctorSizeOf f] [semiOutParam (FunctorSizeOf g)] where
   inj: {a: Type} → f a → g a
   proj: {a: Type} → g a → Option (f a)
@@ -53,8 +201,26 @@ instance {f g h: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [FunctorSize
   inj_proj x := by grind [SubFunctorTC.inj_proj, SubFunctor.inj_proj]
   sizeOf_inj x := by simp [SubFunctorTC.sizeOf_inj, SubFunctor.sizeOf_inj]
 
+/--
+  A constructor of a functor / an inductive
+  is characterized by the fixed types it contains, and the number of time it recurses.
+  For example, the constructor
+
+    | foo: Nat → String → α → α → MyFunctor α
+
+  of a functor, or equivalently the constructor
+
+    | foo: Nat → String → Test → Test → Test
+
+  of an inductive is described by the `Ctor`
+
+    {
+      Data := Nat → String
+      nRec := 2
+    }
+-/
 structure Ctor where
-  Data: Type 0
+  Data: Type
   nRec: Nat
 
 def Ctors (CtorId: Type) := CtorId -> Ctor
@@ -68,7 +234,10 @@ noncomputable
 instance {CtorId} (ctors: Ctors CtorId): FunctorSizeOf (FunctorRepr ctors) where
   sizeOf | {id := _, data := _, as} => (as.map sizeOf).sum
 
--- Could be split in Representable / LawfulRepresentable to avoid dependency on FunctorSizeOf
+/--
+  A functor is "representable" when there exists a set of `Ctor`
+  such that the functor is isomorphic to `FunctorRepr` with this set of `Ctor`.
+-/
 class Representable (f: Type → Type) [FunctorSizeOf f] where
   CtorId: Type
   ctors: Ctors CtorId
@@ -105,12 +274,25 @@ decreasing_by
   simp_all
   grind
 
+/--
+  `Container ctors` is a type that is, by construction, isomorphic to `FunctorRepr ctors (Container ctors)`.
+-/
 def Container {CtorId} (ctors: Ctors CtorId): Type :=
   Subtype (BareContainer.wf (ctors := ctors))
 
 noncomputable
 instance {CtorId: Type} (ctors: Ctors CtorId) [SizeOf CtorId]: SizeOf (Container ctors) := inferInstanceAs (SizeOf (Subtype (BareContainer.wf (ctors := ctors))))
 
+/--
+  When a functor is `Representable`, we can use `ContainerFor` as a shorthand for `Container`.
+  It has the property that `ContainerFor f` is isomorphic to `f (ContainerFor f)`:
+
+      ContainerFor f
+    = Container ctors                       [by unfolding ContainerFor]
+    = FunctorRepr ctors (Container ctors)   [by property of Container]
+    = FunctorRepr ctors (ContainerFor f)    [by refolding ContainerFor]
+    = f (ContainerFor f)                    [by f being Representable]
+-/
 abbrev ContainerFor (f: Type → Type) [FunctorSizeOf f] [Representable f] :=
   Container (Representable.ctors (f := f))
 
@@ -208,6 +390,12 @@ theorem Container.sizeOf_intoFunctor
     refine Nat.lt_one_add_iff.mpr ?_
     apply List.map_sizeOf_attachWith
 
+/--
+  When we have a collection of functors,
+  we can create the union using `FunctorUnion`.
+  Such an union is representable,
+  and each functor will then be a sub-functor of this union.
+-/
 structure FunctorUnion {a: Type} (Functors: a → (Type → Type)) (t: Type) where
   id: a
   val: Functors id t
@@ -323,6 +511,10 @@ def Container.PartialFun
   :=
   ∀ x: f (ContainerFor g), (∀ y: ContainerFor g, (h: sizeOf y ≤ FunctorSizeOf.sizeOf x := by simp_all +arith [DY.ALaCarte.FunctorSizeOf.sizeOf]) → a) → a
 
+/--
+  Generic recursion principle on `Container`.
+  This allows to define functions, predicates, and to do proofs.
+-/
 def Container.rec
   {f: Type → Type} [FunctorSizeOf f] [Representable f]
   {motive: ContainerFor f → Sort u}
@@ -435,6 +627,9 @@ instance
     pf x rec := by
       simp [Container.PartialFun.combine]
 
+/--
+  Helper to write a modular proof on one modular function
+-/
 def Container.PartialProof1
   {f g: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [Representable g]
   {a: Type}
@@ -473,6 +668,9 @@ def Container.PartialProof1.combine
   := fun {id, val} rec =>
     pfs id val (fun y h => rec y h)
 
+/--
+  Helper to write a modular proof on two modular functions
+-/
 def Container.PartialProof2
   {f g: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [Representable g]
   {a b: Type}

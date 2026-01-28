@@ -2,13 +2,45 @@ import DY.Kleene
 import DY.Bytes.Type
 import DY.Trace.Type
 
+/-
+  This module allows to define modularly
+  the computations that may perform a Dolev-Yao attacker.
+-/
+
 namespace DY
 
 variable [BytesFunctor]
 
--- The SubF parameter is not useful in this definition.
--- It is only for hygiene, to make sure we don't miss equational theories
--- by using `SubAttackerKnowledge.combine`
+/--
+  The attacker knowledge is ultimately defined as a Kleene fixpoint,
+  and `SubAttackerKnowledge` is a component of this fixpoint computation.
+
+  For example, to say that the attacker is allowed to concatenate bytes,
+  we can write:
+
+    -- attacker knows `out` when
+    pred p out :=
+      ∃ lhs rhs,
+        -- `out` is the concatenation of `lhs` and `rhs` and
+        out = concat lhs rhs ∧
+        p lhs ∧ -- the attacker knows lhs and
+        p rhs   -- the attacker knows rhs.
+
+  To prove the scott-continuity of `pred` (a technical requirement for Kleene fixpoint)
+  it is better to use the `Forall` predicate like this:
+
+    pred p out :=
+      ∃ lhs rhs,
+        out = concat lhs rhs ∧
+        DY.Kleene.Forall p [lhs, rhs]
+
+  This allows to rely on the lemma `DY.Kleene.isScottContinuous_Forall_lemma`,
+  and allow for `pred_isScottContinuous` to be proved automatically by our tactic script.
+
+  The `SubF` parameter is not useful in this definition.
+  It is only for hygiene, to make sure we don't miss equational theories
+  by using `SubAttackerKnowledge.combine`
+-/
 structure SubAttackerKnowledge (SubF: Type → Type) where
   pred: (Bytes → Prop) → Bytes → Prop
   pred_isScottContinuous: DY.Kleene.IsScottContinuous pred := by
@@ -110,35 +142,6 @@ instance
 
 end AttackerKnowledge
 
-def SubAttackerKnowledge.Implies {SubF: Type → Type} (att: SubAttackerKnowledge SubF) (p: Bytes → Prop): Prop :=
-  ∀ b, att.pred p b → p b
-
-def SubAttackerKnowledge.combine'.implies
-  {SubF: Type → Type}
-  {t: Type}
-  (atts: t → SubAttackerKnowledge SubF)
-  (p: Bytes → Prop)
-  (pfs: ∀ id, SubAttackerKnowledge.Implies (atts id) p)
-  : SubAttackerKnowledge.Implies (SubAttackerKnowledge.combine' atts) p
-  := by
-    intro b
-    simp only [SubAttackerKnowledge.combine', Kleene.combine, forall_exists_index]
-    intro id
-    exact pfs id b
-
-def SubAttackerKnowledge.combine.implies
-  {t: Type}
-  {SubFs: t → Type → Type}
-  (atts: ∀ id, SubAttackerKnowledge (SubFs id))
-  (p: Bytes → Prop)
-  (pfs: ∀ id, SubAttackerKnowledge.Implies (atts id) p)
-  : SubAttackerKnowledge.Implies (SubAttackerKnowledge.combine atts) p
-  := by
-    intro b
-    simp only [SubAttackerKnowledge.combine, Kleene.combine, forall_exists_index]
-    intro id
-    exact pfs id b
-
 -- TODO
 opaque Trace.MessageSent (tr: Trace α) (b: Bytes): Prop
 axiom Trace.MessageSent_erase (tr: Trace α) (b: Bytes): tr.MessageSent b = tr.erase.MessageSent b
@@ -185,6 +188,47 @@ theorem Bytes.AttackerKnows.prove
     have h2 := Kleene.mkWeakestFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr).pred (Bytes.AttackerKnows.attackerKnowledge tr).pred_isScottContinuous
     unfold Bytes.AttackerKnows at *
     grind
+
+/--
+  The attacker knowledge `AttackerKnows` is the weakest predicate `P` such that every sub-attacker knowledge predicate `att`,
+    att.pred P b
+  implies
+    P b
+
+  The attacker knowledge satisfies this property: this is the theorem by `Bytes.AttackerKnows.prove`
+  The attacker knowledge is the weakest predicate: this is the theorem `Bytes.AttackerKnows.is_least_fixpoint`.
+  In other words, if a predicate `P` has this property, then `Bytes.AttackerKnows b => P b`
+
+  We can use `SubAttackerKnowledge.Implies` to modularly prove that a predicate `P` satisfy this property.
+-/
+def SubAttackerKnowledge.Implies {SubF: Type → Type} (att: SubAttackerKnowledge SubF) (p: Bytes → Prop): Prop :=
+  ∀ b, att.pred p b → p b
+
+def SubAttackerKnowledge.combine'.implies
+  {SubF: Type → Type}
+  {t: Type}
+  (atts: t → SubAttackerKnowledge SubF)
+  (p: Bytes → Prop)
+  (pfs: ∀ id, SubAttackerKnowledge.Implies (atts id) p)
+  : SubAttackerKnowledge.Implies (SubAttackerKnowledge.combine' atts) p
+  := by
+    intro b
+    simp only [SubAttackerKnowledge.combine', Kleene.combine, forall_exists_index]
+    intro id
+    exact pfs id b
+
+def SubAttackerKnowledge.combine.implies
+  {t: Type}
+  {SubFs: t → Type → Type}
+  (atts: ∀ id, SubAttackerKnowledge (SubFs id))
+  (p: Bytes → Prop)
+  (pfs: ∀ id, SubAttackerKnowledge.Implies (atts id) p)
+  : SubAttackerKnowledge.Implies (SubAttackerKnowledge.combine atts) p
+  := by
+    intro b
+    simp only [SubAttackerKnowledge.combine, Kleene.combine, forall_exists_index]
+    intro id
+    exact pfs id b
 
 theorem Bytes.AttackerKnows.is_least_fixpoint
   [AttackerKnowledge]
