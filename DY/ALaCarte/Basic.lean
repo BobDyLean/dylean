@@ -498,18 +498,51 @@ theorem Container.pack_view
       have := Container.fromFunctor_intoFunctor x
       simp_all
 
+theorem Container.sizeOf_pack
+  (f: Type → Type) {g: Type → Type}
+  [FunctorSizeOf f] [FunctorSizeOf g]
+  [SubFunctorTC f g]
+  [Representable g]
+  (x: f (ContainerFor g))
+  :
+    DY.ALaCarte.FunctorSizeOf.sizeOf x ≤ sizeOf (Container.pack f x)
+  := by
+    simp_all only [Container.pack]
+    have := SubFunctorTC.sizeOf_inj (g := g) x
+    have := Representable.sizeOf_eq (f := g) (SubFunctorTC.inj x)
+    have := Container.sizeOf_intoFunctor (fromFunctor (Representable.toRepr (SubFunctorTC.inj x)))
+    have := Container.intoFunctor_fromFunctor (Representable.toRepr (SubFunctorTC.inj x))
+    grind
+
+theorem Container.sizeOf_view
+  (f: Type → Type) {g: Type → Type}
+  [FunctorSizeOf f] [FunctorSizeOf g]
+  [SubFunctorTC f g]
+  [Representable g]
+  (x: ContainerFor g)
+  :
+  match x.view f with
+  | none => True
+  | some y => DY.ALaCarte.FunctorSizeOf.sizeOf y ≤ sizeOf x
+  := by
+    split
+    · trivial
+    rename_i y heq
+    have: pack f y = x := by grind [Container.pack_view]
+    grind [Container.sizeOf_pack]
+
 def Container.PartialFunDep
   (f: Type → Type) {g: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [Representable g] [SubFunctorTC f g]
   (motive: ContainerFor g → Sort u)
   :=
-  (∀ x: f (ContainerFor g), (∀ y: ContainerFor g, (h: sizeOf y ≤ FunctorSizeOf.sizeOf x := by simp_all +arith [DY.ALaCarte.FunctorSizeOf.sizeOf]) → motive y) → motive (pack f x))
+  (∀ x: f (ContainerFor g), (∀ y: ContainerFor g, sizeOf y ≤ FunctorSizeOf.sizeOf x → motive y) → motive (pack f x))
 
 -- This one does not require the typeclass instance [SubFunctorTC f g]
 def Container.PartialFun
   (f: Type → Type) (g: Type → Type) [FunctorSizeOf f] [FunctorSizeOf g] [Representable g]
   (a: Type)
   :=
-  ∀ x: f (ContainerFor g), (∀ y: ContainerFor g, (h: sizeOf y ≤ FunctorSizeOf.sizeOf x := by simp_all +arith [DY.ALaCarte.FunctorSizeOf.sizeOf]) → a) → a
+  ∀ x: f (ContainerFor g), (∀ y: ContainerFor g, sizeOf y ≤ FunctorSizeOf.sizeOf x → a) → a
 
 /--
   Generic recursion principle on `Container`.
@@ -521,7 +554,7 @@ def Container.rec
   (pf: Container.PartialFunDep f motive)
   (x: ContainerFor f)
     : motive x := by
-  have := pf (Representable.fromRepr (Container.intoFunctor x)) (fun y h => Container.rec pf y)
+  have := pf (Representable.fromRepr (Container.intoFunctor x)) (fun y _ => Container.rec pf y)
   simp only [pack, SubFunctorTC.inj, Representable.to_from, Container.fromFunctor_intoFunctor] at this
   exact this
 termination_by x
@@ -602,7 +635,7 @@ def Container.PartialFun.combine
   (funs: (id: t) → Container.PartialFun (functors id) g a)
   : Container.PartialFun (FunctorUnion functors) g a
   := fun {id, val} rec =>
-    funs id val (fun y h => rec y h)
+    funs id val rec
 
 def Container.PartialFunDep.combine
   {t: Type} [DecidableEq t]
@@ -613,7 +646,7 @@ def Container.PartialFunDep.combine
   (funs: (id: t) → Container.PartialFunDep (functors id) motive)
   : Container.PartialFunDep (FunctorUnion functors) motive
   := fun {id, val} rec =>
-    funs id val (fun y h => rec y h)
+    funs id val rec
 
 instance
   {t: Type} [DecidableEq t]
@@ -626,6 +659,7 @@ instance
   where
     pf x rec := by
       simp [Container.PartialFun.combine]
+      congr
 
 /--
   Helper to write a modular proof on one modular function
@@ -647,7 +681,7 @@ theorem Container.PartialProof1.into
   (pf: Container.PartialProof1 fn (Container.rec fn) p)
   : Container.PartialFunDep f (fun x => p (x.rec fn))
   := by
-    unfold Container.PartialFunDep autoParam
+    unfold Container.PartialFunDep
     intro x rec
     unfold Container.rec pack
     simp only [SubFunctorTC.inj]
@@ -666,7 +700,7 @@ def Container.PartialProof1.combine
   (pfs: (id: t) → Container.PartialProof1 (funs id) rec p)
   : Container.PartialProof1 (Container.PartialFun.combine funs) rec p
   := fun {id, val} rec =>
-    pfs id val (fun y h => rec y h)
+    pfs id val rec
 
 /--
   Helper to write a modular proof on two modular functions
@@ -691,7 +725,7 @@ theorem Container.PartialProof2.into
   (pf: Container.PartialProof2 fn1 fn2 (Container.rec fn1) (Container.rec fn2) p)
   : Container.PartialFunDep f (fun x => p (x.rec fn1, x.rec fn2))
   := by
-    unfold Container.PartialFunDep autoParam
+    unfold Container.PartialFunDep
     intro x rec
     unfold Container.rec pack
     simp only [SubFunctorTC.inj]
@@ -712,6 +746,6 @@ def Container.PartialProof2.combine
   (pfs: (id: t) → Container.PartialProof2 (funs1 id) (funs2 id) rec1 rec2 p)
   : Container.PartialProof2 (Container.PartialFun.combine funs1) (Container.PartialFun.combine funs2) rec1 rec2 p
   := fun {id, val} rec =>
-    pfs id val (fun y h => rec y h)
+    pfs id val rec
 
 end DY.ALaCarte

@@ -171,6 +171,10 @@ def Concat.invariants: Bytes.PartialInvariants Concat where
 
 abbrev invariants: Bytes.PartialInvariants SubF := Concat.Concat.invariants
 
+def Concat.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Concat.invariants where
+
+abbrev invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs invariants := Concat.Concat.invariantsProofs
+
 variable [BytesInvariants] [BytesInvariants.Has invariants]
 
 @[simp]

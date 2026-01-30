@@ -6,17 +6,15 @@ import DY.EquationalTheory.Literal
 import DY.EquationalTheory.Concat
 import DY.EquationalTheory.Hash
 import DY.EquationalTheory.Sign
+import DY.EquationalTheory.DiffieHellman
 
 open DY
 
 namespace Test
 
 variable [BytesFunctor]
-variable [BytesInvariants]
-
 variable [BytesFunctor.Has Hash.SubF]
-variable [BytesInvariants.Has Hash.invariants]
-
+variable [BytesFunctor.Has DiffieHellman.SubF]
 variable [BytesFunctor.Has Signature.SubF]
 
 instance:
@@ -52,6 +50,8 @@ class ParseableSerializeable (a: Type) where
 
 open ParseableSerializeable
 
+axiom comparseExists {a: Type}: ParseableSerializeable a
+
 @[simp]
 theorem parse_serialize_inv_grind [ParseableSerializeable a] (x: a):
   ParseableSerializeable.parse (serialize x) = some x
@@ -80,6 +80,14 @@ theorem serialize_formatRel [ParseableSerializeable a] (x: a):
 
 grind_pattern serialize_formatRel => serialize x
 
+@[grind! .]
+theorem parse_formatRel [ParseableSerializeable a] (b: Bytes):
+  match (parse b: Err a) with
+  | none => True
+  | some x => formatRel b x
+  := by
+    grind [formatRel, serialize_parse_inv]
+
 def isWellFormed [ParseableSerializeable a] (pre: Bytes → τ → Prop) (x: a) (tr: τ): Prop :=
   pre (serialize x) tr
 
@@ -89,7 +97,15 @@ theorem isWellFormedFormatRel [ParseableSerializeable a] (pre: Bytes → τ → 
   := by
     grind [isWellFormed, formatRel]
 
-theorem isWellFormedFormatRelBytesInvariant [ParseableSerializeable a]:
+theorem isWellFormedFormatRelBytesWellFormed [BytesWellFormed] [ParseableSerializeable a]:
+  ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
+  formatRel buf x →
+  (buf.WellFormed tr = isWellFormed Bytes.WellFormed x tr)
+  := isWellFormedFormatRel Bytes.WellFormed
+
+grind_pattern isWellFormedFormatRelBytesWellFormed => formatRel buf x, buf.WellFormed tr
+
+theorem isWellFormedFormatRelBytesInvariant [BytesInvariant] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
   formatRel buf x →
   (buf.Invariant tr = isWellFormed Bytes.Invariant x tr)
@@ -97,7 +113,7 @@ theorem isWellFormedFormatRelBytesInvariant [ParseableSerializeable a]:
 
 grind_pattern isWellFormedFormatRelBytesInvariant => formatRel buf x, buf.Invariant tr
 
-theorem isWellFormedFormatRelIsPublishable [ParseableSerializeable a]:
+theorem isWellFormedFormatRelIsPublishable [BytesInvariants] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
   formatRel buf x →
   (buf.Publishable tr = isWellFormed Bytes.Publishable x tr)
@@ -115,10 +131,13 @@ theorem isWellFormedParse [ParseableSerializeable a] (pre: Bytes → τ → Prop
 class BytesCompatible (pre: Bytes → τ → Prop) where
   dummy: Unit
 
-instance: BytesCompatible Bytes.Invariant where
+instance [BytesWellFormed]: BytesCompatible Bytes.WellFormed where
   dummy := ()
 
-instance: BytesCompatible Publishable where
+instance [BytesInvariant]: BytesCompatible Bytes.Invariant where
+  dummy := ()
+
+instance [BytesInvariants]: BytesCompatible Bytes.Publishable where
   dummy := ()
 
 inductive ClientState where
@@ -160,7 +179,8 @@ structure SigInput where
   x_pk: Bytes
   y_pk: Bytes
 
-instance : ParseableSerializeable SigInput := sorry
+noncomputable
+instance: ParseableSerializeable SigInput := comparseExists
 
 @[grind]
 axiom SigInput.isWellFormedLemma
@@ -192,25 +212,37 @@ namespace DY -- ???
 axiom _root_.DY.Trace.MonotoneLemmas.event_logged_at_later (who: Principal) (ev: SignedDHEvent) (i: Nat) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → event_logged_at who ev i tr1 → event_logged_at who ev i tr2
 end DY
 
-def dh_pk (sk: Bytes): Bytes := sorry
-def dh (sk: Bytes) (pk: Bytes): Bytes := sorry
--- def vk (sk: Bytes): Bytes := sorry
--- def sign (sk: Bytes) (nonce: Bytes) (msg: Bytes): Bytes := sorry
--- def verify (vk: Bytes) (msg: Bytes) (sig: Bytes): Bool := sorry
+
+def gen_rand (len: Nat) : Traceful Bytes := sorry
+def send_message (b:Bytes) : Traceful Nat := sorry
+def receive_message (ts: Nat): Traceful Bytes := sorry
+def new_sid (me: Principal): Traceful Nat := sorry
+def set_client_state (me: Principal) (sid: Nat) (st: ClientState): Traceful Unit := sorry
+def get_client_state (me: Principal) (sid: Nat): Traceful ClientState  := sorry
+def set_server_state (me: Principal) (sid: Nat) (st: ServerState): Traceful Unit := sorry
+def get_server_state (me: Principal) (sid: Nat): Traceful ServerState  := sorry
+def get_public_key (who: Principal): Traceful Bytes := sorry
+def get_private_key (who: Principal): Traceful Bytes := sorry
+def log_event (who: Principal) (ev: SignedDHEvent): Traceful Unit := sorry
 
 -- invariants
 
-def client_label (me: Principal): Label := sorry
-def server_label (me: Principal): Label := sorry
-def long_term_label (me: Principal): Label := sorry
+instance: Inhabited Label where
+  default := Label.secret
+
+opaque client_label (me: Principal): Label
+opaque server_label (me: Principal): Label
+opaque long_term_label (me: Principal): Label
 
 
 structure LongTermKeyUsage where
   principal: Principal
 
-instance : ParseableSerializeable LongTermKeyUsage := sorry
+noncomputable
+instance : ParseableSerializeable LongTermKeyUsage := comparseExists
 
 @[grind]
+noncomputable
 def mk_long_term_usage (me: Principal): Usage := {
   type := "SigKey",
   tag := "SignedDH",
@@ -231,13 +263,23 @@ instance: Signature.SignPred where
       | none => False
       | some (msg: SigInput) => (
         ∃ y_sk,
-          msg.y_pk = dh_pk y_sk ∧
+          msg.y_pk = DiffieHellman.dh_pk y_sk ∧
           y_sk.label tr = server_label server ∧
-          event_logged server (.ServerFinishEvent msg.x_pk msg.y_pk (Hash.hash (dh y_sk msg.x_pk))) tr
+          event_logged server (.ServerFinishEvent msg.x_pk msg.y_pk (Hash.hash (DiffieHellman.dh msg.x_pk y_sk))) tr
       )
     )
-  pred_later := sorry
 
+instance [BytesInvariants] [BytesInvariants.Has DiffieHellman.DhPk.invariants]: Signature.SignPredProof where
+  pred_later := by
+    intro _ _ _ _ _ _ _ _ _ _ _
+    intro ⟨ server, h ⟩
+    exists server
+    grind [DiffieHellman.dh_pk.WellFormed]
+
+variable [BytesInvariants]
+variable [BytesInvariantsProofs]
+variable [BytesInvariants.Has Hash.invariants]
+variable [BytesInvariants.Has DiffieHellman.invariants]
 variable [BytesInvariants.Has Signature.invariants]
 
 def client_state_inv (me: Principal) (sid: Nat) (st: ClientState) (tr: ProofTrace) :=
@@ -268,9 +310,9 @@ def server_state_inv (me: Principal) (sid: Nat)(st: ServerState) (tr: ProofTrace
     k_s.Invariant tr ∧
     (k_s.label tr).canFlow (server_label me) tr
 
-instance:
+instance (sk: Bytes):
   HoareTriplePure
-    (dh_pk sk)
+    (DiffieHellman.dh_pk sk)
     (fun tr => sk.Invariant tr)
     (fun res tr =>
       res.Invariant tr ∧
@@ -278,27 +320,12 @@ instance:
       -- and usage
     )
   where
-    pf := sorry
+    pf := by
+      grind [DiffieHellman.dh_pk.Invariant, DiffieHellman.dh_pk.label]
 
-def get_dh_label (pk: Bytes) (tr: ProofTrace): Label := sorry
-
-@[grind =]
-theorem get_dh_label_lemma (sk: Bytes) (tr: ProofTrace):
-  get_dh_label (dh_pk sk) tr = sk.label tr
-  := by sorry
-
-axiom _root_.DY.Trace.MonotoneLemmas.get_dh_label_later (b:Bytes) (tr1 tr2: ProofTrace): b.Invariant tr1 → tr1 ≤ tr2 → get_dh_label b tr1 = get_dh_label b tr2
-
-axiom dh_eq (sk1 sk2: Bytes): dh sk1 (dh_pk sk2) = dh sk2 (dh_pk sk1)
-grind_pattern dh_eq => dh sk1 (dh_pk sk2), dh sk2 (dh_pk sk1)
-
--- TODO scoped
-grind_pattern _root_.DY.Trace.MonotoneLemmas.get_dh_label_later =>
-  b.Invariant tr1, tr1 ≤ tr2, get_dh_label b tr1
-
-instance:
+instance (pk sk: Bytes):
   HoareTriplePure
-    (dh sk pk)
+    (DiffieHellman.dh pk sk)
     (fun tr =>
       sk.Invariant tr ∧
       pk.Publishable tr
@@ -306,11 +333,12 @@ instance:
     )
     (fun res tr =>
       res.Invariant tr ∧
-      res.label tr = Label.join (sk.label tr) (get_dh_label pk tr)
+      res.label tr = Label.join (sk.label tr) (pk.dhSkLabel tr)
       -- and usage
     )
   where
-    pf := sorry
+    pf := by
+      grind [DiffieHellman.dh.Invariant, DiffieHellman.dh.label]
 
 instance (sk: Bytes):
   HoareTriplePure
@@ -324,7 +352,8 @@ instance (sk: Bytes):
       -- and usage
     )
   where
-    pf := sorry
+    pf := by
+      grind [Signature.vk.Invariant, Signature.vk.label]
 
 instance (sk nonce msg: Bytes): HasGhostArgumentType (Signature.sign sk nonce msg) Usage
 where
@@ -452,18 +481,6 @@ instance (b: Bytes):
     pf := by
       simp
 
-def gen_rand (len: Nat) : Traceful Bytes := sorry
-def send_message (b:Bytes) : Traceful Nat := sorry
-def receive_message (ts: Nat): Traceful Bytes := sorry
-def new_sid (me: Principal): Traceful Nat := sorry
-def set_client_state (me: Principal) (sid: Nat) (st: ClientState): Traceful Unit := sorry
-def get_client_state (me: Principal) (sid: Nat): Traceful ClientState  := sorry
-def set_server_state (me: Principal) (sid: Nat) (st: ServerState): Traceful Unit := sorry
-def get_server_state (me: Principal) (sid: Nat): Traceful ServerState  := sorry
-def get_public_key (who: Principal): Traceful Bytes := sorry
-def get_private_key (who: Principal): Traceful Bytes := sorry
-def log_event (who: Principal) (ev: SignedDHEvent): Traceful Unit := sorry
-
 instance: HasGhostArgumentType (gen_rand len) Label
 where
   dummy := ()
@@ -565,12 +582,12 @@ def event_pred (me: Principal) (ev: SignedDHEvent) (tr: ProofTrace) :=
   match ev with
   | .ClientInitiateEvent x_pk => (
     x_pk.Invariant tr ∧
-    get_dh_label x_pk tr = client_label me
+    x_pk.dhSkLabel tr = client_label me
   )
   | .ServerFinishEvent x_pk _y_pk k_s => (
     k_s.Invariant tr ∧
     x_pk.Invariant tr ∧
-    k_s.label tr = (server_label me).join (get_dh_label x_pk tr)
+    k_s.label tr = (server_label me).join (x_pk.dhSkLabel tr)
   )
   | .ClientFinishEvent server x_pk y_pk k_c => (
     (
@@ -601,7 +618,7 @@ namespace SignedDH
 
 def client_initiate (me: Principal): Traceful (Nat × Nat) := do
   let x_sk ← gen_rand 32
-  let x_pk := dh_pk x_sk
+  let x_pk := DiffieHellman.dh_pk x_sk
 
   log_event me (.ClientInitiateEvent x_pk)
   let sid ← new_sid me
@@ -616,8 +633,8 @@ def server_receive (me: Principal) (msg_ts: Nat) : Traceful (Nat × Nat) := do
   let my_sig_key ← get_private_key me
 
   let y_sk ← gen_rand 32
-  let y_pk := dh_pk y_sk
-  let k_s := Hash.hash (dh y_sk x_pk)
+  let y_pk := DiffieHellman.dh_pk y_sk
+  let k_s := Hash.hash (DiffieHellman.dh x_pk y_sk)
   let sig_nonce ← gen_rand 32
   let sig := Signature.sign my_sig_key sig_nonce (serialize ({x_pk, y_pk}: SigInput))
 
@@ -627,6 +644,7 @@ def server_receive (me: Principal) (msg_ts: Nat) : Traceful (Nat × Nat) := do
   let msg_ts ← send_message (serialize ({ y_pk, sig } : ServerMessage))
   pure (sid, msg_ts)
 
+noncomputable
 def client_finish (me: Principal) (server: Principal) (msg_ts: Nat) (sid: Nat) : Traceful Unit := do
   let msg_bytes ← receive_message msg_ts
   let msg: ServerMessage ← parse msg_bytes
@@ -637,9 +655,9 @@ def client_finish (me: Principal) (server: Principal) (msg_ts: Nat) (sid: Nat) :
 
   let server_vk ← get_public_key server
 
-  let x_pk := dh_pk x_sk
+  let x_pk := DiffieHellman.dh_pk x_sk
   guard (Signature.verify server_vk (serialize ({ x_pk, y_pk := msg.y_pk }: SigInput)) msg.sig)
-  let k_c := Hash.hash (dh x_sk msg.y_pk)
+  let k_c := Hash.hash (DiffieHellman.dh msg.y_pk x_sk)
 
   log_event me (.ClientFinishEvent server x_pk msg.y_pk k_c)
   set_client_state me sid (.ClientFinishState k_c)
@@ -845,18 +863,21 @@ end SignedDH
 
 end Test
 
-abbrev SubF.internal: (id: Fin 2) → (Type → Type)
+abbrev SubF.internal: (id: Fin 3) → (Type → Type)
   | 0 => Hash.SubF
   | 1 => Signature.SubF
+  | 2 => DiffieHellman.SubF
 
 abbrev SubF := BytesFunctor.combine SubF.internal
 
 instance: ∀ id, SubBytesFunctor (SubF.internal id)
   | 0 => inferInstance
   | 1 => inferInstance
+  | 2 => inferInstance
 
 instance: BytesFunctor.HasStep Hash.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) SubF)
 instance: BytesFunctor.HasStep Signature.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 1) SubF)
+instance: BytesFunctor.HasStep DiffieHellman.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 2) SubF)
 
 instance: BytesFunctor where
   BytesF := SubF
@@ -865,17 +886,20 @@ instance: BytesFunctor.Has SubF := inferInstanceAs (BytesFunctor.Has BytesF)
 
 example: BytesFunctor.Has Hash.SubF := inferInstance
 example: BytesFunctor.Has Signature.SubF := inferInstance
+example: BytesFunctor.Has DiffieHellman.SubF := inferInstance
 
-def attackerKnowledge.internal (id: Fin 2): SubAttackerKnowledge (SubF.internal id) :=
+def attackerKnowledge.internal (id: Fin 3): SubAttackerKnowledge (SubF.internal id) :=
   match id with
   | 0 => Hash.attackerKnowledge
   | 1 => Signature.attackerKnowledge
+  | 2 => DiffieHellman.attackerKnowledge
 
 def attackerKnowledge: SubAttackerKnowledge SubF :=
   SubAttackerKnowledge.combine attackerKnowledge.internal
 
 instance: AttackerKnowledge.HasStep Hash.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 0) (SubAttackerKnowledge.combine attackerKnowledge.internal))
 instance: AttackerKnowledge.HasStep Signature.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 1) (SubAttackerKnowledge.combine attackerKnowledge.internal))
+instance: AttackerKnowledge.HasStep DiffieHellman.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 2) (SubAttackerKnowledge.combine attackerKnowledge.internal))
 
 instance: AttackerKnowledge where
   attackerKnowledge
@@ -884,16 +908,19 @@ instance: AttackerKnowledge.Has attackerKnowledge := inferInstanceAs (AttackerKn
 
 example: AttackerKnowledge.Has Hash.attackerKnowledge := inferInstance
 example: AttackerKnowledge.Has Signature.attackerKnowledge := inferInstance
+example: AttackerKnowledge.Has DiffieHellman.attackerKnowledge := inferInstance
 
-def invariants.internal: (id: Fin 2) → Bytes.PartialInvariants (SubF.internal id)
+def invariants.internal: (id: Fin 3) → Bytes.PartialInvariants (SubF.internal id)
   | 0 => Hash.invariants
   | 1 => Signature.invariants
+  | 2 => DiffieHellman.invariants
 
 abbrev invariants: Bytes.PartialInvariants SubF :=
   Bytes.PartialInvariants.combine invariants.internal
 
 instance [BytesInvariants]: BytesInvariants.HasStep Hash.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 0) invariants)
 instance [BytesInvariants]: BytesInvariants.HasStep Signature.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 1) invariants)
+instance [BytesInvariants]: BytesInvariants.HasStep DiffieHellman.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 2) invariants)
 
 instance: BytesInvariants where
   invs := invariants
@@ -902,19 +929,44 @@ instance: BytesInvariants.Has invariants := inferInstance
 
 example: BytesInvariants.Has Hash.invariants := inferInstance
 example: BytesInvariants.Has Signature.invariants := inferInstance
+example: BytesInvariants.Has DiffieHellman.invariants := inferInstance
 
-instance: (id: Fin 2) → SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)
+def invariantsProofs.internal: (id: Fin 3) → Bytes.PartialInvariantsProofs (invariants.internal id)
+  | 0 => Hash.invariantsProofs
+  | 1 => Signature.invariantsProofs
+  | 2 => DiffieHellman.invariantsProofs
+
+abbrev invariantsProofs: Bytes.PartialInvariantsProofs invariants :=
+  Bytes.PartialInvariantsProofs.combine invariantsProofs.internal
+
+instance: BytesInvariantsProofs where
+  pfs := invariantsProofs
+
+instance: (id: Fin 3) → SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)
   | 0 => inferInstanceAs (SubAttackerKnowledgeTheorem Hash.attackerKnowledge)
   | 1 => inferInstanceAs (SubAttackerKnowledgeTheorem Signature.attackerKnowledge)
+  | 2 => inferInstanceAs (SubAttackerKnowledgeTheorem DiffieHellman.attackerKnowledge)
 
 instance: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstanceAs (SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine attackerKnowledge.internal))
 
 instance: AttackerKnowledgeTheorem where
   inst := inferInstanceAs (SubAttackerKnowledgeTheorem attackerKnowledge)
 
-example (b: Bytes) (tr: ProofTrace) :
+theorem test (b: Bytes) (tr: ProofTrace) :
     tr.invariant →
     Bytes.AttackerKnows b tr →
     b.Publishable tr
   := by
     apply Bytes.AttackerKnows_implies_Publishable
+
+/--
+info: 'test' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound,
+ Test.comparseExists,
+ Test.event_logged_at,
+ DY.Bytes.MessageSent_implies_Publishable,
+ DY.Trace.invariant]
+-/
+#guard_msgs in
+#print axioms test

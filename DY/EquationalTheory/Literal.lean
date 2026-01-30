@@ -124,6 +124,10 @@ def Literal.invariants: Bytes.PartialInvariants Literal where
 
 abbrev invariants: Bytes.PartialInvariants SubF := Literal.Literal.invariants
 
+def Literal.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Literal.invariants where
+
+abbrev invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs invariants := Literal.Literal.invariantsProofs
+
 variable [BytesInvariants] [BytesInvariants.Has invariants]
 
 @[simp]

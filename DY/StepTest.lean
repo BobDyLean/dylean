@@ -9,6 +9,7 @@ namespace StepTest
 
 variable [BytesFunctor]
 variable [BytesInvariants]
+variable [BytesInvariantsProofs]
 
 def hash (b: Bytes): Bytes := sorry
 def test_publishable (b: Bytes): Bool := sorry

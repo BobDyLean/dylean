@@ -114,4 +114,15 @@ theorem trace_le_map
 def erase (tr: Trace α): Trace Unit :=
   Functor.mapConst () tr
 
+theorem erase_idempotent (tr: Trace Unit): tr.erase = tr := by
+  unfold erase
+  simp only [LawfulFunctor.map_const]
+  apply LawfulFunctor.id_map
+
+theorem erase_le (tr1 tr2: Trace α)
+  : tr1 ≤ tr2 →
+  tr1.erase ≤ tr2.erase
+  := by apply trace_le_map
+
+
 end DY.Trace

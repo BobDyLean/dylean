@@ -23,10 +23,10 @@ def Label.make (l: LabelCtor): Label := {
 }
 
 def Label.isCorrupt (l: Label) (tr: Trace α) :=
-  l.isCorrupt_ (Functor.mapConst () tr)
+  l.isCorrupt_ tr.erase
 
 @[simp, grind]
-theorem Label.makeIsCorrupt (ctor: LabelCtor) (tr: Trace α): (Label.make ctor).isCorrupt tr = ctor.isCorrupt (Functor.mapConst () tr) := by
+theorem Label.makeIsCorrupt (ctor: LabelCtor) (tr: Trace α): (Label.make ctor).isCorrupt tr = ctor.isCorrupt tr.erase := by
   simp [Label.make, isCorrupt]
 
 @[scoped grind→]
@@ -50,11 +50,24 @@ theorem _root_.DY.Trace.MonotoneLemmas.isCorruptLater (l: Label) (tr1 tr2: Trace
   l.isCorrupt tr2
   := by
     unfold Label.isCorrupt
-    simp only [map_const, Function.comp_apply]
     intro
     apply _root_.DY.Trace.MonotoneLemmas.isCorrupt_Later
-    apply Trace.trace_le_map (Function.const α ()) tr1 tr2
+    apply Trace.erase_le
     assumption
+
+@[ext]
+theorem Label.ext
+  (l1 l2: Label)
+  : (∀ tr: Trace Unit, l1.isCorrupt tr = l2.isCorrupt tr) →
+  l1 = l2
+  := by
+    cases l1
+    cases l2
+    simp only [mk.injEq, isCorrupt]
+    intro
+    funext tr
+    have := Trace.erase_idempotent tr
+    grind
 
 def Label.canFlow (l1: Label) (l2: Label) (tr: Trace α): Prop :=
   ∀ trLater,
@@ -159,5 +172,21 @@ theorem Label.joinCanFlowRight (l1: Label) (l2: Label) (tr: Trace α):
   := by
   have := joinEq (l1.join l2) l1 l2 tr
   grind
+
+@[grind]
+theorem Label.join_pub_left (l: Label): Label.join Label.pub l = Label.pub := by
+  ext
+  grind
+
+@[grind]
+theorem Label.join_pub_right (l: Label): Label.join l Label.pub = Label.pub := by
+  ext
+  grind
+
+theorem Label.join_commutes (l1 l2: Label): Label.join l1 l2 = Label.join l2 l1 := by
+  ext
+  grind
+
+grind_pattern Label.join_commutes => Label.join l1 l2, Label.join l2 l1
 
 end DY

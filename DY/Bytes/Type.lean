@@ -45,6 +45,9 @@ variable [BytesFunctor]
 -- TODO: Bytes or SymbolicBytes?
 def Bytes := ALaCarte.ContainerFor BytesF
 
+noncomputable
+instance: SizeOf Bytes := inferInstanceAs (SizeOf (ALaCarte.ContainerFor BytesF))
+
 instance: DecidableEq Bytes := inferInstanceAs (DecidableEq (ALaCarte.ContainerFor BytesF))
 
 instance: Ord Bytes := inferInstanceAs (Ord (ALaCarte.ContainerFor BytesF))
@@ -52,6 +55,9 @@ instance: Std.ReflOrd Bytes := inferInstanceAs (Std.ReflOrd (ALaCarte.ContainerF
 instance: Std.LawfulEqOrd Bytes := inferInstanceAs (Std.LawfulEqOrd (ALaCarte.ContainerFor BytesF))
 instance: Std.OrientedOrd Bytes := inferInstanceAs (Std.OrientedOrd (ALaCarte.ContainerFor BytesF))
 instance: Std.TransOrd Bytes := inferInstanceAs (Std.TransOrd (ALaCarte.ContainerFor BytesF))
+
+instance: LE Bytes := LE.ofOrd Bytes
+instance: Std.IsLinearOrder Bytes := Std.IsLinearOrder.of_ord
 
 class BytesFunctor.HasStep (SubF1: Type → Type) (SubF2: semiOutParam (Type → Type)) [SubBytesFunctor SubF1] [semiOutParam (SubBytesFunctor SubF2)] extends ALaCarte.SubFunctor SubF1 SubF2
 class BytesFunctor.Has (SubF: Type → Type) [SubBytesFunctor SubF] extends ALaCarte.SubFunctorTC SubF BytesF
@@ -121,7 +127,24 @@ theorem BytesView.view_pack
 
 grind_pattern BytesView.view_pack => b.pack
 
-def Bytes.PartialFunction (SubF: Type → Type) [SubBytesFunctor SubF] (a: Type) := ALaCarte.Container.PartialFun SubF BytesF a
+theorem Bytes.sizeOf_view
+  (SubF: Type → Type) [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
+  (b: Bytes)
+  :
+  match b.view? SubF with
+  | some bview => DY.ALaCarte.FunctorSizeOf.sizeOf bview ≤ sizeOf b
+  | none => True
+  := by
+    simp only [Bytes.view?]
+    grind [ALaCarte.Container.sizeOf_view]
+
+grind_pattern Bytes.sizeOf_view => b.view? SubF
+
+-- Unfolding of `ALaCarte.Container.PartialFun SubF BytesF a` that use the type `Bytes` instead of `ContainerFor BytesF`,
+-- and with an autoParam to prove well-founded recursion automatically.
+def Bytes.PartialFunction (SubF: Type → Type) [SubBytesFunctor SubF] (a: Type) :=
+  ∀ x: SubF Bytes, (∀ y: Bytes, (h: sizeOf y ≤ DY.ALaCarte.FunctorSizeOf.sizeOf x := by simp_all +arith [DY.ALaCarte.FunctorSizeOf.sizeOf] <;> grind) → a) → a
+
 def Bytes.Function (a: Type) := Bytes.PartialFunction BytesF a
 
 def Bytes.rec {a: Type} (f: Bytes.Function a) (x: Bytes) : a :=
@@ -192,7 +215,9 @@ theorem Bytes.rec_eq
   : x.pack.rec totalFun = partialFun x (fun y _ => y.rec totalFun)
   := ALaCarte.Container.rec_eq partialFun totalFun x
 
-def Bytes.PartialProof1 {SubF: Type → Type} [SubBytesFunctor SubF] {a: Type} (fn: Bytes.PartialFunction SubF a) (rec: Bytes → a) (p: a → Prop) := ALaCarte.Container.PartialProof1 fn rec p
+-- Unfolding of `ALaCarte.Container.PartialProof1 fn rec p` that use the type `Bytes` instead of `ContainerFor BytesF`
+def Bytes.PartialProof1 {SubF: Type → Type} [SubBytesFunctor SubF] {a: Type} (fn: Bytes.PartialFunction SubF a) (rec: Bytes → a) (p: a → Prop) :=
+  ∀ x: SubF Bytes, (∀ y: Bytes, sizeOf y ≤ DY.ALaCarte.FunctorSizeOf.sizeOf x → p (rec y)) → p (fn x (fun y _ => rec y))
 
 def Bytes.Proof1 {a: Type} (fn: Bytes.Function a) (p: a → Prop) := Bytes.PartialProof1 fn (Bytes.rec fn) p
 
@@ -215,7 +240,9 @@ def Bytes.PartialProof1.combine
   : Bytes.PartialProof1 (Bytes.PartialFunction.combine funs) rec p
   := ALaCarte.Container.PartialProof1.combine pfs
 
-def Bytes.PartialProof2 {SubF: Type → Type} [SubBytesFunctor SubF] {a b: Type} (fn1: Bytes.PartialFunction SubF a) (fn2: Bytes.PartialFunction SubF b) (rec1: Bytes → a) (rec2: Bytes → b) (p: a × b → Prop) := ALaCarte.Container.PartialProof2 fn1 fn2 rec1 rec2 p
+-- Unfolding of `ALaCarte.Container.PartialProof2 fn1 fn2 rec1 rec2 p` that use the type `Bytes` instead of `ContainerFor BytesF`
+def Bytes.PartialProof2 {SubF: Type → Type} [SubBytesFunctor SubF] {a b: Type} (fn1: Bytes.PartialFunction SubF a) (fn2: Bytes.PartialFunction SubF b) (rec1: Bytes → a) (rec2: Bytes → b) (p: a × b → Prop) :=
+  ∀ x: SubF Bytes, (∀ y: Bytes, sizeOf y ≤ DY.ALaCarte.FunctorSizeOf.sizeOf x → p (rec1 y, rec2 y)) → p (fn1 x (fun y _ => rec1 y), fn2 x (fun y _ => rec2 y))
 
 def Bytes.Proof2 {a b: Type} (fn1: Bytes.Function a) (fn2: Bytes.Function b) (p: a × b → Prop) := Bytes.PartialProof2 fn1 fn2 (Bytes.rec fn1) (Bytes.rec fn2) p
 

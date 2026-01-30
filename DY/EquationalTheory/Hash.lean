@@ -111,6 +111,10 @@ def Hash.invariants: Bytes.PartialInvariants Hash where
 
 abbrev invariants: Bytes.PartialInvariants SubF := Hash.Hash.invariants
 
+def Hash.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Hash.invariants where
+
+abbrev invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs invariants := Hash.Hash.invariantsProofs
+
 variable [BytesInvariants] [BytesInvariants.Has invariants]
 
 @[simp]
