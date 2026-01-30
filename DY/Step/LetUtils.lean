@@ -240,7 +240,7 @@ namespace Test
     sorry
 
   example:
-    wp (self := DY.instWPTraceful) (
+    wp (
       do
         let i ← send_message (g (g (g b1 b2) (g b3 b4)) (g (g b5 b6) (g b7 b8)));
         pure i
