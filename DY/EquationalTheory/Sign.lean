@@ -48,6 +48,10 @@ instance: ALaCarte.RepresentableDecidableEq Vk where
 instance: ALaCarte.RepresentableOrd Vk where
 instance: SubBytesFunctor Vk where
 
+def Vk.length [BytesFunctor]: Bytes.PartialLength Vk :=
+  fun _ _ =>
+    32
+
 structure Sign (Bytes: Type) where
   sk: Bytes
   nonce: Bytes
@@ -81,6 +85,10 @@ instance: ALaCarte.RepresentableDecidableEq Sign where
 instance: ALaCarte.RepresentableOrd Sign where
 instance: SubBytesFunctor Sign where
 
+def Sign.length [BytesFunctor]: Bytes.PartialLength Sign :=
+  fun _ _ =>
+    64
+
 abbrev SubF.internal (id: Fin 2): Type → Type :=
   match id with
   | 0 => Vk
@@ -96,6 +104,16 @@ instance: SubBytesFunctor SubF := inferInstance
 
 instance: BytesFunctor.HasStep Vk SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) SubF)
 instance: BytesFunctor.HasStep Sign SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 1) SubF)
+
+def SubF.length.internal [BytesFunctor]: ∀ id, Bytes.PartialLength (SubF.internal id)
+  | 0 => Vk.length
+  | 1 => Sign.length
+
+abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
+  Bytes.PartialLength.combine SubF.length.internal
+
+instance [BytesFunctor] [BytesLength]: BytesLength.HasStep Vk.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 0) SubF.length)
+instance [BytesFunctor] [BytesLength]: BytesLength.HasStep Sign.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 1) SubF.length)
 
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 

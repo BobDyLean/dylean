@@ -9,8 +9,8 @@ import DY.Misc
 namespace DY.Literal
 
 class CanMkLiteral (Bytes: Type u) where
-  literalToBytes: Nat → Bytes
-  bytesToLiteral: Bytes → Option Nat
+  literalToBytes: ByteArray → Bytes
+  bytesToLiteral: Bytes → Option ByteArray
 
 export CanMkLiteral (literalToBytes)
 export CanMkLiteral (bytesToLiteral)
@@ -20,14 +20,14 @@ export CanMkLiteral (bytesToLiteral)
 section Constructors
 
 structure Literal (Bytes: Type) where
-  lit: Nat
+  lit: ByteArray
 
 instance: ALaCarte.FunctorSizeOf Literal where
   sizeOf | {lit := _} => 0
 
 instance: ALaCarte.Representable Literal where
   CtorId := Unit
-  ctors | () => { Data := Nat, nRec := 0 }
+  ctors | () => { Data := ByteArray, nRec := 0 }
 
   toRepr | {lit} => {
     id := ()
@@ -49,6 +49,12 @@ instance: SubBytesFunctor Literal where
 
 abbrev SubF := Literal
 
+def Literal.length [BytesFunctor]: Bytes.PartialLength Literal :=
+  fun { lit := lit } _ =>
+    lit.size
+
+abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF := Literal.length
+
 abbrev Literal.pack [BytesFunctor] [BytesFunctor.Has SubF] (x: Literal Bytes) := BytesView.pack x
 
 instance [BytesFunctor] [BytesFunctor.Has SubF]: CanMkLiteral Bytes where
@@ -63,7 +69,7 @@ instance [BytesFunctor] [BytesFunctor.Has SubF]: CanMkLiteral Bytes where
 
 theorem bytesToLiteral_literalToBytes
   [BytesFunctor] [BytesFunctor.Has SubF]
-  (lit: Nat)
+  (lit: ByteArray)
   : bytesToLiteral (literalToBytes lit: Bytes) = some lit
   := by
     simp only [bytesToLiteral, literalToBytes]
@@ -97,7 +103,7 @@ abbrev attackerKnowledge := attKnowsLit
 variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
 theorem attacker_knows_literalToBytes
-  (lit: Nat) (tr: Trace α)
+  (lit: ByteArray) (tr: Trace α)
   : (literalToBytes lit: Bytes).AttackerKnows tr
   := by
     apply Bytes.AttackerKnows.prove attKnowsLit
@@ -132,21 +138,21 @@ variable [BytesInvariants] [BytesInvariants.Has invariants]
 
 @[simp]
 theorem literalToBytes.WellFormed
-  (lit: Nat) (tr: ProofTrace)
+  (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).WellFormed tr
   := by
     simp [literalToBytes, Bytes.WellFormed.eq, Literal.invariants]
 
 @[simp]
 theorem literalToBytes.label
-  (lit: Nat) (tr: ProofTrace)
+  (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).label tr = Label.pub
   := by
     simp [literalToBytes, Bytes.label.eq, Literal.invariants]
 
 @[simp]
 theorem literalToBytes.Invariant
-  (lit: Nat) (tr: ProofTrace)
+  (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).Invariant tr
   := by
     simp [literalToBytes, Bytes.Invariant.eq, Literal.invariants]

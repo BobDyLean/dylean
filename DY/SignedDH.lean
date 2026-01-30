@@ -888,6 +888,27 @@ example: BytesFunctor.Has Hash.SubF := inferInstance
 example: BytesFunctor.Has Signature.SubF := inferInstance
 example: BytesFunctor.Has DiffieHellman.SubF := inferInstance
 
+def SubF.length.internal [BytesFunctor]: ∀ id, Bytes.PartialLength (SubF.internal id)
+  | 0 => Hash.SubF.length
+  | 1 => Signature.SubF.length
+  | 2 => DiffieHellman.SubF.length
+
+abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
+  Bytes.PartialLength.combine SubF.length.internal
+
+instance: BytesLength where
+  funs := SubF.length
+
+instance: BytesLength.HasStep Hash.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 0) SubF.length)
+instance: BytesLength.HasStep Signature.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 1) SubF.length)
+instance: BytesLength.HasStep DiffieHellman.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 2) SubF.length)
+
+instance: BytesLength.Has SubF.length := inferInstanceAs (BytesLength.Has SubF.length)
+
+example: BytesLength.Has Hash.SubF.length := inferInstance
+example: BytesLength.Has Signature.SubF.length := inferInstance
+example: BytesLength.Has DiffieHellman.SubF.length := inferInstance
+
 def attackerKnowledge.internal (id: Fin 3): SubAttackerKnowledge (SubF.internal id) :=
   match id with
   | 0 => Hash.attackerKnowledge

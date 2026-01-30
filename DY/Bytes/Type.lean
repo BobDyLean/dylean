@@ -267,4 +267,80 @@ def Bytes.PartialProof2.combine
   : Bytes.PartialProof2 (Bytes.PartialFunction.combine funs1) (Bytes.PartialFunction.combine funs2) rec1 rec2 p
   := ALaCarte.Container.PartialProof2.combine pfs
 
+class BytesLength where
+  funs: Bytes.Function Nat
+
+def Bytes.length [BytesLength] (b: Bytes): Nat :=
+  Bytes.rec BytesLength.funs b
+
+def Bytes.PartialLength [BytesFunctor] (SubF: Type → Type) [SubBytesFunctor SubF] := (Bytes.PartialFunction SubF Nat)
+
+class BytesLength.HasStep
+  [BytesLength]
+  {SubF1 SubF2: Type → Type}
+  [SubBytesFunctor SubF1] [SubBytesFunctor SubF2]
+  [BytesFunctor.HasStep SubF1 SubF2]
+  (partialLength1: outParam (Bytes.PartialLength SubF1))
+  (partialLength2: Bytes.PartialLength SubF2)
+  extends
+   Bytes.SubFunctionStep partialLength1 partialLength2
+
+class BytesLength.Has
+  [BytesLength]
+  {SubF: Type → Type}
+  [SubBytesFunctor SubF]
+  [BytesFunctor.Has SubF]
+  (binv: outParam (Bytes.PartialLength SubF))
+  extends
+    Bytes.SubFunction binv BytesLength.funs
+
+abbrev Bytes.PartialLength.combine
+  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
+  {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  (lens: ∀ id, Bytes.PartialLength (SubFs id))
+  : Bytes.PartialLength (BytesFunctor.combine SubFs)
+  := Bytes.PartialFunction.combine lens
+
+namespace BytesLength
+
+instance [BytesLength]: BytesLength.Has (BytesLength.funs) where
+
+instance
+  [BytesLength]
+  {SubF1 SubF2: Type → Type}
+  [SubBytesFunctor SubF1] [SubBytesFunctor SubF2]
+  [BytesFunctor.HasStep SubF1 SubF2]
+  [BytesFunctor.Has SubF2]
+  (partialLen1: Bytes.PartialLength SubF1)
+  (partialLen2: Bytes.PartialLength SubF2)
+  [inst1: BytesLength.HasStep partialLen1 partialLen2]
+  [inst2: BytesLength.Has partialLen2]
+  : BytesLength.Has partialLen1
+  where
+
+instance
+  [BytesLength]
+  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
+  (SubFs: t → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]
+  (invs: ∀ id, Bytes.PartialLength (SubFs id))
+  (id: t)
+  : BytesLength.HasStep (invs id) (Bytes.PartialLength.combine invs)
+  where
+
+end BytesLength
+
+@[simp]
+theorem Bytes.length.eq
+  {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
+  [BytesLength]
+  {subLength: Bytes.PartialLength SubF}
+  [tc: BytesLength.Has subLength]
+  (b: BytesView SubF)
+  : b.pack.length = subLength b (fun y _ => y.length)
+  := by
+    have := tc.pf
+    apply Bytes.rec_eq
+
+grind_pattern Bytes.length.eq => b.pack.length
+
 end DY

@@ -10,8 +10,7 @@ namespace DY.Concat
 
 class CanConcat (Bytes: Type u) where
   concat: Bytes → Bytes → Bytes
-  -- TODO: index
-  split: Bytes → Option (Bytes × Bytes)
+  split: Bytes → Nat → Option (Bytes × Bytes)
 
 export CanConcat (concat)
 export CanConcat (split)
@@ -51,29 +50,39 @@ instance: SubBytesFunctor Concat where
 
 abbrev SubF := Concat
 
+def Concat.length [BytesFunctor]: Bytes.PartialLength Concat :=
+  fun { lhs, rhs } rec =>
+    rec lhs + rec rhs
+
+abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF := Concat.length
+
 variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [BytesLength]
 
 abbrev Concat.pack (x: Concat Bytes) := BytesView.pack x
 
 instance: CanConcat Bytes where
   concat lhs rhs := ({lhs, rhs}: Concat Bytes).pack
 
-  split buf :=
+  split buf i :=
     match buf.view? Concat with
     | some ({ lhs, rhs }) =>
-      some (lhs, rhs)
+      if lhs.length = i then
+        some (lhs, rhs)
+      else
+        none
     | none => none
 
 theorem split_concat
   (lhs rhs: Bytes)
-  : split (concat lhs rhs) = some (lhs, rhs)
+  : split (concat lhs rhs) (lhs.length) = some (lhs, rhs)
   := by
     simp only [split, concat]
     grind
 
 theorem concat_split
-  (buf lhs rhs: Bytes)
-  : split buf = some (lhs, rhs) → concat lhs rhs = buf
+  (buf: Bytes) (i: Nat) (lhs rhs: Bytes)
+  : split buf i = some (lhs, rhs) → concat lhs rhs = buf
   := by
     simp only [concat, split]
     grind
@@ -83,6 +92,7 @@ end Constructors
 section AttackerKnowledge
 
 variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [BytesLength]
 
 def attKnowsConcat: SubAttackerKnowledge Concat where
   pred p out :=
@@ -92,14 +102,14 @@ def attKnowsConcat: SubAttackerKnowledge Concat where
 
 def attKnowsSplitLeft: SubAttackerKnowledge Concat where
   pred p out :=
-    ∃ inp rhs,
-      some (out, rhs) = split inp ∧
+    ∃ inp rhs i,
+      some (out, rhs) = split inp i ∧
       DY.Kleene.Forall p [inp]
 
 def attKnowsSplitRight: SubAttackerKnowledge Concat where
   pred p out :=
-    ∃ inp lhs,
-      some (lhs, out) = split inp ∧
+    ∃ inp lhs i,
+      some (lhs, out) = split inp i ∧
       DY.Kleene.Forall p [inp]
 
 def attackerKnowledge.internal (id: Fin 3): SubAttackerKnowledge Concat :=
@@ -130,10 +140,10 @@ theorem attacker_knows_concat
     grind
 
 theorem attacker_knows_split
-  (buf: Bytes) (tr: Trace α)
+  (buf: Bytes) (i: Nat) (tr: Trace α)
   :
     buf.AttackerKnows tr →
-    match split buf with
+    match split buf i with
     | none => True
     | some (lhs, rhs) =>
       lhs.AttackerKnows tr ∧
@@ -176,6 +186,7 @@ def Concat.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Con
 abbrev invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs invariants := Concat.Concat.invariantsProofs
 
 variable [BytesInvariants] [BytesInvariants.Has invariants]
+variable [BytesLength]
 
 @[simp]
 theorem concat.WellFormed
@@ -202,9 +213,9 @@ theorem concat.Invariant
 
 @[simp]
 theorem split.WellFormed
-  (buf: Bytes) (tr: ProofTrace)
+  (buf: Bytes) (i: Nat) (tr: ProofTrace)
   :
-    match split buf with
+    match split buf i with
     | none => True
     | some (lhs, rhs) =>
       buf.WellFormed tr = (lhs.WellFormed tr ∧ rhs.WellFormed tr)
@@ -212,14 +223,14 @@ theorem split.WellFormed
     split
     · trivial
     rename_i lhs rhs heq
-    rewrite [← concat_split buf lhs rhs heq]
+    rewrite [← concat_split buf i lhs rhs heq]
     simp
 
 @[simp]
 theorem split.label
-  (buf: Bytes) (tr: ProofTrace)
+  (buf: Bytes) (i: Nat) (tr: ProofTrace)
   :
-    match split buf with
+    match split buf i with
     | none => True
     | some (lhs, rhs) =>
       buf.label tr = Label.meet (lhs.label tr) (rhs.label tr)
@@ -227,15 +238,15 @@ theorem split.label
     split
     · trivial
     rename_i lhs rhs heq
-    rewrite [← concat_split buf lhs rhs heq]
+    rewrite [← concat_split buf i lhs rhs heq]
     simp
 
 @[simp]
 theorem split.Invariant
-  (buf: Bytes) (tr: ProofTrace)
+  (buf: Bytes) (i: Nat) (tr: ProofTrace)
   :
     buf.Invariant tr →
-    match split buf with
+    match split buf i with
     | none => True
     | some (lhs, rhs) =>
       lhs.Invariant tr ∧ rhs.Invariant tr
@@ -244,7 +255,7 @@ theorem split.Invariant
     split
     · trivial
     rename_i lhs rhs heq
-    rewrite [← concat_split buf lhs rhs heq] at h_buf
+    rewrite [← concat_split buf i lhs rhs heq] at h_buf
     simp_all
 
 end Invariants
@@ -253,6 +264,7 @@ section AttackerKnowledgeTheorem
 
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
+variable [BytesLength]
 variable [BytesInvariants.Has invariants]
 
 instance: SubAttackerKnowledgeTheorem attKnowsConcat where
@@ -267,21 +279,21 @@ instance: SubAttackerKnowledgeTheorem attKnowsConcat where
 instance: SubAttackerKnowledgeTheorem attKnowsSplitLeft where
   pf := by
     simp only [attKnowsSplitLeft]
-    intro out tr h_tr ⟨inp, rhs, ⟨ h_out, h_inputs ⟩⟩
+    intro out tr h_tr ⟨inp, rhs, i, ⟨ h_out, h_inputs ⟩⟩
     simp [Kleene.Forall] at h_inputs
     simp [Bytes.Publishable]
-    have := split.label inp tr
-    have := split.Invariant inp tr
+    have := split.label inp i tr
+    have := split.Invariant inp i tr
     grind
 
 instance: SubAttackerKnowledgeTheorem attKnowsSplitRight where
   pf := by
     simp only [attKnowsSplitRight]
-    intro out tr h_tr ⟨inp, lhs, ⟨ h_out, h_inputs ⟩⟩
+    intro out tr h_tr ⟨inp, lhs, i, ⟨ h_out, h_inputs ⟩⟩
     simp [Kleene.Forall] at h_inputs
     simp [Bytes.Publishable]
-    have := split.label inp tr
-    have := split.Invariant inp tr
+    have := split.label inp i tr
+    have := split.Invariant inp i tr
     grind
 
 instance: ∀ id, SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)

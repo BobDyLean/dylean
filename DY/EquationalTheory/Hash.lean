@@ -48,6 +48,12 @@ instance: SubBytesFunctor Hash where
 
 abbrev SubF := Hash
 
+def Hash.length [BytesFunctor]: Bytes.PartialLength Hash :=
+  fun _ _ =>
+    32
+
+abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF := Hash.length
+
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 abbrev Hash.pack (x: Hash Bytes) := BytesView.pack x

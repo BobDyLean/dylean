@@ -47,6 +47,10 @@ instance: ALaCarte.RepresentableDecidableEq DhPk where
 instance: ALaCarte.RepresentableOrd DhPk where
 instance: SubBytesFunctor DhPk where
 
+def DhPk.length [BytesFunctor]: Bytes.PartialLength DhPk :=
+  fun _ _ =>
+    32
+
 -- workaround for lean4#11708
 theorem DhPk.sizeOf_eq
   [BytesFunctor]
@@ -89,6 +93,10 @@ instance: ALaCarte.RepresentableDecidableEq Dh where
 instance: ALaCarte.RepresentableOrd Dh where
 instance: SubBytesFunctor Dh where
 
+def Dh.length [BytesFunctor]: Bytes.PartialLength Dh :=
+  fun _ _ =>
+    32
+
 abbrev SubF.internal (id: Fin 2): Type → Type :=
   match id with
   | 0 => DhPk
@@ -104,6 +112,18 @@ instance: SubBytesFunctor SubF := inferInstance
 
 instance: BytesFunctor.HasStep DhPk SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) SubF)
 instance: BytesFunctor.HasStep Dh SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 1) SubF)
+
+def SubF.length.internal [BytesFunctor]: ∀ id, Bytes.PartialLength (SubF.internal id)
+  | 0 => DhPk.length
+  | 1 => Dh.length
+
+abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
+  Bytes.PartialLength.combine SubF.length.internal
+
+instance [BytesFunctor] [BytesLength]: BytesLength.HasStep DhPk.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 0) SubF.length)
+instance [BytesFunctor] [BytesLength]: BytesLength.HasStep Dh.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 1) SubF.length)
+
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
