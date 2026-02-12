@@ -64,9 +64,9 @@ theorem hash_inj
   :
     hash inp1 = hash inp2 →
     inp1 = inp2
-  := by
-    simp only [hash]
-    grind
+:= by
+  simp only [hash]
+  grind
 
 end Constructors
 
@@ -86,14 +86,13 @@ variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
 theorem attacker_knows_hash
   (inp: Bytes) (tr: Trace α)
-  :
-    inp.AttackerKnows tr →
+  : inp.AttackerKnows tr →
     (hash inp).AttackerKnows tr
-  := by
-    intro h_inp
-    apply Bytes.AttackerKnows.prove attKnowsHash
-    simp only [attKnowsHash]
-    grind
+:= by
+  intro h_inp
+  apply Bytes.AttackerKnows.prove attKnowsHash
+  simp only [attKnowsHash]
+  grind
 
 end AttackerKnowledge
 
@@ -126,15 +125,15 @@ theorem hash.WellFormed
   (inp: Bytes) (tr: ProofTrace)
   :
     (hash inp).WellFormed tr = inp.WellFormed tr
-  := by
-    simp [hash, Bytes.WellFormed.eq, Hash.invariants]
+:= by
+  simp [hash, Bytes.WellFormed.eq, Hash.invariants]
 
 @[simp]
 theorem hash.label
   (inp: Bytes) (tr: ProofTrace)
   : (hash inp).label tr = inp.label tr
-  := by
-    simp [hash, Bytes.label.eq, Hash.invariants]
+:= by
+  simp [hash, Bytes.label.eq, Hash.invariants]
 
 @[simp]
 theorem hash.Invariant
@@ -142,8 +141,8 @@ theorem hash.Invariant
   :
     (hash inp).Invariant tr =
     inp.Invariant tr
-  := by
-    simp [hash, Bytes.Invariant.eq, Hash.invariants]
+:= by
+  simp [hash, Bytes.Invariant.eq, Hash.invariants]
 
 end Invariants
 

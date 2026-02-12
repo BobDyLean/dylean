@@ -294,32 +294,33 @@ theorem Array.attachWith_unattach
   {p: a → Prop}
   (arr: Array (Subtype p)) (h: ∀ x, x ∈ (Array.unattach arr) → p x)
   : Array.attachWith (Array.unattach arr) p h = arr
-  := by
-    cases arr
-    rename_i l
-    simp only [Array.attachWith, Array.unattach]
-    simp only [List.unattach_toArray, List.mem_toArray] at h
-    induction l <;>
-    simp_all
+:= by
+  cases arr
+  rename_i l
+  simp only [Array.attachWith, Array.unattach]
+  simp only [List.unattach_toArray, List.mem_toArray] at h
+  induction l <;>
+  simp_all
 
 def Container.intoFunctor
   {CtorId: Type} {ctors: Ctors CtorId}
   (x: Container ctors)
   : FunctorRepr ctors (Container ctors)
-  where
-    id := x.val.id
-    data := x.val.data
-    as := Vector.mk (x.val.as.attachWith BareContainer.wf (by
-      grind [BareContainer.wf]
-    )) (by
-      grind [BareContainer.wf, Array.size_attachWith]
-    )
+where
+  id := x.val.id
+  data := x.val.data
+  as := Vector.mk (x.val.as.attachWith BareContainer.wf (by
+    grind [BareContainer.wf]
+  )) (by
+    grind [BareContainer.wf, Array.size_attachWith]
+  )
 
 def Container.fromFunctor
   {CtorId: Type} {ctors: Ctors CtorId}
   (x: FunctorRepr ctors (Container ctors))
   : Container ctors
-  := Subtype.mk {
+:=
+  Subtype.mk {
     id := x.id
     data := x.data
     as := x.as.toArray.unattach
@@ -331,43 +332,43 @@ def Container.intoFunctor_fromFunctor
   {CtorId: Type} {ctors: Ctors CtorId}
   (x: FunctorRepr ctors (Container ctors))
   : Container.intoFunctor (Container.fromFunctor x) = x
-  := by
-    cases x; rename_i id data as
-    rewrite [Container.fromFunctor, Container.intoFunctor]
-    simp [Array.attachWith_unattach]
+:= by
+  cases x; rename_i id data as
+  rewrite [Container.fromFunctor, Container.intoFunctor]
+  simp [Array.attachWith_unattach]
 
 def Container.fromFunctor_intoFunctor
   {CtorId: Type} {ctors: Ctors CtorId}
   (x: Container ctors)
   : Container.fromFunctor (Container.intoFunctor x) = x
-  := by
-    cases x; rename_i x h_x
-    cases x; rename_i id data as
-    rewrite [Container.fromFunctor, Container.intoFunctor]
-    simp
+:= by
+  cases x; rename_i x h_x
+  cases x; rename_i id data as
+  rewrite [Container.fromFunctor, Container.intoFunctor]
+  simp
 
 theorem List.map_sizeOf_attachWith
   {α: Type} [SizeOf α]
   (l : List α) (P : α → Prop) (H : ∀ x ∈ l, P x)
   : (List.map sizeOf (l.attachWith P H)).sum ≤ sizeOf l
-  := by
-    induction l <;>
-    simp_all
+:= by
+  induction l <;>
+  simp_all
 
 theorem Container.sizeOf_intoFunctor
   {CtorId: Type} {ctors: Ctors CtorId}
   (x: Container ctors)
   : FunctorSizeOf.sizeOf (Container.intoFunctor x) < sizeOf x
-  := by
-    cases x; rename_i val property
-    cases val; rename_i id data as
-    cases as; rename_i l
-    rewrite [Subtype.mk.sizeOf_spec]
-    simp only [FunctorSizeOf.sizeOf, intoFunctor, List.attachWith_toArray, Vector.map_mk, List.map_toArray, Vector.sum_mk, List.sum_toArray, BareContainer.mk.sizeOf_spec, sizeOf_default, Nat.add_zero, Array.mk.sizeOf_spec]
-    refine Nat.lt_add_left 1 ?_
-    refine Nat.lt_add_left 1 ?_
-    refine Nat.lt_one_add_iff.mpr ?_
-    apply List.map_sizeOf_attachWith
+:= by
+  cases x; rename_i val property
+  cases val; rename_i id data as
+  cases as; rename_i l
+  rewrite [Subtype.mk.sizeOf_spec]
+  simp only [FunctorSizeOf.sizeOf, intoFunctor, List.attachWith_toArray, Vector.map_mk, List.map_toArray, Vector.sum_mk, List.sum_toArray, BareContainer.mk.sizeOf_spec, sizeOf_default, Nat.add_zero, Array.mk.sizeOf_spec]
+  refine Nat.lt_add_left 1 ?_
+  refine Nat.lt_add_left 1 ?_
+  refine Nat.lt_one_add_iff.mpr ?_
+  apply List.map_sizeOf_attachWith
 
 /--
   When we have a collection of functors,
@@ -387,40 +388,39 @@ instance {a: Type} (Functors: a → (Type → Type)) [∀ id, FunctorSizeOf (Fun
   sizeOf x :=
     FunctorSizeOf.sizeOf x.val
 
-instance {a: Type} (Functors: a → (Type → Type)) [∀ id, FunctorSizeOf (Functors id)] [∀ id, Representable (Functors id)]: Representable (FunctorUnion Functors)
-  where
-    CtorId := FunctorUnion.CtorId Functors
-    ctors id :=
-      (Representable.ctors (f := Functors id.idHead)) id.idTail
-    toRepr x :=
-      let reprMid := Representable.toRepr (f := Functors x.id) x.val
-      { reprMid with
-        id := {
-          idHead := x.id,
-          idTail := reprMid.id
-        }
+instance {a: Type} (Functors: a → (Type → Type)) [∀ id, FunctorSizeOf (Functors id)] [∀ id, Representable (Functors id)]: Representable (FunctorUnion Functors) where
+  CtorId := FunctorUnion.CtorId Functors
+  ctors id :=
+    (Representable.ctors (f := Functors id.idHead)) id.idTail
+  toRepr x :=
+    let reprMid := Representable.toRepr (f := Functors x.id) x.val
+    { reprMid with
+      id := {
+        idHead := x.id,
+        idTail := reprMid.id
       }
-    fromRepr repr :=
-      {
-        id := repr.id.idHead
-        val := Representable.fromRepr (f := Functors repr.id.idHead) { repr with id := repr.id.idTail }
-      }
-    from_to := by
-      intro a x
-      simp_all [Representable.from_to (f := Functors x.id) x.val]
-    to_from := by
-      intro a repr
-      have := Representable.to_from (f := Functors repr.id.idHead) { repr with id := repr.id.idTail }
-      cases repr
-      simp_all
-      grind
-    sizeOf_eq x := by
-      simp only [FunctorSizeOf.sizeOf]
-      have := Representable.sizeOf_eq x.val
-      revert this
-      generalize (Representable.toRepr x.val) = y
-      cases y
-      simp [FunctorSizeOf.sizeOf]
+    }
+  fromRepr repr :=
+    {
+      id := repr.id.idHead
+      val := Representable.fromRepr (f := Functors repr.id.idHead) { repr with id := repr.id.idTail }
+    }
+  from_to := by
+    intro a x
+    simp_all [Representable.from_to (f := Functors x.id) x.val]
+  to_from := by
+    intro a repr
+    have := Representable.to_from (f := Functors repr.id.idHead) { repr with id := repr.id.idTail }
+    cases repr
+    simp_all
+    grind
+  sizeOf_eq x := by
+    simp only [FunctorSizeOf.sizeOf]
+    have := Representable.sizeOf_eq x.val
+    revert this
+    generalize (Representable.toRepr x.val) = y
+    cases y
+    simp [FunctorSizeOf.sizeOf]
 
 instance {a: Type} [DecidableEq a] (Functors: a → (Type → Type)) [∀ id, FunctorSizeOf (Functors id)] (id: a): SubFunctor (Functors id) (FunctorUnion Functors) where
   inj x := {
@@ -456,9 +456,9 @@ theorem Container.view_pack
   [SubFunctorTC f g] [Representable g]
   (x: f (ContainerFor g))
   : view f (pack f x) = some x
-  := by
-    unfold view pack
-    simp [Container.intoFunctor_fromFunctor, Representable.from_to, SubFunctorTC.proj_inj]
+:= by
+  unfold view pack
+  simp [Container.intoFunctor_fromFunctor, Representable.from_to, SubFunctorTC.proj_inj]
 
 theorem Container.pack_view
   (f: Type → Type) {g: Type → Type}
@@ -468,14 +468,14 @@ theorem Container.pack_view
   : match view f x with
     | none => True
     | some y => pack f y = x
-  := by
-    unfold view pack
-    split
-    · trivial
-    · have := SubFunctorTC.inj_proj (f := f) (Representable.fromRepr x.intoFunctor)
-      have := Representable.to_from x.intoFunctor
-      have := Container.fromFunctor_intoFunctor x
-      simp_all
+:= by
+  unfold view pack
+  split
+  · trivial
+  · have := SubFunctorTC.inj_proj (f := f) (Representable.fromRepr x.intoFunctor)
+    have := Representable.to_from x.intoFunctor
+    have := Container.fromFunctor_intoFunctor x
+    simp_all
 
 theorem Container.sizeOf_pack
   (f: Type → Type) {g: Type → Type}
@@ -484,13 +484,13 @@ theorem Container.sizeOf_pack
   [Representable g]
   (x: f (ContainerFor g))
   : FunctorSizeOf.sizeOf x ≤ sizeOf (Container.pack f x)
-  := by
-    simp_all only [Container.pack]
-    have := SubFunctorTC.sizeOf_inj (g := g) x
-    have := Representable.sizeOf_eq (f := g) (SubFunctorTC.inj x)
-    have := Container.sizeOf_intoFunctor (fromFunctor (Representable.toRepr (SubFunctorTC.inj x)))
-    have := Container.intoFunctor_fromFunctor (Representable.toRepr (SubFunctorTC.inj x))
-    grind
+:= by
+  simp_all only [Container.pack]
+  have := SubFunctorTC.sizeOf_inj (g := g) x
+  have := Representable.sizeOf_eq (f := g) (SubFunctorTC.inj x)
+  have := Container.sizeOf_intoFunctor (fromFunctor (Representable.toRepr (SubFunctorTC.inj x)))
+  have := Container.intoFunctor_fromFunctor (Representable.toRepr (SubFunctorTC.inj x))
+  grind
 
 theorem Container.sizeOf_view
   (f: Type → Type) {g: Type → Type}
@@ -501,24 +501,24 @@ theorem Container.sizeOf_view
   : match x.view f with
     | none => True
     | some y => FunctorSizeOf.sizeOf y ≤ sizeOf x
-  := by
-    split
-    · trivial
-    rename_i y heq
-    have: pack f y = x := by grind [Container.pack_view]
-    grind [Container.sizeOf_pack]
+:= by
+  split
+  · trivial
+  rename_i y heq
+  have: pack f y = x := by grind [Container.pack_view]
+  grind [Container.sizeOf_pack]
 
 def Container.PartialFunDep
   (f: Type → Type) {g: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [Representable g] [SubFunctorTC f g]
   (motive: ContainerFor g → Sort u)
-  :=
+:=
   (∀ x: f (ContainerFor g), (∀ y: ContainerFor g, sizeOf y ≤ FunctorSizeOf.sizeOf x → motive y) → motive (pack f x))
 
 -- This one does not require the typeclass instance [SubFunctorTC f g]
 def Container.PartialFun
   (f: Type → Type) (g: Type → Type) [FunctorSizeOf f] [FunctorSizeOf g] [Representable g]
   (a: Type)
-  :=
+:=
   ∀ x: f (ContainerFor g), (∀ y: ContainerFor g, sizeOf y ≤ FunctorSizeOf.sizeOf x → a) → a
 
 /--
@@ -530,7 +530,8 @@ def Container.rec
   {motive: ContainerFor f → Sort u}
   (pf: Container.PartialFunDep f motive)
   (x: ContainerFor f)
-    : motive x := by
+  : motive x
+:= by
   have := pf (Representable.fromRepr (Container.intoFunctor x)) (fun y _ => Container.rec pf y)
   simp only [pack, SubFunctorTC.inj, Representable.to_from, Container.fromFunctor_intoFunctor] at this
   exact this
@@ -549,7 +550,7 @@ class SubPartialFun
   {a: Type}
   (f1: Container.PartialFun f h a)
   (f2: semiOutParam (Container.PartialFun g h a))
-    where
+where
   pf (f1 f2): ∀ x rec, f1 x rec = f2 (SubFunctor.inj x) (fun y h => rec y (by simp_all [SubFunctor.sizeOf_inj x]))
 
 class SubPartialFunTC
@@ -560,7 +561,7 @@ class SubPartialFunTC
   {a: Type}
   (f1: Container.PartialFun f h a)
   (f2: Container.PartialFun g h a)
-    where
+where
   pf (f1 f2): ∀ x rec, f1 x rec = f2 (SubFunctorTC.inj x) (fun y h => rec y (by simp_all [SubFunctorTC.sizeOf_inj x]))
 
 instance {f: Type → Type} [FunctorSizeOf f] [Representable f] {a: Type} (f: Container.PartialFun f f a): SubPartialFunTC f f where
@@ -580,13 +581,13 @@ instance
   [SubPartialFun f1 f2]
   [SubPartialFunTC f2 f3]
   : SubPartialFunTC f1 f3
-  where
-    pf := by
-      intro x rec
-      simp [SubFunctorTC.inj]
-      rewrite [← SubPartialFunTC.pf f2 f3 (SubFunctor.inj x) (fun y h => rec y (by grind [SubFunctor.sizeOf_inj]))]
-      rewrite [← SubPartialFun.pf f1 f2 x (fun y h => rec y (by grind))]
-      rfl
+where
+  pf := by
+    intro x rec
+    simp [SubFunctorTC.inj]
+    rewrite [← SubPartialFunTC.pf f2 f3 (SubFunctor.inj x) (fun y h => rec y (by grind [SubFunctor.sizeOf_inj]))]
+    rewrite [← SubPartialFun.pf f1 f2 x (fun y h => rec y (by grind))]
+    rfl
 
 theorem Container.rec_eq
   {f: Type → Type} {g: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [SubFunctorTC f g] [Representable g]
@@ -596,13 +597,13 @@ theorem Container.rec_eq
   [SubPartialFunTC partialFun totalFun]
   (x: f (ContainerFor g))
   : (pack f x).rec totalFun = partialFun x (fun y _ => y.rec totalFun)
-  := by
-    conv => lhs; unfold Container.rec pack
-    simp only [eq_mp_eq_cast, cast_eq]
-    rewrite [Container.intoFunctor_fromFunctor]
-    rewrite [Representable.from_to]
-    rewrite [<- SubPartialFunTC.pf partialFun totalFun x (fun y h => rec totalFun y)]
-    grind
+:= by
+  conv => lhs; unfold Container.rec pack
+  simp only [eq_mp_eq_cast, cast_eq]
+  rewrite [Container.intoFunctor_fromFunctor]
+  rewrite [Representable.from_to]
+  rewrite [<- SubPartialFunTC.pf partialFun totalFun x (fun y h => rec totalFun y)]
+  grind
 
 def Container.PartialFun.combine
   {t: Type} [DecidableEq t]
@@ -611,7 +612,8 @@ def Container.PartialFun.combine
   {a: Type}
   (funs: (id: t) → Container.PartialFun (functors id) g a)
   : Container.PartialFun (FunctorUnion functors) g a
-  := fun {id, val} rec =>
+:=
+  fun {id, val} rec =>
     funs id val rec
 
 def Container.PartialFunDep.combine
@@ -622,7 +624,8 @@ def Container.PartialFunDep.combine
   {motive: ContainerFor g → Sort u}
   (funs: (id: t) → Container.PartialFunDep (functors id) motive)
   : Container.PartialFunDep (FunctorUnion functors) motive
-  := fun {id, val} rec =>
+:=
+  fun {id, val} rec =>
     funs id val rec
 
 instance
@@ -633,10 +636,10 @@ instance
   (funs: (id: t) → Container.PartialFun (functors id) g a)
   (id: t)
   : SubPartialFun (funs id) (Container.PartialFun.combine funs)
-  where
-    pf x rec := by
-      simp [Container.PartialFun.combine]
-      congr
+where
+  pf x rec := by
+    simp [Container.PartialFun.combine]
+    congr
 
 /--
   Helper to write a modular proof on one modular function
@@ -648,7 +651,8 @@ def Container.PartialProof1
   (rec: ContainerFor g → a)
   (p: a → Prop)
   : Prop
-  := ∀ x: f (ContainerFor g), (∀ y: ContainerFor g, sizeOf y ≤ FunctorSizeOf.sizeOf x → p (rec y)) → p (fn x (fun y _ => rec y))
+:=
+  ∀ x: f (ContainerFor g), (∀ y: ContainerFor g, sizeOf y ≤ FunctorSizeOf.sizeOf x → p (rec y)) → p (fn x (fun y _ => rec y))
 
 theorem Container.PartialProof1.into
   {f: Type → Type} [FunctorSizeOf f] [Representable f]
@@ -657,14 +661,14 @@ theorem Container.PartialProof1.into
   {p: a → Prop}
   (pf: Container.PartialProof1 fn (Container.rec fn) p)
   : Container.PartialFunDep f (fun x => p (x.rec fn))
-  := by
-    unfold Container.PartialFunDep
-    intro x rec
-    unfold Container.rec pack
-    simp only [SubFunctorTC.inj]
-    rewrite [Container.intoFunctor_fromFunctor]
-    rewrite [Representable.from_to]
-    exact pf x rec
+:= by
+  unfold Container.PartialFunDep
+  intro x rec
+  unfold Container.rec pack
+  simp only [SubFunctorTC.inj]
+  rewrite [Container.intoFunctor_fromFunctor]
+  rewrite [Representable.from_to]
+  exact pf x rec
 
 def Container.PartialProof1.combine
   {t: Type} [DecidableEq t]
@@ -676,7 +680,8 @@ def Container.PartialProof1.combine
   {funs: (id: t) → Container.PartialFun (functors id) g a}
   (pfs: (id: t) → Container.PartialProof1 (funs id) rec p)
   : Container.PartialProof1 (Container.PartialFun.combine funs) rec p
-  := fun {id, val} rec =>
+:=
+  fun {id, val} rec =>
     pfs id val rec
 
 /--
@@ -691,7 +696,8 @@ def Container.PartialProof2
   (rec2: ContainerFor g → b)
   (p: a × b → Prop)
   : Prop
-  := ∀ x: f (ContainerFor g), (∀ y: ContainerFor g, sizeOf y ≤ FunctorSizeOf.sizeOf x → p (rec1 y, rec2 y)) → p (fn1 x (fun y _ => rec1 y), fn2 x (fun y _ => rec2 y))
+:=
+  ∀ x: f (ContainerFor g), (∀ y: ContainerFor g, sizeOf y ≤ FunctorSizeOf.sizeOf x → p (rec1 y, rec2 y)) → p (fn1 x (fun y _ => rec1 y), fn2 x (fun y _ => rec2 y))
 
 theorem Container.PartialProof2.into
   {f: Type → Type} [FunctorSizeOf f] [Representable f]
@@ -701,14 +707,14 @@ theorem Container.PartialProof2.into
   {p: a × b → Prop}
   (pf: Container.PartialProof2 fn1 fn2 (Container.rec fn1) (Container.rec fn2) p)
   : Container.PartialFunDep f (fun x => p (x.rec fn1, x.rec fn2))
-  := by
-    unfold Container.PartialFunDep
-    intro x rec
-    unfold Container.rec pack
-    simp only [SubFunctorTC.inj]
-    rewrite [Container.intoFunctor_fromFunctor]
-    rewrite [Representable.from_to]
-    exact pf x rec
+:= by
+  unfold Container.PartialFunDep
+  intro x rec
+  unfold Container.rec pack
+  simp only [SubFunctorTC.inj]
+  rewrite [Container.intoFunctor_fromFunctor]
+  rewrite [Representable.from_to]
+  exact pf x rec
 
 def Container.PartialProof2.combine
   {t: Type} [DecidableEq t]
@@ -722,7 +728,8 @@ def Container.PartialProof2.combine
   {funs2: (id: t) → Container.PartialFun (functors id) g b}
   (pfs: (id: t) → Container.PartialProof2 (funs1 id) (funs2 id) rec1 rec2 p)
   : Container.PartialProof2 (Container.PartialFun.combine funs1) (Container.PartialFun.combine funs2) rec1 rec2 p
-  := fun {id, val} rec =>
+:=
+  fun {id, val} rec =>
     pfs id val rec
 
 end DY.ALaCarte

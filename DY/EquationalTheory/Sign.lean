@@ -136,11 +136,10 @@ instance: CanSign Bytes where
 
 theorem verify_sign
   (sk nonce msg: Bytes)
-  :
-    verify (vk sk) msg (sign sk nonce msg) = true
-  := by
-    simp only [verify, vk, sign]
-    grind
+  : verify (vk sk) msg (sign sk nonce msg) = true
+:= by
+  simp only [verify, vk, sign]
+  grind
 
 end Constructors
 
@@ -175,27 +174,25 @@ variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
 theorem attacker_knows_vk
   (sk: Bytes) (tr: Trace α)
-  :
-    sk.AttackerKnows tr →
+  : sk.AttackerKnows tr →
     (vk sk).AttackerKnows tr
-  := by
-    intro h_inp
-    apply Bytes.AttackerKnows.prove attKnowsVk
-    simp only [attKnowsVk]
-    grind
+:= by
+  intro h_inp
+  apply Bytes.AttackerKnows.prove attKnowsVk
+  simp only [attKnowsVk]
+  grind
 
 theorem attacker_knows_sign
   (sk nonce msg: Bytes) (tr: Trace α)
-  :
-    sk.AttackerKnows tr →
+  : sk.AttackerKnows tr →
     nonce.AttackerKnows tr →
     msg.AttackerKnows tr →
     (sign sk nonce msg).AttackerKnows tr
-  := by
-    intro h_inp h_nonce h_msg
-    apply Bytes.AttackerKnows.prove attKnowsSign
-    simp only [attKnowsSign, Kleene.Forall]
-    grind
+:= by
+  intro h_inp h_nonce h_msg
+  apply Bytes.AttackerKnows.prove attKnowsSign
+  simp only [attKnowsSign, Kleene.Forall]
+  grind
 
 end AttackerKnowledge
 
@@ -224,26 +221,24 @@ variable [BytesInvariants] [BytesInvariants.Has Vk.invariants]
 @[simp]
 theorem vk.WellFormed
   (inp: Bytes) (tr: ProofTrace)
-  :
-    (vk inp).WellFormed tr = inp.WellFormed tr
-  := by
-    simp [vk, Bytes.WellFormed.eq, Vk.invariants]
+  : (vk inp).WellFormed tr = inp.WellFormed tr
+:= by
+  simp [vk, Bytes.WellFormed.eq, Vk.invariants]
 
 @[simp]
 theorem vk.label
   (inp: Bytes) (tr: ProofTrace)
   : (vk inp).label tr = Label.pub
-  := by
-    simp [vk, Bytes.label.eq, Vk.invariants]
+:= by
+  simp [vk, Bytes.label.eq, Vk.invariants]
 
 @[simp]
 theorem vk.Invariant
   (inp: Bytes) (tr: ProofTrace)
-  :
-    inp.Invariant tr →
+  : inp.Invariant tr →
     (vk inp).Invariant tr
-  := by
-    simp [vk, Bytes.Invariant.eq, Vk.invariants]
+:= by
+  simp [vk, Bytes.Invariant.eq, Vk.invariants]
 
 end VkLemmas
 
@@ -266,7 +261,8 @@ theorem SignPredProof.pred_later_grind
   (skUsg : Usage) (vk msg : Bytes)
   (tr1 tr2 : ProofTrace) :
   vk.WellFormed tr1 → msg.WellFormed tr1 → tr1 ≤ tr2 → SignPred.pred skUsg vk msg tr1 → SignPred.pred skUsg vk msg tr2
-  := by apply SignPredProof.pred_later
+:= by
+  apply SignPredProof.pred_later
 
 grind_pattern SignPredProof.pred_later_grind => tr1 ≤ tr2, SignPred.pred skUsg vk msg tr1
 
@@ -316,8 +312,7 @@ def Sign.invariants [SignPred]: Bytes.PartialInvariants Sign where
       )
 
 def Sign.invariantsProofs [BytesInvariants] [BytesInvariants.Has Vk.invariants] [SignPred] [SignPredProof]: Bytes.PartialInvariantsProofs Sign.invariants where
-  invariant_later
-  := by
+  invariant_later := by
     intro _ _ _ _ x rec tr1 tr2
     cases x
     simp_all [invariants, DY.ALaCarte.FunctorSizeOf.sizeOf, BytesInvariantLaterT]
@@ -362,29 +357,30 @@ theorem Signature.vk_extractSignkey (b: Bytes):
   match extractSignkey b with
   | none => True
   | some sk => b = Signature.vk sk
-  := by
-    simp [extractSignkey, Signature.vk]
-    grind
+:= by
+  simp [extractSignkey, Signature.vk]
+  grind
 
 theorem Signature.extractSignkey.preserves_WellFormed
   [BytesInvariants] [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
 : ExtractPreservesWellFormed extractSignkey
-  := by
-    simp [ExtractPreservesWellFormed]
-    grind [Signature.vk_extractSignkey, Signature.vk.WellFormed]
+:= by
+  simp [ExtractPreservesWellFormed]
+  grind [Signature.vk_extractSignkey, Signature.vk.WellFormed]
 
 def Bytes.SignkeyHasUsage
   [BytesInvariants]
-  (vk: Bytes) (skUsg: Usage) (tr: ProofTrace): Prop :=
+  (vk: Bytes) (skUsg: Usage) (tr: ProofTrace): Prop
+:=
   Bytes.XXXHasUsage Signature.extractSignkey vk skUsg tr
 
 theorem Bytes.SignkeyHasUsage_vk
   [BytesInvariants]
   (sk: Bytes) (skUsg: Usage) (tr: ProofTrace)
   : (Signature.vk sk).SignkeyHasUsage skUsg tr = sk.HasUsage skUsg tr
-  := by
-    simp [Bytes.SignkeyHasUsage, Bytes.XXXHasUsage, Signature.extractSignkey, Signature.vk]
-    grind
+:= by
+  simp [Bytes.SignkeyHasUsage, Bytes.XXXHasUsage, Signature.extractSignkey, Signature.vk]
+  grind
 
 grind_pattern Bytes.SignkeyHasUsage_vk => (Signature.vk sk).SignkeyHasUsage skUsg tr
 
@@ -392,21 +388,21 @@ theorem Bytes.SignkeyHasUsage_later
   [BytesInvariants] [BytesInvariantsProofs]
   [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
-  :
-    b.WellFormed tr1 →
+  : b.WellFormed tr1 →
     tr1 ≤ tr2 →
     b.SignkeyHasUsage usg tr1 →
     b.SignkeyHasUsage usg tr2
-  := by
-    simp [Bytes.SignkeyHasUsage]
-    apply Bytes.XXXHasUsage_later Signature.extractSignkey Signature.extractSignkey.preserves_WellFormed
+:= by
+  simp [Bytes.SignkeyHasUsage]
+  apply Bytes.XXXHasUsage_later Signature.extractSignkey Signature.extractSignkey.preserves_WellFormed
 
 grind_pattern Bytes.SignkeyHasUsage_later => tr1 ≤ tr2, b.SignkeyHasUsage usg tr1
 
 noncomputable
 def Bytes.signkeyLabel
   [BytesInvariants]
-  (vk: Bytes) (tr: ProofTrace): Label :=
+  (vk: Bytes) (tr: ProofTrace): Label
+:=
   Bytes.xxxLabel Signature.extractSignkey vk tr
 
 theorem Bytes.signkeyLabel_vk
@@ -414,9 +410,9 @@ theorem Bytes.signkeyLabel_vk
   [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
   (sk: Bytes) (tr: ProofTrace)
   : (Signature.vk sk).signkeyLabel tr = sk.label tr
-  := by
-    simp [Bytes.signkeyLabel, Bytes.xxxLabel, Signature.extractSignkey, Signature.vk]
-    grind
+:= by
+  simp [Bytes.signkeyLabel, Bytes.xxxLabel, Signature.extractSignkey, Signature.vk]
+  grind
 
 grind_pattern Bytes.signkeyLabel_vk => (Signature.vk sk).signkeyLabel tr
 
@@ -424,13 +420,12 @@ theorem Bytes.signkeyLabel_later
   [BytesInvariants] [BytesInvariantsProofs]
   [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
   (b: Bytes) (tr1 tr2: ProofTrace)
-  :
-    b.WellFormed tr1 →
+  : b.WellFormed tr1 →
     tr1 ≤ tr2 →
     b.signkeyLabel tr1 = b.signkeyLabel tr2
-  := by
-    simp [Bytes.signkeyLabel]
-    apply Bytes.xxxLabel_later Signature.extractSignkey Signature.extractSignkey.preserves_WellFormed
+:= by
+  simp [Bytes.signkeyLabel]
+  apply Bytes.xxxLabel_later Signature.extractSignkey Signature.extractSignkey.preserves_WellFormed
 
 grind_pattern Bytes.signkeyLabel_later => tr1 ≤ tr2, b.signkeyLabel tr1
 
@@ -449,27 +444,25 @@ variable [BytesInvariants.Has invariants]
 @[simp]
 theorem sign.WellFormed
   (sk nonce msg: Bytes) (tr: ProofTrace)
-  :
-    (sign sk nonce msg).WellFormed tr = (
+  : (sign sk nonce msg).WellFormed tr = (
       sk.WellFormed tr ∧
       nonce.WellFormed tr ∧
       msg.WellFormed tr
     )
-  := by
-    simp [sign, Bytes.WellFormed.eq, Sign.invariants]
+:= by
+  simp [sign, Bytes.WellFormed.eq, Sign.invariants]
 
 @[simp]
 theorem sign.label
   (sk nonce msg: Bytes) (tr: ProofTrace)
   : (sign sk nonce msg).label tr = msg.label tr
-  := by
-    simp [sign, Bytes.label.eq, Sign.invariants]
+:= by
+  simp [sign, Bytes.label.eq, Sign.invariants]
 
 @[simp]
 theorem sign.Invariant
   (sk nonce msg: Bytes) (sk_usg: Usage) (tr: ProofTrace)
-  :
-    (
+  : (
       sk.Invariant tr ∧
       nonce.Invariant tr ∧
       msg.Invariant tr ∧
@@ -486,16 +479,15 @@ theorem sign.Invariant
       )
     ) →
     (sign sk nonce msg).Invariant tr
-  := by
-    have := vk.WellFormed sk tr
-    simp [sign, Bytes.Invariant.eq, Sign.invariants]
-    grind
+:= by
+  have := vk.WellFormed sk tr
+  simp [sign, Bytes.Invariant.eq, Sign.invariants]
+  grind
 
 @[simp]
 theorem verify.Invariant
   (vk msg sig: Bytes) (skUsg: Usage) (tr: ProofTrace)
-  :
-    vk.Invariant tr →
+  : vk.Invariant tr →
     msg.Invariant tr →
     sig.Invariant tr →
     vk.SignkeyHasUsage skUsg tr →
@@ -507,18 +499,18 @@ theorem verify.Invariant
         (vk.signkeyLabel tr).canFlow Label.pub tr
       )
     )
-  := by
-    simp [verify]
-    split
-    · rename_i sk nonce msg heq
-      have := Bytes.pack_view? Sign sig
-      simp only [heq] at this
-      subst this
-      have: ({sk}: Vk Bytes).pack = CanSign.vk sk := rfl
-      have := Bytes.HasUsage_inj sk skUsg
-      simp_all [Bytes.Invariant.eq, Sign.invariants]
-      grind
-    · simp
+:= by
+  simp [verify]
+  split
+  · rename_i sk nonce msg heq
+    have := Bytes.pack_view? Sign sig
+    simp only [heq] at this
+    subst this
+    have: ({sk}: Vk Bytes).pack = CanSign.vk sk := rfl
+    have := Bytes.HasUsage_inj sk skUsg
+    simp_all [Bytes.Invariant.eq, Sign.invariants]
+    grind
+  · simp
 
 end Invariants
 

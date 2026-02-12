@@ -62,23 +62,23 @@ class AttackerKnowledge.HasStep
   {SubF2: semiOutParam (Type → Type)}
   (att1: SubAttackerKnowledge SubF1)
   (att2: semiOutParam (SubAttackerKnowledge SubF2))
-  where
-    pf: ∀ p b, att1.pred p b → att2.pred p b
+where
+  pf: ∀ p b, att1.pred p b → att2.pred p b
 
 class AttackerKnowledge.Has
   [AttackerKnowledge]
   {SubF: Type → Type}
   (att: SubAttackerKnowledge SubF)
-  where
-    pf: ∀ p b, att.pred p b → AttackerKnowledge.attackerKnowledge.pred p b
+where
+  pf: ∀ p b, att.pred p b → AttackerKnowledge.attackerKnowledge.pred p b
 
 namespace AttackerKnowledge
 
 instance
   [AttackerKnowledge]
   : AttackerKnowledge.Has AttackerKnowledge.attackerKnowledge
-  where
-    pf p b := by simp
+where
+  pf p b := by simp
 
 instance
   [AttackerKnowledge]
@@ -88,8 +88,8 @@ instance
   [inst1: AttackerKnowledge.HasStep att1 att2]
   [inst2: AttackerKnowledge.Has att2]
   : AttackerKnowledge.Has att1
-  where
-    pf p b := by simp_all [inst1.pf, inst2.pf]
+where
+  pf p b := by simp_all [inst1.pf, inst2.pf]
 
 end AttackerKnowledge
 
@@ -98,18 +98,18 @@ def SubAttackerKnowledge.combine
   {SubFs: t → Type → Type}
   (atts: ∀ id, SubAttackerKnowledge (SubFs id))
   : SubAttackerKnowledge (BytesFunctor.combine SubFs)
-  where
-    pred := DY.Kleene.combine (fun id => (atts id).pred)
-    pred_isScottContinuous := DY.Kleene.combine_isScottContinuous (fun id => (atts id).pred) (fun id => (atts id).pred_isScottContinuous)
+where
+  pred := DY.Kleene.combine (fun id => (atts id).pred)
+  pred_isScottContinuous := DY.Kleene.combine_isScottContinuous (fun id => (atts id).pred) (fun id => (atts id).pred_isScottContinuous)
 
 def SubAttackerKnowledge.combine'
   {SubF: Type → Type}
   {t: Type}
   (atts: t → SubAttackerKnowledge SubF)
   : SubAttackerKnowledge SubF
-  where
-    pred := DY.Kleene.combine (fun id => (atts id).pred)
-    pred_isScottContinuous := DY.Kleene.combine_isScottContinuous (fun id => (atts id).pred) (fun id => (atts id).pred_isScottContinuous)
+where
+  pred := DY.Kleene.combine (fun id => (atts id).pred)
+  pred_isScottContinuous := DY.Kleene.combine_isScottContinuous (fun id => (atts id).pred) (fun id => (atts id).pred_isScottContinuous)
 
 def SubAttackerKnowledge.fromPred {SubF: Type → Type} (pred: Bytes → Prop): SubAttackerKnowledge SubF where
   pred p buf := pred buf
@@ -122,11 +122,11 @@ instance
   (atts: (id: t) → SubAttackerKnowledge (SubFs id))
   (id: t)
   : AttackerKnowledge.HasStep (atts id) (SubAttackerKnowledge.combine atts)
-  where
-    pf p b := by
-      simp [SubAttackerKnowledge.combine, Kleene.combine]
-      intro
-      exists id
+where
+  pf p b := by
+    simp [SubAttackerKnowledge.combine, Kleene.combine]
+    intro
+    exists id
 
 instance
   {SubF: Type → Type}
@@ -134,11 +134,11 @@ instance
   (atts: t → SubAttackerKnowledge SubF)
   (id: t)
   : AttackerKnowledge.HasStep (atts id) (SubAttackerKnowledge.combine' atts)
-  where
-    pf p b := by
-      simp [SubAttackerKnowledge.combine', Kleene.combine]
-      intro
-      exists id
+where
+  pf p b := by
+    simp [SubAttackerKnowledge.combine', Kleene.combine]
+    intro
+    exists id
 
 end AttackerKnowledge
 
@@ -167,11 +167,11 @@ def Bytes.AttackerKnows.attackerKnow.prove
   (p: Bytes → Prop)
   (b: Bytes) (tr: Trace α)
   : att.pred p b → (Bytes.AttackerKnows.attackerKnowledge tr).pred p b
-  := by
-    unfold Bytes.AttackerKnows.attackerKnowledge SubAttackerKnowledge.combine' Kleene.combine
-    have := inst.pf p b
-    simp
-    grind
+:= by
+  unfold Bytes.AttackerKnows.attackerKnowledge SubAttackerKnowledge.combine' Kleene.combine
+  have := inst.pf p b
+  simp
+  grind
 
 /--
   Main theorem to prove that the attacker knows some particular value
@@ -182,15 +182,14 @@ theorem Bytes.AttackerKnows.prove
   (att: SubAttackerKnowledge SubF)
   [AttackerKnowledge.Has att]
   (b: Bytes) (tr: Trace α)
-  :
-    att.pred (Bytes.AttackerKnows · tr) b →
+  : att.pred (Bytes.AttackerKnows · tr) b →
     Bytes.AttackerKnows b tr
-  := by
-    intro h
-    have h1 := Bytes.AttackerKnows.attackerKnow.prove att (Bytes.AttackerKnows · tr) b tr h
-    have h2 := Kleene.mkWeakestFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr).pred (Bytes.AttackerKnows.attackerKnowledge tr).pred_isScottContinuous
-    unfold Bytes.AttackerKnows at *
-    grind
+:= by
+  intro h
+  have h1 := Bytes.AttackerKnows.attackerKnow.prove att (Bytes.AttackerKnows · tr) b tr h
+  have h2 := Kleene.mkWeakestFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr).pred (Bytes.AttackerKnows.attackerKnowledge tr).pred_isScottContinuous
+  unfold Bytes.AttackerKnows at *
+  grind
 
 /--
   The attacker knowledge `AttackerKnows` is the weakest predicate `P` such that every sub-attacker knowledge predicate `att`,
@@ -214,11 +213,11 @@ def SubAttackerKnowledge.combine'.implies
   (p: Bytes → Prop)
   (pfs: ∀ id, SubAttackerKnowledge.Implies (atts id) p)
   : SubAttackerKnowledge.Implies (SubAttackerKnowledge.combine' atts) p
-  := by
-    intro b
-    simp only [SubAttackerKnowledge.combine', Kleene.combine, forall_exists_index]
-    intro id
-    exact pfs id b
+:= by
+  intro b
+  simp only [SubAttackerKnowledge.combine', Kleene.combine, forall_exists_index]
+  intro id
+  exact pfs id b
 
 def SubAttackerKnowledge.combine.implies
   {t: Type}
@@ -227,11 +226,11 @@ def SubAttackerKnowledge.combine.implies
   (p: Bytes → Prop)
   (pfs: ∀ id, SubAttackerKnowledge.Implies (atts id) p)
   : SubAttackerKnowledge.Implies (SubAttackerKnowledge.combine atts) p
-  := by
-    intro b
-    simp only [SubAttackerKnowledge.combine, Kleene.combine, forall_exists_index]
-    intro id
-    exact pfs id b
+:= by
+  intro b
+  simp only [SubAttackerKnowledge.combine, Kleene.combine, forall_exists_index]
+  intro id
+  exact pfs id b
 
 theorem Bytes.AttackerKnows.is_least_fixpoint
   [AttackerKnowledge]
@@ -239,29 +238,28 @@ theorem Bytes.AttackerKnows.is_least_fixpoint
   (b: Bytes) (tr: Trace α)
   (pf1: SubAttackerKnowledge.Implies AttackerKnowledge.attackerKnowledge pred)
   (pf2: SubAttackerKnowledge.Implies (Bytes.AttackerKnows.baseKnowledge tr) pred)
-  :
-    Bytes.AttackerKnows b tr →
+  : Bytes.AttackerKnows b tr →
     pred b
-  :=
-    Kleene.mkWeakestFixpoint_is_weakest ((Bytes.AttackerKnows.attackerKnowledge tr).pred) ((Bytes.AttackerKnows.attackerKnowledge tr).pred_isScottContinuous) pred (by
-      simp [Subset, attackerKnowledge, SubAttackerKnowledge.combine', Kleene.combine]
-      intro b
-      have := pf1 b
-      have := pf2 b
-      grind
-    ) b
+:=
+  Kleene.mkWeakestFixpoint_is_weakest ((Bytes.AttackerKnows.attackerKnowledge tr).pred) ((Bytes.AttackerKnows.attackerKnowledge tr).pred_isScottContinuous) pred (by
+    simp [Subset, attackerKnowledge, SubAttackerKnowledge.combine', Kleene.combine]
+    intro b
+    have := pf1 b
+    have := pf2 b
+    grind
+  ) b
 
 theorem Bytes.AttackerKnows.pred_trace_erase [AttackerKnowledge] (tr: Trace α) (b: Bytes):
   b.AttackerKnows tr = b.AttackerKnows (tr.erase)
-  := by
-    simp only [Bytes.AttackerKnows, Bytes.AttackerKnows.attackerKnowledge]
-    congr
+:= by
+  simp only [Bytes.AttackerKnows, Bytes.AttackerKnows.attackerKnowledge]
+  congr
+  funext
+  split
+  · rfl
+  · simp only [Bytes.AttackerKnows.baseKnowledge]
+    congr 1
     funext
-    split
-    · rfl
-    · simp only [Bytes.AttackerKnows.baseKnowledge]
-      congr 1
-      funext
-      apply Trace.MessageSent_erase
+    apply Trace.MessageSent_erase
 
 end DY

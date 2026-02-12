@@ -71,21 +71,20 @@ theorem bytesToLiteral_literalToBytes
   [BytesFunctor] [BytesFunctor.Has SubF]
   (lit: ByteArray)
   : bytesToLiteral (literalToBytes lit: Bytes) = some lit
-  := by
-    simp only [bytesToLiteral, literalToBytes]
-    grind
+:= by
+  simp only [bytesToLiteral, literalToBytes]
+  grind
 
 theorem literalToBytes_bytesToLiteral
   [BytesFunctor] [BytesFunctor.Has SubF]
   (buf: Bytes)
-  :
-    match bytesToLiteral buf with
+  : match bytesToLiteral buf with
     | none => True
     | some lit =>
       buf = literalToBytes lit
-  := by
-    simp only [bytesToLiteral, literalToBytes]
-    grind
+:= by
+  simp only [bytesToLiteral, literalToBytes]
+  grind
 
 end Constructors
 
@@ -105,10 +104,10 @@ variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 theorem attacker_knows_literalToBytes
   (lit: ByteArray) (tr: Trace α)
   : (literalToBytes lit: Bytes).AttackerKnows tr
-  := by
-    apply Bytes.AttackerKnows.prove attKnowsLit
-    simp only [attKnowsLit]
-    exists lit
+:= by
+  apply Bytes.AttackerKnows.prove attKnowsLit
+  simp only [attKnowsLit]
+  exists lit
 
 end AttackerKnowledge
 
@@ -117,15 +116,15 @@ section Invariants
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 def Literal.invariants: Bytes.PartialInvariants Literal where
-  well_formed := fun {lit := _} rec tr =>
+  well_formed := fun {lit := _} _rec _tr =>
     True
 
-  usage := fun {lit := _} rec tr => Usage.nothing
+  usage := fun {lit := _} _rec _tr => Usage.nothing
 
-  label := fun {lit := _} rec tr =>
+  label := fun {lit := _} _rec _tr =>
     Label.pub
 
-  invariant := fun {lit := _} rec tr =>
+  invariant := fun {lit := _} _rec _tr =>
     True
 
 abbrev invariants: Bytes.PartialInvariants SubF := Literal.Literal.invariants
@@ -140,22 +139,22 @@ variable [BytesInvariants] [BytesInvariants.Has invariants]
 theorem literalToBytes.WellFormed
   (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).WellFormed tr
-  := by
-    simp [literalToBytes, Bytes.WellFormed.eq, Literal.invariants]
+:= by
+  simp [literalToBytes, Bytes.WellFormed.eq, Literal.invariants]
 
 @[simp]
 theorem literalToBytes.label
   (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).label tr = Label.pub
-  := by
-    simp [literalToBytes, Bytes.label.eq, Literal.invariants]
+:= by
+  simp [literalToBytes, Bytes.label.eq, Literal.invariants]
 
 @[simp]
 theorem literalToBytes.Invariant
   (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).Invariant tr
-  := by
-    simp [literalToBytes, Bytes.Invariant.eq, Literal.invariants]
+:= by
+  simp [literalToBytes, Bytes.Invariant.eq, Literal.invariants]
 
 end Invariants
 

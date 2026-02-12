@@ -71,7 +71,7 @@ instance
   [BytesFunctor.HasStep SubF1 SubF2]
   [BytesFunctor.Has SubF2]
   : BytesFunctor.Has SubF1
-  where
+where
 
 end BytesFunctor
 
@@ -85,7 +85,7 @@ instance
   (SubFs: a → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]
   (id: a)
   : BytesFunctor.HasStep (SubFs id) (BytesFunctor.combine SubFs)
-  where
+where
 
 def BytesView (SubF: Type → Type) := SubF Bytes
 
@@ -96,7 +96,7 @@ def BytesView.pack
   {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
   (b: BytesView SubF)
   : Bytes
-  :=
+:=
   ALaCarte.Container.pack SubF b
 
 theorem Bytes.pack_view?
@@ -106,9 +106,9 @@ theorem Bytes.pack_view?
   match b.view? SubF with
   | some bview => bview.pack = b
   | none => True
-  := by
-    simp only [BytesView.pack, Bytes.view?]
-    grind [ALaCarte.Container.pack_view]
+:= by
+  simp only [BytesView.pack, Bytes.view?]
+  grind [ALaCarte.Container.pack_view]
 
 grind_pattern Bytes.pack_view? => b.view? SubF
 
@@ -116,9 +116,9 @@ theorem BytesView.view_pack
   {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
   (b: BytesView SubF)
   : (b.pack).view? SubF = some b
-  := by
-    simp only [BytesView.pack, Bytes.view?]
-    grind [ALaCarte.Container.view_pack]
+:= by
+  simp only [BytesView.pack, Bytes.view?]
+  grind [ALaCarte.Container.view_pack]
 
 grind_pattern BytesView.view_pack => b.pack
 
@@ -129,9 +129,9 @@ theorem Bytes.sizeOf_view
   match b.view? SubF with
   | some bview => DY.ALaCarte.FunctorSizeOf.sizeOf bview ≤ sizeOf b
   | none => True
-  := by
-    simp only [Bytes.view?]
-    grind [ALaCarte.Container.sizeOf_view]
+:= by
+  simp only [Bytes.view?]
+  grind [ALaCarte.Container.sizeOf_view]
 
 grind_pattern Bytes.sizeOf_view => b.view? SubF
 
@@ -165,7 +165,7 @@ instance
   {a: Type}
   (totalFun: Bytes.Function a)
   : Bytes.SubFunction totalFun totalFun
-  where
+where
 
 instance
   {SubF1 SubF2: Type → Type}
@@ -179,7 +179,7 @@ instance
   [Bytes.SubFunctionStep partialFun1 partialFun2]
   [Bytes.SubFunction partialFun2 totalFun]
   : Bytes.SubFunction partialFun1 totalFun
-  where
+where
 
 def Bytes.PartialFunction.combine
   {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
@@ -187,7 +187,8 @@ def Bytes.PartialFunction.combine
   {a: Type}
   (funs: (id: t) → Bytes.PartialFunction (SubFs id) a)
   : Bytes.PartialFunction (BytesFunctor.combine SubFs) a
-  := ALaCarte.Container.PartialFun.combine funs
+:=
+  ALaCarte.Container.PartialFun.combine funs
 
 instance
   {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
@@ -196,9 +197,9 @@ instance
   (funs: (id: t) → Bytes.PartialFunction (SubFs id) a)
   (id: t)
   : Bytes.SubFunctionStep (funs id) (Bytes.PartialFunction.combine funs)
-  := by
-    unfold Bytes.PartialFunction.combine
-    exact {}
+:= by
+  unfold Bytes.PartialFunction.combine
+  exact {}
 
 theorem Bytes.rec_eq
   {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
@@ -208,7 +209,8 @@ theorem Bytes.rec_eq
   [Bytes.SubFunction partialFun totalFun]
   (x: BytesView SubF)
   : x.pack.rec totalFun = partialFun x (fun y _ => y.rec totalFun)
-  := ALaCarte.Container.rec_eq partialFun totalFun x
+:=
+  ALaCarte.Container.rec_eq partialFun totalFun x
 
 -- Unfolding of `ALaCarte.Container.PartialProof1 fn rec p` that use the type `Bytes` instead of `ContainerFor BytesF`
 def Bytes.PartialProof1 {SubF: Type → Type} [SubBytesFunctor SubF] {a: Type} (fn: Bytes.PartialFunction SubF a) (rec: Bytes → a) (p: a → Prop) :=
@@ -223,7 +225,8 @@ theorem Bytes.Proof1.prove
   (pf: Bytes.Proof1 fn p)
   (x: Bytes)
   : p (x.rec fn)
-  := ALaCarte.Container.rec (ALaCarte.Container.PartialProof1.into pf) x
+:=
+  ALaCarte.Container.rec (ALaCarte.Container.PartialProof1.into pf) x
 
 def Bytes.PartialProof1.combine
   {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
@@ -233,7 +236,8 @@ def Bytes.PartialProof1.combine
   {rec: Bytes → a} {p: a → Prop}
   (pfs: (id: t) → Bytes.PartialProof1 (funs id) rec p)
   : Bytes.PartialProof1 (Bytes.PartialFunction.combine funs) rec p
-  := ALaCarte.Container.PartialProof1.combine pfs
+:=
+  ALaCarte.Container.PartialProof1.combine pfs
 
 -- Unfolding of `ALaCarte.Container.PartialProof2 fn1 fn2 rec1 rec2 p` that use the type `Bytes` instead of `ContainerFor BytesF`
 def Bytes.PartialProof2 {SubF: Type → Type} [SubBytesFunctor SubF] {a b: Type} (fn1: Bytes.PartialFunction SubF a) (fn2: Bytes.PartialFunction SubF b) (rec1: Bytes → a) (rec2: Bytes → b) (p: a × b → Prop) :=
@@ -249,7 +253,8 @@ theorem Bytes.Proof2.prove
   (pf: Bytes.Proof2 fn1 fn2 p)
   (x: Bytes)
   : p (x.rec fn1, x.rec fn2)
-  := ALaCarte.Container.rec (ALaCarte.Container.PartialProof2.into pf) x
+:=
+  ALaCarte.Container.rec (ALaCarte.Container.PartialProof2.into pf) x
 
 def Bytes.PartialProof2.combine
   {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
@@ -260,7 +265,8 @@ def Bytes.PartialProof2.combine
   {rec1: Bytes → a} {rec2: Bytes → b} {p: a × b → Prop}
   (pfs: (id: t) → Bytes.PartialProof2 (funs1 id) (funs2 id) rec1 rec2 p)
   : Bytes.PartialProof2 (Bytes.PartialFunction.combine funs1) (Bytes.PartialFunction.combine funs2) rec1 rec2 p
-  := ALaCarte.Container.PartialProof2.combine pfs
+:=
+  ALaCarte.Container.PartialProof2.combine pfs
 
 class BytesLength where
   funs: Bytes.Function Nat
@@ -277,8 +283,7 @@ class BytesLength.HasStep
   [BytesFunctor.HasStep SubF1 SubF2]
   (partialLength1: outParam (Bytes.PartialLength SubF1))
   (partialLength2: Bytes.PartialLength SubF2)
-  extends
-   Bytes.SubFunctionStep partialLength1 partialLength2
+  extends Bytes.SubFunctionStep partialLength1 partialLength2
 
 class BytesLength.Has
   [BytesLength]
@@ -286,15 +291,15 @@ class BytesLength.Has
   [SubBytesFunctor SubF]
   [BytesFunctor.Has SubF]
   (binv: outParam (Bytes.PartialLength SubF))
-  extends
-    Bytes.SubFunction binv BytesLength.funs
+  extends Bytes.SubFunction binv BytesLength.funs
 
 abbrev Bytes.PartialLength.combine
   {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
   {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
   (lens: ∀ id, Bytes.PartialLength (SubFs id))
   : Bytes.PartialLength (BytesFunctor.combine SubFs)
-  := Bytes.PartialFunction.combine lens
+:=
+  Bytes.PartialFunction.combine lens
 
 namespace BytesLength
 
@@ -311,7 +316,7 @@ instance
   [inst1: BytesLength.HasStep partialLen1 partialLen2]
   [inst2: BytesLength.Has partialLen2]
   : BytesLength.Has partialLen1
-  where
+where
 
 instance
   [BytesLength]
@@ -320,7 +325,7 @@ instance
   (invs: ∀ id, Bytes.PartialLength (SubFs id))
   (id: t)
   : BytesLength.HasStep (invs id) (Bytes.PartialLength.combine invs)
-  where
+where
 
 end BytesLength
 
@@ -332,9 +337,9 @@ theorem Bytes.length.eq
   [tc: BytesLength.Has subLength]
   (b: BytesView SubF)
   : b.pack.length = subLength b (fun y _ => y.length)
-  := by
-    have := tc.pf
-    apply Bytes.rec_eq
+:= by
+  have := tc.pf
+  apply Bytes.rec_eq
 
 grind_pattern Bytes.length.eq => b.pack.length
 

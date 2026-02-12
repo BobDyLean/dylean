@@ -33,10 +33,10 @@ theorem Bytes.WellFormed.eq
   (b: BytesView SubF)
   (tr: ProofTrace)
   : b.pack.WellFormed tr = binv b (fun y _ => Bytes.WellFormed y) tr
-  := by
-    apply congrFun
-    have := tc.pf
-    apply Bytes.rec_eq
+:= by
+  apply congrFun
+  have := tc.pf
+  apply Bytes.rec_eq
 
 grind_pattern Bytes.WellFormed.eq => b.pack.WellFormed tr
 
@@ -56,8 +56,8 @@ theorem Bytes.WellFormed.later
   tr1 ≤ tr2 →
   Bytes.WellFormed b tr1 →
   Bytes.WellFormed b tr2
-  := by
-    apply BytesWellFormedLater.proofs.prove
+:= by
+  apply BytesWellFormedLater.proofs.prove
 
 grind_pattern Bytes.WellFormed.later => Bytes.WellFormed b tr1, tr1 ≤ tr2
 
@@ -93,10 +93,10 @@ theorem Bytes.usage.eq
   (b: BytesView SubF)
   (tr: ProofTrace)
   : b.pack.usage tr = binv b (fun y _ => Bytes.usage y) tr
-  := by
-    apply congrFun
-    have := tc.pf
-    apply Bytes.rec_eq
+:= by
+  apply congrFun
+  have := tc.pf
+  apply Bytes.rec_eq
 
 grind_pattern Bytes.usage.eq => (b.pack).usage tr
 
@@ -117,8 +117,8 @@ theorem Bytes.usage_later
   tr1 ≤ tr2 →
   Bytes.WellFormed b tr1 →
   Bytes.usage b tr1 = Bytes.usage b tr2
-  := by
-    apply GetUsageLater.proofs.prove
+:= by
+  apply GetUsageLater.proofs.prove
 
 grind_pattern Bytes.usage_later => Bytes.usage b tr1, tr1 ≤ tr2
 
@@ -144,10 +144,10 @@ theorem Bytes.label.eq
   (b: BytesView SubF)
   (tr: ProofTrace)
   : b.pack.label tr = binv b (fun y _ => Bytes.label y) tr
-  := by
-    apply congrFun
-    have := tc.pf
-    apply Bytes.rec_eq
+:= by
+  apply congrFun
+  have := tc.pf
+  apply Bytes.rec_eq
 
 grind_pattern Bytes.label.eq => b.pack.label tr
 
@@ -168,8 +168,8 @@ theorem Bytes.label_later
   tr1 ≤ tr2 →
   Bytes.WellFormed b tr1 →
   Bytes.label b tr1 = Bytes.label b tr2
-  := by
-    apply GetLabelLater.proofs.prove
+:= by
+  apply GetLabelLater.proofs.prove
 
 grind_pattern Bytes.label_later => Bytes.label b tr1, tr1 ≤ tr2
 
@@ -195,10 +195,10 @@ theorem Bytes.Invariant.eq
   (b: BytesView SubF)
   (tr: ProofTrace)
   : b.pack.Invariant tr = binv b (fun y _ => Bytes.Invariant y) tr
-  := by
-    apply congrFun
-    have := tc.pf
-    apply Bytes.rec_eq
+:= by
+  apply congrFun
+  have := tc.pf
+  apply Bytes.rec_eq
 
 grind_pattern Bytes.Invariant.eq => Bytes.Invariant (b.pack) tr
 
@@ -218,8 +218,8 @@ theorem Bytes.Invariant_implies_WellFormed
   :
   Bytes.Invariant b tr →
   Bytes.WellFormed b tr
-  := by
-    apply BytesInvariantImpliesBytesWellFormed.proofs.prove
+:= by
+  apply BytesInvariantImpliesBytesWellFormed.proofs.prove
 
 grind_pattern Bytes.Invariant_implies_WellFormed => Bytes.WellFormed b tr
 
@@ -239,8 +239,8 @@ theorem Bytes.Invariant.later
   tr1 ≤ tr2 →
   Bytes.Invariant b tr1 →
   Bytes.Invariant b tr2
-  := by
-    apply BytesInvariantLater.proofs.prove
+:= by
+  apply BytesInvariantLater.proofs.prove
 
 grind_pattern Bytes.Invariant.later => Bytes.Invariant b tr1, tr1 ≤ tr2
 
@@ -289,32 +289,27 @@ instance [BytesInvariants]: BytesInvariant where
   and adding a grind pattern.
 -/
 structure Bytes.PartialInvariantsProofs [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] (invs: Bytes.PartialInvariants SubF) where
-  well_formed_later: Bytes.PartialProof1 invs.well_formed Bytes.WellFormed BytesWellFormedLaterT
-  := by
+  well_formed_later: Bytes.PartialProof1 invs.well_formed Bytes.WellFormed BytesWellFormedLaterT := by
     intro x rec tr1 tr2
     cases x
     simp_all [invariants, DY.ALaCarte.FunctorSizeOf.sizeOf, BytesWellFormedLaterT] <;> grind
 
-  usage_later: Bytes.PartialProof2 invs.well_formed invs.usage Bytes.WellFormed Bytes.usage GetUsageLaterT
-  := by
+  usage_later: Bytes.PartialProof2 invs.well_formed invs.usage Bytes.WellFormed Bytes.usage GetUsageLaterT := by
     intro x rec tr1 tr2
     cases x
     simp_all [invariants, DY.ALaCarte.FunctorSizeOf.sizeOf, GetUsageLaterT] <;> grind
 
-  label_later: [GetUsageLater] → Bytes.PartialProof2 invs.well_formed invs.label Bytes.WellFormed Bytes.label GetLabelLaterT
-  := by
+  label_later: [GetUsageLater] → Bytes.PartialProof2 invs.well_formed invs.label Bytes.WellFormed Bytes.label GetLabelLaterT := by
     intro _ x rec tr1 tr2
     cases x
     simp_all [invariants, DY.ALaCarte.FunctorSizeOf.sizeOf, GetLabelLaterT] <;> grind
 
-  invariant_implies_wellformed: Bytes.PartialProof2 invs.invariant invs.well_formed Bytes.Invariant Bytes.WellFormed BytesInvariantImpliesBytesWellFormedT
-  := by
+  invariant_implies_wellformed: Bytes.PartialProof2 invs.invariant invs.well_formed Bytes.Invariant Bytes.WellFormed BytesInvariantImpliesBytesWellFormedT := by
     intro x rec tr
     cases x
     simp_all [invariants, DY.ALaCarte.FunctorSizeOf.sizeOf, BytesInvariantImpliesBytesWellFormedT] <;> grind
 
-  invariant_later: [BytesWellFormedLater] → [GetUsageLater] → [GetLabelLater] → [BytesInvariantImpliesBytesWellFormed] → Bytes.PartialProof1 invs.invariant Bytes.Invariant BytesInvariantLaterT
-  := by
+  invariant_later: [BytesWellFormedLater] → [GetUsageLater] → [GetLabelLater] → [BytesInvariantImpliesBytesWellFormed] → Bytes.PartialProof1 invs.invariant Bytes.Invariant BytesInvariantLaterT := by
     intro _ _ _ _ x rec tr1 tr2
     cases x
     simp_all [invariants, DY.ALaCarte.FunctorSizeOf.sizeOf, BytesInvariantLaterT] <;> grind
@@ -344,11 +339,11 @@ class BytesInvariants.HasStep
   [BytesFunctor.HasStep SubF1 SubF2]
   (partialInvs1: outParam (Bytes.PartialInvariants SubF1))
   (partialInvs2: Bytes.PartialInvariants SubF2)
-  where
-    [well_formed_sub: Bytes.SubFunctionStep partialInvs1.well_formed partialInvs2.well_formed]
-    [usage_sub: Bytes.SubFunctionStep partialInvs1.usage partialInvs2.usage]
-    [label_sub: Bytes.SubFunctionStep partialInvs1.label partialInvs2.label]
-    [invariant_sub: Bytes.SubFunctionStep partialInvs1.invariant partialInvs2.invariant]
+where
+  [well_formed_sub: Bytes.SubFunctionStep partialInvs1.well_formed partialInvs2.well_formed]
+  [usage_sub: Bytes.SubFunctionStep partialInvs1.usage partialInvs2.usage]
+  [label_sub: Bytes.SubFunctionStep partialInvs1.label partialInvs2.label]
+  [invariant_sub: Bytes.SubFunctionStep partialInvs1.invariant partialInvs2.invariant]
 
 class BytesInvariants.Has
   [BytesInvariants]
@@ -356,22 +351,22 @@ class BytesInvariants.Has
   [SubBytesFunctor SubF]
   [BytesFunctor.Has SubF]
   (partialInvs: outParam (Bytes.PartialInvariants SubF))
-  where
-    [well_formed_sub: Bytes.SubFunction partialInvs.well_formed BytesWellFormed.funs]
-    [usage_sub: Bytes.SubFunction partialInvs.usage GetUsage.funs]
-    [label_sub: Bytes.SubFunction partialInvs.label GetLabel.funs]
-    [invariant_sub: Bytes.SubFunction partialInvs.invariant BytesInvariant.funs]
+where
+  [well_formed_sub: Bytes.SubFunction partialInvs.well_formed BytesWellFormed.funs]
+  [usage_sub: Bytes.SubFunction partialInvs.usage GetUsage.funs]
+  [label_sub: Bytes.SubFunction partialInvs.label GetLabel.funs]
+  [invariant_sub: Bytes.SubFunction partialInvs.invariant BytesInvariant.funs]
 
 def Bytes.PartialInvariants.combine
   {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
   {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
   (invs: ∀ id, Bytes.PartialInvariants (SubFs id))
   : Bytes.PartialInvariants (BytesFunctor.combine SubFs)
-  where
-    well_formed := Bytes.PartialFunction.combine (fun id => (invs id).well_formed)
-    usage := Bytes.PartialFunction.combine (fun id => (invs id).usage)
-    label := Bytes.PartialFunction.combine (fun id => (invs id).label)
-    invariant := Bytes.PartialFunction.combine (fun id => (invs id).invariant)
+where
+  well_formed := Bytes.PartialFunction.combine (fun id => (invs id).well_formed)
+  usage := Bytes.PartialFunction.combine (fun id => (invs id).usage)
+  label := Bytes.PartialFunction.combine (fun id => (invs id).label)
+  invariant := Bytes.PartialFunction.combine (fun id => (invs id).invariant)
 
 def Bytes.PartialInvariantsProofs.combine
   [BytesInvariants]
@@ -380,12 +375,12 @@ def Bytes.PartialInvariantsProofs.combine
   {invs: ∀ id, Bytes.PartialInvariants (SubFs id)}
   (pfs: ∀ id, Bytes.PartialInvariantsProofs (invs id))
   : Bytes.PartialInvariantsProofs (Bytes.PartialInvariants.combine invs)
-  where
-    well_formed_later := Bytes.PartialProof1.combine (fun id => (pfs id).well_formed_later)
-    usage_later := Bytes.PartialProof2.combine (fun id => (pfs id).usage_later)
-    label_later := Bytes.PartialProof2.combine (fun id => (pfs id).label_later)
-    invariant_implies_wellformed := Bytes.PartialProof2.combine (fun id => (pfs id).invariant_implies_wellformed)
-    invariant_later := Bytes.PartialProof1.combine (fun id => (pfs id).invariant_later)
+where
+  well_formed_later := Bytes.PartialProof1.combine (fun id => (pfs id).well_formed_later)
+  usage_later := Bytes.PartialProof2.combine (fun id => (pfs id).usage_later)
+  label_later := Bytes.PartialProof2.combine (fun id => (pfs id).label_later)
+  invariant_implies_wellformed := Bytes.PartialProof2.combine (fun id => (pfs id).invariant_implies_wellformed)
+  invariant_later := Bytes.PartialProof1.combine (fun id => (pfs id).invariant_later)
 
 namespace BytesInvariants
 
@@ -402,10 +397,10 @@ instance
   [inst1: BytesInvariants.HasStep partialInvs1 partialInvs2]
   [inst2: BytesInvariants.Has partialInvs2]
   : BytesInvariants.Has partialInvs1
-  := by
-    cases inst1
-    cases inst2
-    exact {}
+:= by
+  cases inst1
+  cases inst2
+  exact {}
 
 instance
   [BytesInvariants]
@@ -414,17 +409,17 @@ instance
   (invs: ∀ id, Bytes.PartialInvariants (SubFs id))
   (id: t)
   : BytesInvariants.HasStep (invs id) (Bytes.PartialInvariants.combine invs)
-  :=
-    let wfs := (fun id => (invs id).well_formed)
-    let usages := (fun id => (invs id).usage)
-    let labels := (fun id => (invs id).label)
-    let invariants := (fun id => (invs id).invariant)
-    {
-      well_formed_sub := inferInstanceAs (Bytes.SubFunctionStep (wfs id) (Bytes.PartialFunction.combine wfs))
-      usage_sub := inferInstanceAs (Bytes.SubFunctionStep (usages id) (Bytes.PartialFunction.combine usages))
-      label_sub := inferInstanceAs (Bytes.SubFunctionStep (labels id) (Bytes.PartialFunction.combine labels))
-      invariant_sub := inferInstanceAs (Bytes.SubFunctionStep (invariants id) (Bytes.PartialFunction.combine invariants))
-    }
+:=
+  let wfs := (fun id => (invs id).well_formed)
+  let usages := (fun id => (invs id).usage)
+  let labels := (fun id => (invs id).label)
+  let invariants := (fun id => (invs id).invariant)
+  {
+    well_formed_sub := inferInstanceAs (Bytes.SubFunctionStep (wfs id) (Bytes.PartialFunction.combine wfs))
+    usage_sub := inferInstanceAs (Bytes.SubFunctionStep (usages id) (Bytes.PartialFunction.combine usages))
+    label_sub := inferInstanceAs (Bytes.SubFunctionStep (labels id) (Bytes.PartialFunction.combine labels))
+    invariant_sub := inferInstanceAs (Bytes.SubFunctionStep (invariants id) (Bytes.PartialFunction.combine invariants))
+  }
 
 instance [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (invs: Bytes.PartialInvariants SubF) [tc: BytesInvariants.Has invs]: BytesWellFormed.Has invs.well_formed where
   pf := tc.well_formed_sub
@@ -452,50 +447,49 @@ def Bytes.HasUsage [GetUsage] [GetLabel] (b: Bytes) (usg: Usage) (tr: ProofTrace
 theorem Bytes.HasUsage_later
   [BytesWellFormed] [GetUsage] [GetUsageLater] [GetLabel] [GetLabelLater]
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
-  :
-    b.WellFormed tr1 →
+  : b.WellFormed tr1 →
     tr1 ≤ tr2 →
     b.HasUsage usg tr1 →
     b.HasUsage usg tr2
-  := by
-    grind [Bytes.HasUsage]
+:= by
+  grind [Bytes.HasUsage]
 
 grind_pattern Bytes.HasUsage_later => b.HasUsage usg tr1, tr1 ≤ tr2
 
 theorem Bytes.HasUsage_inj
   [BytesWellFormed] [GetUsage] [GetLabel]
   (b: Bytes) (usg1 usg2: Usage) (tr: ProofTrace)
-  :
-    b.HasUsage usg1 tr →
+  : b.HasUsage usg1 tr →
     b.HasUsage usg2 tr →
     (usg1 = usg2 ∨ ((b.label tr).canFlow Label.pub tr))
-  := by
-    grind [Bytes.HasUsage]
+:= by
+  grind [Bytes.HasUsage]
 
 theorem Bytes.HasUsage_public
   [BytesWellFormed] [GetUsage] [GetLabel]
   (b: Bytes) (usg: Usage) (tr: ProofTrace)
-  :
-    (b.label tr).canFlow Label.pub tr →
+  : (b.label tr).canFlow Label.pub tr →
     b.HasUsage usg tr
-  := by
-    grind [Bytes.HasUsage]
+:= by
+  grind [Bytes.HasUsage]
 
 def Bytes.xxxLabel
   [GetLabel]
   (extract: Bytes → Option Bytes)
-  (b: Bytes) (tr: ProofTrace) :=
-    match extract b with
-    | some sk => sk.label tr
-    | none => Label.pub
+  (b: Bytes) (tr: ProofTrace)
+:=
+  match extract b with
+  | some sk => sk.label tr
+  | none => Label.pub
 
 def Bytes.XXXHasUsage
   [GetUsage] [GetLabel]
   (extract: Bytes → Option Bytes)
-  (b: Bytes) (usg: Usage) (tr: ProofTrace) :=
-    match extract b with
-    | some sk => sk.HasUsage usg tr
-    | none => True
+  (b: Bytes) (usg: Usage) (tr: ProofTrace)
+:=
+  match extract b with
+  | some sk => sk.HasUsage usg tr
+  | none => True
 
 def ExtractPreservesWellFormed [BytesWellFormed] (extract: Bytes → Option Bytes): Prop :=
   ∀ b tr, b.WellFormed tr → (
@@ -509,26 +503,24 @@ theorem Bytes.xxxLabel_later
   (extract: Bytes → Option Bytes)
   (h_extract: ExtractPreservesWellFormed extract)
   (b: Bytes) (tr1 tr2: ProofTrace)
-  :
-    b.WellFormed tr1 →
+  : b.WellFormed tr1 →
     tr1 ≤ tr2 →
     b.xxxLabel extract tr1 = b.xxxLabel extract tr2
-  := by
-    simp [Bytes.xxxLabel]
-    grind [ExtractPreservesWellFormed]
+:= by
+  simp [Bytes.xxxLabel]
+  grind [ExtractPreservesWellFormed]
 
 theorem Bytes.XXXHasUsage_later
   [BytesWellFormed] [GetUsage] [GetUsageLater] [GetLabel] [GetLabelLater]
   (extract: Bytes → Option Bytes)
   (h_extract: ExtractPreservesWellFormed extract)
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
-  :
-    b.WellFormed tr1 →
+  : b.WellFormed tr1 →
     tr1 ≤ tr2 →
     b.XXXHasUsage extract usg tr1 →
     b.XXXHasUsage extract usg tr2
-  := by
-    simp [Bytes.XXXHasUsage]
-    grind [ExtractPreservesWellFormed]
+:= by
+  simp [Bytes.XXXHasUsage]
+  grind [ExtractPreservesWellFormed]
 
 end DY

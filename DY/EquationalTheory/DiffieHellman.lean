@@ -56,9 +56,9 @@ theorem DhPk.sizeOf_eq
   [BytesFunctor]
   (x: BytesView DhPk)
   : DY.ALaCarte.FunctorSizeOf.sizeOf x = sizeOf x.sk
-  := by
-    cases x
-    simp [DY.ALaCarte.FunctorSizeOf.sizeOf]
+:= by
+  cases x
+  simp [DY.ALaCarte.FunctorSizeOf.sizeOf]
 
 grind_pattern DhPk.sizeOf_eq => DY.ALaCarte.FunctorSizeOf.sizeOf x
 
@@ -146,11 +146,10 @@ instance: CanDH Bytes where
 
 theorem dh_commutes
   (sk1 sk2: Bytes)
-  :
-    dh (dh_pk sk1) sk2 = dh (dh_pk sk2) sk1
-  := by
-    simp only [dh_pk, dh, BytesView.view_pack]
-    grind
+  : dh (dh_pk sk1) sk2 = dh (dh_pk sk2) sk1
+:= by
+  simp only [dh_pk, dh, BytesView.view_pack]
+  grind
 
 grind_pattern dh_commutes => dh (dh_pk sk1) sk2, dh (dh_pk sk2) sk1
 
@@ -187,26 +186,24 @@ variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
 theorem attacker_knows_dh_pk
   (sk: Bytes) (tr: Trace α)
-  :
-    sk.AttackerKnows tr →
+  : sk.AttackerKnows tr →
     (dh_pk sk).AttackerKnows tr
-  := by
-    intro h_inp
-    apply Bytes.AttackerKnows.prove attKnowsDhPk
-    simp only [attKnowsDhPk]
-    grind
+:= by
+  intro h_inp
+  apply Bytes.AttackerKnows.prove attKnowsDhPk
+  simp only [attKnowsDhPk]
+  grind
 
 theorem attacker_knows_dh
   (pk sk: Bytes) (tr: Trace α)
-  :
-    pk.AttackerKnows tr →
+  : pk.AttackerKnows tr →
     sk.AttackerKnows tr →
     (dh pk sk).AttackerKnows tr
-  := by
-    intro h_pk h_sk
-    apply Bytes.AttackerKnows.prove attKnowsDh
-    simp only [attKnowsDh, Kleene.Forall]
-    grind
+:= by
+  intro h_pk h_sk
+  apply Bytes.AttackerKnows.prove attKnowsDh
+  simp only [attKnowsDh, Kleene.Forall]
+  grind
 
 end AttackerKnowledge
 
@@ -238,15 +235,15 @@ theorem dh_pk.WellFormed
   (sk: Bytes) (tr: ProofTrace)
   :
     (dh_pk sk).WellFormed tr = sk.WellFormed tr
-  := by
-    simp [dh_pk, Bytes.WellFormed.eq, DhPk.invariants]
+:= by
+  simp [dh_pk, Bytes.WellFormed.eq, DhPk.invariants]
 
 @[simp]
 theorem dh_pk.label
   (sk: Bytes) (tr: ProofTrace)
   : (dh_pk sk).label tr = Label.pub
-  := by
-    simp [dh_pk, Bytes.label.eq, DhPk.invariants]
+:= by
+  simp [dh_pk, Bytes.label.eq, DhPk.invariants]
 
 @[simp]
 theorem dh_pk.Invariant
@@ -254,8 +251,8 @@ theorem dh_pk.Invariant
   :
     sk.Invariant tr →
     (dh_pk sk).Invariant tr
-  := by
-    simp [dh_pk, Bytes.Invariant.eq, DhPk.invariants]
+:= by
+  simp [dh_pk, Bytes.Invariant.eq, DhPk.invariants]
 
 end DhPkLemmas
 
@@ -321,21 +318,22 @@ theorem DiffieHellman.dh_pk_extractDhSk (b: Bytes):
   match extractDhSk b with
   | none => True
   | some sk => b = DiffieHellman.dh_pk sk
-  := by
-    simp [extractDhSk, DiffieHellman.dh_pk]
-    grind
+:= by
+  simp [extractDhSk, DiffieHellman.dh_pk]
+  grind
 
 theorem DiffieHellman.extractDhSk.preserves_WellFormed
   [BytesInvariants] [BytesInvariants.Has DiffieHellman.invariants]
 : ExtractPreservesWellFormed extractDhSk
-  := by
-    simp [ExtractPreservesWellFormed]
-    grind [DiffieHellman.dh_pk_extractDhSk, DiffieHellman.dh_pk.WellFormed]
+:= by
+  simp [ExtractPreservesWellFormed]
+  grind [DiffieHellman.dh_pk_extractDhSk, DiffieHellman.dh_pk.WellFormed]
 
 noncomputable
 def Bytes.dhSkLabel
   [BytesInvariants]
-  (pk: Bytes) (tr: ProofTrace): Label :=
+  (pk: Bytes) (tr: ProofTrace): Label
+:=
   Bytes.xxxLabel DiffieHellman.extractDhSk pk tr
 
 theorem Bytes.dhSkLabel_dh_pk
@@ -343,9 +341,9 @@ theorem Bytes.dhSkLabel_dh_pk
   [BytesInvariants.Has DiffieHellman.invariants]
   (sk: Bytes) (tr: ProofTrace)
   : (DiffieHellman.dh_pk sk).dhSkLabel tr = sk.label tr
-  := by
-    simp [Bytes.dhSkLabel, Bytes.xxxLabel, DiffieHellman.extractDhSk, DiffieHellman.dh_pk]
-    grind
+:= by
+  simp [Bytes.dhSkLabel, Bytes.xxxLabel, DiffieHellman.extractDhSk, DiffieHellman.dh_pk]
+  grind
 
 grind_pattern Bytes.dhSkLabel_dh_pk => (DiffieHellman.dh_pk sk).dhSkLabel tr
 
@@ -358,9 +356,9 @@ theorem Bytes.dhSkLabel_later
     b.WellFormed tr1 →
     tr1 ≤ tr2 →
     b.dhSkLabel tr1 = b.dhSkLabel tr2
-  := by
-    simp [Bytes.dhSkLabel]
-    apply Bytes.xxxLabel_later DiffieHellman.extractDhSk DiffieHellman.extractDhSk.preserves_WellFormed
+:= by
+  simp [Bytes.dhSkLabel]
+  apply Bytes.xxxLabel_later DiffieHellman.extractDhSk DiffieHellman.extractDhSk.preserves_WellFormed
 
 grind_pattern Bytes.dhSkLabel_later => tr1 ≤ tr2, b.dhSkLabel tr1
 
@@ -375,54 +373,52 @@ variable [BytesInvariants] [BytesInvariants.Has invariants]
 @[simp]
 theorem dh.WellFormed
   (pk sk: Bytes) (tr: ProofTrace)
-  :
-    (dh pk sk).WellFormed tr = (pk.WellFormed tr ∧ sk.WellFormed tr)
-  := by
-    simp only [dh]
+  : (dh pk sk).WellFormed tr = (pk.WellFormed tr ∧ sk.WellFormed tr)
+:= by
+  simp only [dh]
+  split
+  · rename_i sk2 heq
+    have: pk = dh_pk sk2 := by simp_all [dh_pk]; grind [dh_pk]
     split
-    · rename_i sk2 heq
-      have: pk = dh_pk sk2 := by simp_all [dh_pk]; grind [dh_pk]
-      split
-      all_goals
-        simp [Dh.invariants, DhPk.invariants]
-        grind [dh_pk.WellFormed]
-    · simp [Dh.invariants]
+    all_goals
+      simp [Dh.invariants, DhPk.invariants]
+      grind [dh_pk.WellFormed]
+  · simp [Dh.invariants]
 
 @[simp]
 theorem dh.label
   (pk sk: Bytes) (tr: ProofTrace)
   : (dh pk sk).label tr = Label.join (pk.dhSkLabel tr) (sk.label tr)
-  := by
-    simp only [dh]
-    split
-    · split
-      all_goals
-        simp only [Bytes.label.eq, Dh.invariants, Bytes.dhSkLabel, Bytes.xxxLabel, extractDhSk]
-        grind
-    · simp only [Bytes.label.eq, Dh.invariants, Bytes.dhSkLabel, Bytes.xxxLabel, extractDhSk]
+:= by
+  simp only [dh]
+  split
+  · split
+    all_goals
+      simp only [Bytes.label.eq, Dh.invariants, Bytes.dhSkLabel, Bytes.xxxLabel, extractDhSk]
       grind
+  · simp only [Bytes.label.eq, Dh.invariants, Bytes.dhSkLabel, Bytes.xxxLabel, extractDhSk]
+    grind
 
 @[simp]
 theorem dh.Invariant
   (pk sk: Bytes) (tr: ProofTrace)
-  :
-    (
+  : (
       pk.Invariant tr ∧
       sk.Invariant tr
     ) → (
       (dh pk sk).Invariant tr
     )
-  := by
-    simp only [dh]
+:= by
+  simp only [dh]
+  split
+  · rename_i sk2 heq
+    have h_pk: pk = ({ sk := sk2 }: BytesView DhPk).pack := by grind
+    subst h_pk
     split
-    · rename_i sk2 heq
-      have h_pk: pk = ({ sk := sk2 }: BytesView DhPk).pack := by grind
-      subst h_pk
-      split
-      · simp [Dh.invariants, DhPk.invariants]
-      · simp [Dh.invariants, DhPk.invariants]
-        grind
-    · simp [Dh.invariants]
+    · simp [Dh.invariants, DhPk.invariants]
+    · simp [Dh.invariants, DhPk.invariants]
+      grind
+  · simp [Dh.invariants]
 
 end Invariants
 
