@@ -1,7 +1,6 @@
 import DY.Trace
 import DY.Step
-import DY.Bytes.Type
-import DY.Bytes.Invariants
+import DY.Bytes
 import DY.EquationalTheory.Literal
 import DY.EquationalTheory.Concat
 import DY.EquationalTheory.Hash

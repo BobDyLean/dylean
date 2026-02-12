@@ -1,4 +1,4 @@
-import DY.Bytes.Type
+import DY.Bytes.Basic
 import DY.Label
 import DY.Trace
 

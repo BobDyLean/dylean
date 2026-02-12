@@ -1,7 +1,7 @@
-import DY.Bytes.Type
-import DY.Trace
+import DY.Bytes.Basic
 import DY.Bytes.Invariants
 import DY.Bytes.AttackerKnowledge
+import DY.Trace
 
 /-
   This module allows to modularly prove the attacker knowledge theorem:

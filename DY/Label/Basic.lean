@@ -1,4 +1,4 @@
-import DY.Trace.Type
+import DY.Trace.Basic
 
 namespace DY
 

@@ -1,6 +1,5 @@
 import DY.Trace
-import DY.Bytes.Type
-import DY.Bytes.Invariants
+import DY.Bytes
 import DY.Step
 
 open DY

@@ -1,6 +1,6 @@
 import DY.Kleene
-import DY.Bytes.Type
-import DY.Trace.Type
+import DY.Bytes.Basic
+import DY.Trace.Basic
 
 /-
   This module allows to define modularly
