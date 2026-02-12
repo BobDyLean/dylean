@@ -137,7 +137,7 @@ instance: CanSign Bytes where
 theorem verify_sign
   (sk nonce msg: Bytes)
   :
-    verify (vk sk) msg (sign sk nonce msg)
+    verify (vk sk) msg (sign sk nonce msg) = true
   := by
     simp only [verify, vk, sign]
     grind
@@ -342,6 +342,8 @@ def invariantsProofs [BytesInvariants] [BytesInvariants.Has Vk.invariants] [Sign
   Bytes.PartialInvariantsProofs.combine invariantsProofs.internal
 
 end Invariants
+
+-- Temporarly close the namespace to define Bytes.SignkeyHasUsage and Bytes.signkeyLabel
 end Signature
 
 section ExtractSignKey

@@ -36,7 +36,8 @@
      Indeed, users may want to analyze a protocol that rely on a cryptographic primitive
      that we (DyLean developers) did not anticipate.
      Therefore, we need our type `Bytes` to be modular:
-     users should be able to construct it with the cryptographic primitives they need.
+     users should be able to construct it with the cryptographic primitives they need,
+     without needing to fork DyLean and modify its core.
   2. We want users to choose the security assumptions they require in their analysis.
      For example, they may want to consider an attacker that can compute a discrete logarithm
      (and therefore recover private keys from public keys)
@@ -47,7 +48,8 @@
      Because the invariant in DY* is fixed,
      it means that DY* decides on a security assumption
      and users cannot choose another one.
-  3. We would like to transpose the definition of `Bytes`, `Bytes.Invariant` etc.
+  3. For better aesthetics (therefore this point is more minor),
+     we would like to transpose the definition of `Bytes`, `Bytes.Invariant` etc.
      Instead of saying "here are all the constructors of `Bytes`",
      then "here are all the invariants for each constructor of `Bytes`", etc,
      we would like to have a file saying
@@ -61,38 +63,38 @@
   Let's first briefly explain the approach of "Data types à la carte".
   Consider the following inductive, that we want to define modularly:
 
-    inductive Test where
-      | foo: Test → Test → Test
-      | bar: Nat → Test
-      | baz: String → Test → Test
+    inductive MyInductive where
+      | foo: MyInductive → MyInductive → MyInductive
+      | bar: Nat → MyInductive
+      | baz: String → MyInductive → MyInductive
 
   The insight in Section 2. "Fixing the expression problem" is that
   we can also write this inductive like this:
 
-    inductive TestFunctor (α: Type) where
-      | foo: α → α → TestFunctor α
-      | bar: Nat → TestFunctor α
-      | baz: String → α → TestFunctor α
+    inductive Functor (α: Type) where
+      | foo: α → α → Functor α
+      | bar: Nat → Functor α
+      | baz: String → α → Functor α
 
-    inductive Test where
-      | mk: TestFunctor Test → Test
+    inductive MyInductive where
+      | mk: Functor MyInductive → MyInductive
 
-  And then move `TestFunctor` as an argument of `Test`:
+  The next insight is that we can make `Functor` an argument of `MyInductive`:
 
-    inductive Test (Functor: Type → Type) where
-      | mk: Functor (Test Functor) → Test Functor
+    inductive MyInductive (Functor: Type → Type) where
+      | mk: Functor (MyInductive Functor) → MyInductive Functor
 
-  So that the argument `Functor` describes the shape of the inductive we want to define,
-  and `Test Functor` is this inductive.
+  Here, `Functor` describes the shape of the inductive we want to define,
+  and `MyInductive Functor` is this inductive.
   Unfortunately, we cannot do this in Lean (and in proof assistants in general)
   because of the positivity checker
   (see https://lean-lang.org/doc/reference/latest/find/?domain=Verso.Genre.Manual.section&name=mutual-inductive-types-positivity )
 
   To circumvent this problem,
   we design a typeclass for functors called `Representable`,
-  and for such functors provide a type isomorphic to `Test Functor`.
-  That is, given `[Representable F]`, the type `ContainerFor F`
-  can be converted back and forth from `F (ContainerFor F)`,
+  and for such functors provide a type isomorphic to `MyInductive Functor`.
+  That is, given `[Representable Functor]`, the type `ContainerFor Functor`
+  can be converted back and forth from `Functor (ContainerFor Functor)`,
   and furthermore the type `ContainerFor` passes the positivity checker.
 
   So far, we have seen how to create an inductive from a functor.
@@ -107,31 +109,32 @@
     inj: ∀ a, F a → G a
     proj: ∀ a, G a → Option (F a)
 
-  For example, `TestFunctorFoo` is a sub-functor of `TestFunctor`
+  For example, `FunctorFoo` is a sub-functor of `Functor`
 
-    inductive TestFunctorFoo (α: Type) where
-      | bar: α → α → TestFunctorFoo α
+    inductive FunctorFoo (α: Type) where
+      | foo: α → α → FunctorFoo α
 
-  This allows to convert `TestFunctorFoo (ContainerFor TestFunctor)`
-  to `TestFunctor (ContainerFor TestFunctor)`
-  and then to `ContainerFor TestFunctor`.
+  This allows to convert `FunctorFoo (ContainerFor Functor)`
+  to `Functor (ContainerFor Functor)`
+  and then to `ContainerFor Functor`,
+  thereby effectively constructing an `MyInductive.foo`.
 
   Suppose we also define
 
-    inductive TestFunctorBar (α: Type) where
-      | bar: Nat → TestFunctorBar α
+    inductive FunctorBar (α: Type) where
+      | bar: Nat → FunctorBar α
 
-    inductive TestFunctorBaz (α: Type) where
-      | baz: String → α → TestFunctorBaz α
+    inductive FunctorBaz (α: Type) where
+      | baz: String → α → FunctorBaz α
 
-  then `TestFunctor` is isomorphic to
+  then `Functor` is isomorphic to
 
-    def TestFunctor (α: Type) :=
+    def Functor (α: Type) :=
       Sigma (fun (id: Fin 3) =>
         match id with
-        | 0 => TestFunctorFoo α
-        | 1 => TestFunctorBar α
-        | 2 => TestFunctorBaz α
+        | 0 => FunctorFoo α
+        | 1 => FunctorBar α
+        | 2 => FunctorBaz α
       )
 
   This is how we define functors modularly,
@@ -210,12 +213,12 @@ instance {f g h: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [FunctorSize
 
   of a functor, or equivalently the constructor
 
-    | foo: Nat → String → Test → Test → Test
+    | foo: Nat → String → MyInductive → MyInductive → MyInductive
 
   of an inductive is described by the `Ctor`
 
     {
-      Data := Nat → String
+      Data := Nat × String
       nRec := 2
     }
 -/
@@ -252,24 +255,12 @@ structure BareContainer {CtorId} (ctors: Ctors CtorId) where
   data: (ctors id).Data
   as: Array (BareContainer ctors)
 
-theorem Array.sizeOf_mem
-  {α: Type} [SizeOf α]
-  (arr: Array α) (x: α)
-  : x ∈ arr → sizeOf x < sizeOf arr
-  := by
-    cases arr
-    rename_i l
-    induction l
-    · simp
-    simp_all
-    grind
-
 def BareContainer.wf {CtorId} {ctors: Ctors CtorId} (x: BareContainer ctors): Prop :=
   x.as.size = (ctors x.id).nRec ∧
   ∀ y, y ∈ x.as → y.wf
 termination_by sizeOf x
 decreasing_by
-  have := Array.sizeOf_mem x.as y (by assumption)
+  have := Array.sizeOf_lt_of_mem (by assumption)
   cases x
   simp_all
   grind
@@ -289,21 +280,15 @@ instance {CtorId: Type} (ctors: Ctors CtorId) [SizeOf CtorId]: SizeOf (Container
 
       ContainerFor f
     = Container ctors                       [by unfolding ContainerFor]
-    = FunctorRepr ctors (Container ctors)   [by property of Container]
+    ≅ FunctorRepr ctors (Container ctors)   [by property of Container]
     = FunctorRepr ctors (ContainerFor f)    [by refolding ContainerFor]
-    = f (ContainerFor f)                    [by f being Representable]
+    ≅ f (ContainerFor f)                    [by f being Representable]
 -/
 abbrev ContainerFor (f: Type → Type) [FunctorSizeOf f] [Representable f] :=
   Container (Representable.ctors (f := f))
 
-theorem Array.unattach_p
-  {a: Type u}
-  {p: a → Prop}
-  (arr: Array (Subtype p))
-  : ∀ x, x ∈ arr.unattach → p x
-  := by
-    simp_all [Array.unattach, -Array.map_subtype]
-
+-- TODO: upstream?
+-- there is Array.unattach_attachWith, but not this version
 theorem Array.attachWith_unattach
   {a: Type u}
   {p: a → Prop}
@@ -325,14 +310,9 @@ def Container.intoFunctor
     id := x.val.id
     data := x.val.data
     as := Vector.mk (x.val.as.attachWith BareContainer.wf (by
-      have := x.property
-      rewrite [BareContainer.wf] at this
-      simp_all
+      grind [BareContainer.wf]
     )) (by
-      have := x.property
-      rewrite [BareContainer.wf] at this
-      rewrite [Array.size_attachWith]
-      simp_all
+      grind [BareContainer.wf, Array.size_attachWith]
     )
 
 def Container.fromFunctor
@@ -344,8 +324,7 @@ def Container.fromFunctor
     data := x.data
     as := x.as.toArray.unattach
   } (by
-    rewrite [BareContainer.wf]
-    grind [Array.size_unattach, Array.unattach_p]
+    grind [BareContainer.wf, Array.size_unattach, Array.mem_unattach]
   )
 
 def Container.intoFunctor_fromFunctor
@@ -504,8 +483,7 @@ theorem Container.sizeOf_pack
   [SubFunctorTC f g]
   [Representable g]
   (x: f (ContainerFor g))
-  :
-    DY.ALaCarte.FunctorSizeOf.sizeOf x ≤ sizeOf (Container.pack f x)
+  : FunctorSizeOf.sizeOf x ≤ sizeOf (Container.pack f x)
   := by
     simp_all only [Container.pack]
     have := SubFunctorTC.sizeOf_inj (g := g) x
@@ -520,10 +498,9 @@ theorem Container.sizeOf_view
   [SubFunctorTC f g]
   [Representable g]
   (x: ContainerFor g)
-  :
-  match x.view f with
-  | none => True
-  | some y => DY.ALaCarte.FunctorSizeOf.sizeOf y ≤ sizeOf x
+  : match x.view f with
+    | none => True
+    | some y => FunctorSizeOf.sizeOf y ≤ sizeOf x
   := by
     split
     · trivial

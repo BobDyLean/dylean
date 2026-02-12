@@ -21,7 +21,7 @@ class BytesWellFormed where
 def Bytes.WellFormed [BytesWellFormed] (b: Bytes) : BytesWellFormedT :=
   Bytes.rec BytesWellFormed.funs b
 
-class HasBytesWellFormed [BytesWellFormed] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (binv: outParam (Bytes.PartialFunction SubF BytesWellFormedT)) where
+class BytesWellFormed.Has [BytesWellFormed] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (binv: outParam (Bytes.PartialFunction SubF BytesWellFormedT)) where
   pf: Bytes.SubFunction binv BytesWellFormed.funs
 
 @[simp]
@@ -29,7 +29,7 @@ theorem Bytes.WellFormed.eq
   {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
   [BytesWellFormed]
   {binv: Bytes.PartialFunction SubF BytesWellFormedT}
-  [tc: HasBytesWellFormed binv]
+  [tc: BytesWellFormed.Has binv]
   (b: BytesView SubF)
   (tr: ProofTrace)
   : b.pack.WellFormed tr = binv b (fun y _ => Bytes.WellFormed y) tr
@@ -81,7 +81,7 @@ class GetUsage where
 def Bytes.usage [GetUsage] (b: Bytes) : GetUsageT :=
   Bytes.rec GetUsage.funs b
 
-class HasGetUsage [GetUsage] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (binv: outParam (Bytes.PartialFunction SubF GetUsageT)) where
+class GetUsage.Has [GetUsage] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (binv: outParam (Bytes.PartialFunction SubF GetUsageT)) where
   pf: Bytes.SubFunction binv GetUsage.funs
 
 @[simp]
@@ -89,7 +89,7 @@ theorem Bytes.usage.eq
   {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
   [GetUsage]
   {binv: Bytes.PartialFunction SubF GetUsageT}
-  [tc: HasGetUsage binv]
+  [tc: GetUsage.Has binv]
   (b: BytesView SubF)
   (tr: ProofTrace)
   : b.pack.usage tr = binv b (fun y _ => Bytes.usage y) tr
@@ -132,7 +132,7 @@ class GetLabel where
 def Bytes.label [GetLabel] (b: Bytes) : GetLabelT :=
   Bytes.rec GetLabel.funs b
 
-class HasGetLabel [GetLabel] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (binv: outParam (Bytes.PartialFunction SubF GetLabelT)) where
+class GetLabel.Has [GetLabel] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (binv: outParam (Bytes.PartialFunction SubF GetLabelT)) where
   pf: Bytes.SubFunction binv GetLabel.funs
 
 @[simp]
@@ -140,7 +140,7 @@ theorem Bytes.label.eq
   {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
   [GetLabel]
   {binv: Bytes.PartialFunction SubF GetLabelT}
-  [tc: HasGetLabel binv]
+  [tc: GetLabel.Has binv]
   (b: BytesView SubF)
   (tr: ProofTrace)
   : b.pack.label tr = binv b (fun y _ => Bytes.label y) tr
@@ -183,7 +183,7 @@ class BytesInvariant where
 def Bytes.Invariant [BytesInvariant] (b: Bytes) (tr: ProofTrace) : Prop :=
   Bytes.rec BytesInvariant.funs b tr
 
-class HasBytesInvariant [BytesInvariant] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (binv: outParam (Bytes.PartialFunction SubF BytesInvariantT)) where
+class BytesInvariant.Has [BytesInvariant] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (binv: outParam (Bytes.PartialFunction SubF BytesInvariantT)) where
   pf: Bytes.SubFunction binv BytesInvariant.funs
 
 @[simp]
@@ -191,7 +191,7 @@ theorem Bytes.Invariant.eq
   {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
   [BytesInvariant]
   {binv: Bytes.PartialFunction SubF BytesInvariantT}
-  [tc: HasBytesInvariant binv]
+  [tc: BytesInvariant.Has binv]
   (b: BytesView SubF)
   (tr: ProofTrace)
   : b.pack.Invariant tr = binv b (fun y _ => Bytes.Invariant y) tr
@@ -426,16 +426,16 @@ instance
       invariant_sub := inferInstanceAs (Bytes.SubFunctionStep (invariants id) (Bytes.PartialFunction.combine invariants))
     }
 
-instance [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (invs: Bytes.PartialInvariants SubF) [tc: BytesInvariants.Has invs]: HasBytesWellFormed invs.well_formed where
+instance [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (invs: Bytes.PartialInvariants SubF) [tc: BytesInvariants.Has invs]: BytesWellFormed.Has invs.well_formed where
   pf := tc.well_formed_sub
 
-instance [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (invs: Bytes.PartialInvariants SubF) [tc: BytesInvariants.Has invs]: HasGetUsage invs.usage where
+instance [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (invs: Bytes.PartialInvariants SubF) [tc: BytesInvariants.Has invs]: GetUsage.Has invs.usage where
   pf := tc.usage_sub
 
-instance [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (invs: Bytes.PartialInvariants SubF) [tc: BytesInvariants.Has invs]: HasGetLabel invs.label where
+instance [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (invs: Bytes.PartialInvariants SubF) [tc: BytesInvariants.Has invs]: GetLabel.Has invs.label where
   pf := tc.label_sub
 
-instance [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (invs: Bytes.PartialInvariants SubF) [tc: BytesInvariants.Has invs]: HasBytesInvariant invs.invariant where
+instance [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (invs: Bytes.PartialInvariants SubF) [tc: BytesInvariants.Has invs]: BytesInvariant.Has invs.invariant where
   pf := tc.invariant_sub
 
 end BytesInvariants

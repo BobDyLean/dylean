@@ -42,7 +42,6 @@ example [inst: BytesFunctor]: ALaCarte.RepresentableDecidableEq BytesF := inferI
 example [inst: BytesFunctor]: ALaCarte.RepresentableOrd BytesF := inferInstance
 
 variable [BytesFunctor]
--- TODO: Bytes or SymbolicBytes?
 def Bytes := ALaCarte.ContainerFor BytesF
 
 noncomputable
@@ -80,10 +79,6 @@ abbrev BytesFunctor.combine {a: Type} (SubFs: a → Type → Type): Type → Typ
   ALaCarte.FunctorUnion SubFs
 
 instance {a: Type} [DecidableEq a] [Ord a] [Std.LawfulEqOrd a] [Std.TransOrd a] (SubFs: a → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]: SubBytesFunctor (BytesFunctor.combine SubFs) where
-  sizeOf := inferInstance
-  repr := inferInstance
-  deq := inferInstance
-  ord := inferInstance
 
 instance
   {a: Type} [DecidableEq a] [Ord a] [Std.LawfulEqOrd a] [Std.TransOrd a]

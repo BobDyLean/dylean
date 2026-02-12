@@ -301,6 +301,8 @@ def invariantsProofs [BytesInvariants] [BytesInvariants.Has invariants]: Bytes.P
   Bytes.PartialInvariantsProofs.combine invariantsProofs.internal
 
 end Invariants
+
+-- Temporarly close the namespace to define Bytes.dhSkLabel
 end DiffieHellman
 
 section ExtractDhSk

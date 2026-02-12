@@ -13,8 +13,6 @@ class CanHash (Bytes: Type u) where
 
 export CanHash (hash)
 
--- Constructors
-
 section Constructors
 
 structure Hash (Bytes: Type) where

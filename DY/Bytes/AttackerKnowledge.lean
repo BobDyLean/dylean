@@ -173,6 +173,9 @@ def Bytes.AttackerKnows.attackerKnow.prove
     simp
     grind
 
+/--
+  Main theorem to prove that the attacker knows some particular value
+-/
 theorem Bytes.AttackerKnows.prove
   [AttackerKnowledge]
   {SubF: Type → Type}
