@@ -1,7 +1,12 @@
-import DY.Trace.Type
+module
+
+public import DY.Trace.Basic
 
 namespace DY
 
+variable [BytesFunctor]
+
+public
 structure Label where
   isCorrupt_: Trace Unit → Prop
   isCorruptSnoc_:

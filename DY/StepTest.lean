@@ -1,9 +1,14 @@
 import DY.Trace
+import DY.Bytes
 import DY.Step
 
 open DY
 
-namespace Test
+namespace StepTest
+
+variable [BytesFunctor]
+variable [BytesInvariants]
+variable [BytesInvariantsProofs]
 
 def hash (b: Bytes): Bytes := sorry
 def test_publishable (b: Bytes): Bool := sorry
@@ -11,9 +16,9 @@ def test_publishable (b: Bytes): Bool := sorry
 instance:
   HoareTriplePure
     (hash b)
-    (fun tr => b.invariant tr)
+    (fun tr => b.Invariant tr)
     (fun res tr =>
-      res.invariant tr ∧
+      res.Invariant tr ∧
       res.label tr = b.label tr
     )
   where
@@ -24,7 +29,7 @@ def send_message (b:Bytes) : Traceful Unit := sorry
 def receive_message (n:Nat) : Traceful Bytes := sorry
 
 abbrev is_knowable_by (b: Bytes) (l: Label) (tr: ProofTrace): Prop :=
-  b.invariant tr ∧
+  b.Invariant tr ∧
   (b.label tr).canFlow l tr
 
 set_option trace.Step true
@@ -52,7 +57,7 @@ instance:
 instance:
   HoareTriple
     (send_message b)
-    (fun tr => b.invariant tr)
+    (fun tr => b.Invariant tr)
     (fun _ _ => True)
   where
     pf := sorry
@@ -60,14 +65,14 @@ instance:
 instance:
   HoareTriple
     (receive_message n)
-    (fun _ => True) (fun b tr => b.is_publishable tr)
+    (fun _ => True) (fun b tr => b.Publishable tr)
   where
     pf := sorry
 
 instance:
   HoareTriplePure
     (test_publishable b)
-    (fun _ => True) (fun res tr => res → b.is_publishable tr)
+    (fun _ => True) (fun res tr => res → b.Publishable tr)
   where
     pf := sorry
 
@@ -86,8 +91,8 @@ def test (b:Bytes) (b2: Bytes): Traceful Bytes := do
 instance:
   HoareTriple
     (test b b2)
-    (fun tr => b.is_publishable tr)
-    (fun res tr => res.is_publishable tr)
+    (fun tr => b.Publishable tr)
+    (fun res tr => res.Publishable tr)
 where
   pf := by
     unfold test
@@ -105,4 +110,4 @@ where
     step
     grind
 
-end Test
+end StepTest

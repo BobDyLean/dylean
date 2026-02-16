@@ -1,13 +1,19 @@
+module
+
+public import DY.Bytes.Basic
+
 namespace DY
 
-axiom Bytes: Type 0
+variable [BytesFunctor]
 
+public
 inductive Trace.Entry (a:Type) where
   | rand_gen: a -> Trace.Entry a
   | send_msg: Bytes -> Trace.Entry a
   | log_event: Trace.Entry a
   -- TODO
 
+public
 inductive Trace (a:Type) where
   | nil: Trace a
   | snoc: Trace a -> Trace.Entry a -> Trace a
@@ -58,21 +64,25 @@ instance : LawfulFunctor Trace where
       simp [Trace.map, Entry.map]
       grind
 
+public
 inductive LETrace : Trace a -> Trace a -> Prop where
   | equal: (tr: Trace a) -> LETrace tr tr
   | extend: (tr1: Trace a) -> (tr2: Trace a) -> (e: Entry a) -> LETrace tr1 tr2 -> LETrace tr1 (.snoc tr2 e)
 
+public
 instance : LE (Trace a) where
   le := LETrace
 
 -- TODO: is there a typeclass about this?
 @[grind, refl]
+public
 theorem trace_le_refl
   (tr: Trace α)
   : tr ≤ tr
   := by
     exact LETrace.equal tr
 
+public
 theorem trace_le_trans
   (tr1: Trace a) (tr2: Trace a) (tr3: Trace a)
   : tr1 ≤ tr2 → tr2 ≤ tr3 → tr1 ≤ tr3
@@ -85,6 +95,7 @@ theorem trace_le_trans
 
 -- grind_pattern trace_le_trans => tr1 ≤ tr2, tr1 ≤ tr3
 
+public
 instance : Trans (· ≤ · : Trace a → Trace a → Prop) (· ≤ ·) (· ≤ ·) where
   trans := by
     intros x y z
@@ -108,5 +119,22 @@ theorem trace_le_map
     · apply LETrace.equal
     · apply LETrace.extend
       assumption
+
+public
+def erase (tr: Trace α): Trace Unit :=
+  Functor.mapConst () tr
+
+public
+theorem erase_idempotent (tr: Trace Unit): tr.erase = tr := by
+  unfold erase
+  simp only [LawfulFunctor.map_const]
+  apply LawfulFunctor.id_map
+
+public
+theorem erase_le (tr1 tr2: Trace α)
+  : tr1 ≤ tr2 →
+  tr1.erase ≤ tr2.erase
+  := by apply trace_le_map
+
 
 end DY.Trace

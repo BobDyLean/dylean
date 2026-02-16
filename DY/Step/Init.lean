@@ -35,11 +35,11 @@ def preservesInvariantTelescope
     let (fName, args) := type.getAppFnArgs
     trace[Step] "function name: {fName}, arguments: {args}"
     if fName = ``DY.hoareTriple then
-      guard (args.size = 6)
-      pure (xs_and_bi, StepSpecTheorem.hoareTriple args[3]! args[4]! args[5]!)
+      guard (args.size = 7)
+      pure (xs_and_bi, StepSpecTheorem.hoareTriple args[4]! args[5]! args[6]!)
     else if fName = ``DY.wp then
-      guard (args.size = 6)
-      pure (xs_and_bi, StepSpecTheorem.wp args[3]! args[4]! args[5]!)
+      guard (args.size = 7)
+      pure (xs_and_bi, StepSpecTheorem.wp args[4]! args[5]! args[6]!)
     else
       throwError "not a constant"
 
@@ -218,9 +218,9 @@ def massageNextGoal
     -- get old and mid trace FVarId
     -- how: unify ?tr_old ≤ ?tr_mid with the hypthesis we introduced
     let (trOldFv, trMidFv) ← do
-      let oldTraceMVarId ← mkFreshExprMVar (mkConst `DY.ProofTrace)
-      let midTraceMVarId ← mkFreshExprMVar (mkConst `DY.ProofTrace)
-      let trLeToUnify ← mkAppOptM `LE.le #[none, none, oldTraceMVarId, midTraceMVarId]
+      let oldTraceMVarId ← mkFreshExprMVar (← mkAppOptM ``DY.ProofTrace #[none])
+      let midTraceMVarId ← mkFreshExprMVar (← mkAppOptM ``DY.ProofTrace #[none])
+      let trLeToUnify ← mkAppOptM ``LE.le #[none, none, oldTraceMVarId, midTraceMVarId]
       trace[Step] "finding old trace fvarid by unifying {trLeToUnify} and {(← trGrowsFv.getType)}"
       unless (← isDefEq trLeToUnify (← trGrowsFv.getType)) do
         throwError "cannot unify {trLeToUnify} and {(← trGrowsFv.getType)}"
@@ -237,7 +237,7 @@ def massageNextGoal
     -- get trace invariant for old trace
     -- how: unify Trace.invariant tr_old with an assumption
     let trInvOldFv ← do
-      let trInvOldType ← mkAppOptM `DY.Trace.invariant #[mkFVar trOldFv]
+      let trInvOldType ← mkAppOptM ``DY.Trace.invariant #[none, mkFVar trOldFv]
       let trInvOldMVarId ← mkFreshExprMVar trInvOldType
       trace[Step] "finding in assumptions {trInvOldType}"
       trInvOldMVarId.mvarId!.assumption
@@ -263,10 +263,13 @@ def massageNextGoal
       let ty ← fvar.getType
       let ty ← ty.sanitize
       let (name, _) := ty.getAppFnArgs
+      -- hack: for typeclasses such as BytesCtors
+      let isTcInstance := (← fvar.getBinderInfo).isInstImplicit
       pure (
-        name = `DY.ProofTrace ∨
-        name = `DY.Trace.invariant ∨
-        name = `LE.le
+        isTcInstance ∨
+        name = ``DY.ProofTrace ∨
+        name = ``DY.Trace.invariant ∨
+        name = ``LE.le
       )
     )
     trace[Step] "reverted goal: {← goal.getType}"
@@ -345,7 +348,7 @@ def assignGhostParameterAux
     unless (← isDefEq expectedGhostType gotGhostType) do
       throwError "Ghost parameter has type {gotGhostType}, expected type {expectedGhostType}.\nHint: use `step ... with ⟨ ... ⟩`"
     ghostMVarId.safeAssign args.xGhostTerm
-#check outParam
+
 /--
   If no ghost parameter was provided,
   try to use a user-provided meta-program
@@ -470,14 +473,14 @@ def evalStepBind
   := do
     evalStepAux args {
       theoremName := ``DY.Traceful.bind_wp
-      nbArgs := 15
-      nbUnifiedArgs := 14
-      ghostPosition := 3,
-      hasGhostPosition := 10
-      xSpecTheoremPosition := 11
-      trInvPosition := 12
-      preconditionPosition := 13
-      nextPosition := 14
+      nbArgs := 16
+      nbUnifiedArgs := 15
+      ghostPosition := 4,
+      hasGhostPosition := 11
+      xSpecTheoremPosition := 12
+      trInvPosition := 13
+      preconditionPosition := 14
+      nextPosition := 15
       xName
     }
 
@@ -487,20 +490,20 @@ def evalStepFinal
   := do
     evalStepAux args {
       theoremName := ``DY.Traceful.finish_wp
-      nbArgs := 13
-      nbUnifiedArgs := 12
-      ghostPosition := 2
-      hasGhostPosition := 8
-      xSpecTheoremPosition := 9
-      trInvPosition := 10
-      preconditionPosition := 11
-      nextPosition := 12
+      nbArgs := 14
+      nbUnifiedArgs := 13
+      ghostPosition := 3
+      hasGhostPosition := 9
+      xSpecTheoremPosition := 10
+      trInvPosition := 11
+      preconditionPosition := 12
+      nextPosition := 13
       xName := `x
     }
 
 def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Unit :=
-  do
   goal.withContext do
+  withTraceNode `Step (fun _ => pure m!"Apply let theorem") do
     let letValue := (← letFv.getDecl).value
     let letName := (← letFv.getDecl).userName
 
@@ -515,22 +518,24 @@ def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Uni
     let applyMVars := applyMVars.map (·.mvarId!)
 
     -- x
-    applyMVars[3]!.safeAssign (.fvar letFv)
+    applyMVars[4]!.safeAssign (.fvar letFv)
     -- ghost things
-    assignGhostParameter args applyMVars[6]! applyMVars[2]!
+    assignGhostParameter args applyMVars[7]! applyMVars[3]!
     -- HoareTriplePureGhost instance
-    applyMVars[7]!.assignTypeclassInstance
+    applyMVars[8]!.assignTypeclassInstance
     -- tr
-    applyMVars[8]!.assumption -- "I am feeling lucky" (works if there is only one `ProofTrace` in the local context)
+    applyMVars[9]!.assumption -- "I am feeling lucky" (works if there is only one `ProofTrace` in the local context)
 
-    let pfPreMVar := applyMVars[9]!
+    let pfPreMVar := applyMVars[10]!
     solvePrecondition args pfPreMVar
     guard (← pfPreMVar.isAssigned)
 
     -- sanity check
-    guard (applyMVars.size = 10);
-    for i in [0:10] do
+    guard (applyMVars.size = 11);
+    for i in [0:11] do
       guard (← applyMVars[i]!.isAssigned)
+
+    trace[Step] "using theorem {applyTheoremExpr} of type {applyTheoremType}"
 
     let goal ← goal.assert .anonymous applyTheoremType applyTheoremExpr
     let goal ← introAndMassagePostX letName goal

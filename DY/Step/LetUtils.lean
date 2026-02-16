@@ -79,6 +79,7 @@ structure HoistInfo where
   name: Name
   type: Expr
   info: BinderInfo
+deriving Inhabited
 
 /- when `e` is a function,
   returns the name, type and binder info
@@ -86,6 +87,7 @@ structure HoistInfo where
 -/
 def getArgsInfo
   (e: Expr)
+  (args: Array Expr)
   : MetaM (Array HoistInfo)
   := do
     let ty ← inferType e
@@ -94,7 +96,9 @@ where
   process (ty: Expr) (acc: Array HoistInfo): Array HoistInfo :=
     match ty with
     | .forallE binderName binderType body binderInfo =>
-      process body (acc.push ⟨ binderName, binderType, binderInfo ⟩ )
+      -- in case there is a dependent arrow, binderType will contain loose bvars,
+      -- which we instantiate here
+      process body (acc.push ⟨ binderName, binderType.instantiateRev (args.take acc.size), binderInfo ⟩ )
     | .mdata _ body =>
       process body acc
     | _ => acc
@@ -109,7 +113,8 @@ def hoistArgumentsAux
   : MetaM (Expr × List (Expr × HoistInfo))
   := do
     let (fn, args) := e.withApp Prod.mk
-    let argsInfo ← getArgsInfo fn
+    let argsInfo ← getArgsInfo fn args
+    guard (args.size = argsInfo.size)
     let (_, args, hoistedArgs) := (args.zip argsInfo).foldr (fun (arg, info) (n, args, hoistedArgs) =>
       if p arg info then
         (n+1, (.bvar n)::args, (arg, info)::hoistedArgs)
@@ -190,11 +195,11 @@ def hoistArgumentsInWpAux
   : MetaM (Option Expr)
   := do
     let (fn, args) := e.withApp Prod.mk
-    unless fn.constName = ``DY.wp && args.size = 6 do
+    unless fn.constName = ``DY.wp && args.size = 7 do
       return none
-    match ← hoistArguments isExplicitComplexExpr args[3]! with
+    match ← hoistArguments isExplicitComplexExpr args[4]! with
     | .some arg1 =>
-      let args := args.set! 3 arg1
+      let args := args.set! 4 arg1
       pure (some (mkAppN fn args))
     | .none => pure none
 
@@ -212,6 +217,7 @@ elab "hoist" : tactic => do
   replaceMainGoal ([← hoist (← getMainGoal)])
 
 namespace Test
+  variable [BytesFunctor]
   def g (foo: Bytes) (bar: Bytes) := foo
   def send_message (b: Bytes): Traceful Nat := sorry
 
