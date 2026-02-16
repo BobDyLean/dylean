@@ -1,11 +1,14 @@
-import DY.Kleene
-import DY.Bytes.Basic
-import DY.Trace.Basic
-
 /-
   This module allows to define modularly
   the computations that may perform a Dolev-Yao attacker.
 -/
+
+module
+
+public import DY.Kleene
+public import DY.Bytes.Basic
+public import DY.Trace.Basic
+
 
 namespace DY
 
@@ -41,6 +44,8 @@ variable [BytesFunctor]
   It is only for hygiene, to make sure we don't miss equational theories
   by using `SubAttackerKnowledge.combine`
 -/
+
+public
 structure SubAttackerKnowledge (SubF: Type → Type) where
   pred: (Bytes → Prop) → Bytes → Prop
   pred_isScottContinuous: DY.Kleene.IsScottContinuous pred := by
@@ -54,9 +59,11 @@ structure SubAttackerKnowledge (SubF: Type → Type) where
     · try simp [DY.Kleene.Forall, DY.Kleene.Chain.union, DY.Kleene.Chain.map]
       try grind
 
+public
 class AttackerKnowledge where
   attackerKnowledge: SubAttackerKnowledge BytesF
 
+public
 class AttackerKnowledge.HasStep
   {SubF1: Type → Type}
   {SubF2: semiOutParam (Type → Type)}
@@ -65,6 +72,7 @@ class AttackerKnowledge.HasStep
 where
   pf: ∀ p b, att1.pred p b → att2.pred p b
 
+public
 class AttackerKnowledge.Has
   [AttackerKnowledge]
   {SubF: Type → Type}
@@ -74,12 +82,14 @@ where
 
 namespace AttackerKnowledge
 
+public
 instance
   [AttackerKnowledge]
   : AttackerKnowledge.Has AttackerKnowledge.attackerKnowledge
 where
   pf p b := by simp
 
+public
 instance
   [AttackerKnowledge]
   {SubF1 SubF2: Type → Type}
@@ -93,6 +103,7 @@ where
 
 end AttackerKnowledge
 
+public
 def SubAttackerKnowledge.combine
   {t: Type}
   {SubFs: t → Type → Type}
@@ -102,6 +113,7 @@ where
   pred := DY.Kleene.combine (fun id => (atts id).pred)
   pred_isScottContinuous := DY.Kleene.combine_isScottContinuous (fun id => (atts id).pred) (fun id => (atts id).pred_isScottContinuous)
 
+public
 def SubAttackerKnowledge.combine'
   {SubF: Type → Type}
   {t: Type}
@@ -111,11 +123,14 @@ where
   pred := DY.Kleene.combine (fun id => (atts id).pred)
   pred_isScottContinuous := DY.Kleene.combine_isScottContinuous (fun id => (atts id).pred) (fun id => (atts id).pred_isScottContinuous)
 
+@[expose]
+public
 def SubAttackerKnowledge.fromPred {SubF: Type → Type} (pred: Bytes → Prop): SubAttackerKnowledge SubF where
   pred p buf := pred buf
 
 namespace AttackerKnowledge
 
+public
 instance
   {t: Type}
   {SubFs: t → Type → Type}
@@ -128,6 +143,7 @@ where
     intro
     exists id
 
+public
 instance
   {SubF: Type → Type}
   {t: Type}
@@ -143,9 +159,13 @@ where
 end AttackerKnowledge
 
 -- TODO
+public
 opaque Trace.MessageSent (tr: Trace α) (b: Bytes): Prop
+public
 axiom Trace.MessageSent_erase (tr: Trace α) (b: Bytes): tr.MessageSent b = tr.erase.MessageSent b
 
+@[expose]
+public
 def Bytes.AttackerKnows.baseKnowledge (tr: Trace α): SubAttackerKnowledge BytesF :=
   SubAttackerKnowledge.fromPred tr.MessageSent
 
@@ -156,6 +176,7 @@ def Bytes.AttackerKnows.attackerKnowledge [AttackerKnowledge] (tr: Trace α): Su
     | 1 => baseKnowledge tr
   )
 
+public
 def Bytes.AttackerKnows [AttackerKnowledge] (b: Bytes) (tr: Trace α): Prop :=
   Kleene.mkWeakestFixpoint ((Bytes.AttackerKnows.attackerKnowledge tr).pred) b
 
@@ -176,6 +197,7 @@ def Bytes.AttackerKnows.attackerKnow.prove
 /--
   Main theorem to prove that the attacker knows some particular value
 -/
+public
 theorem Bytes.AttackerKnows.prove
   [AttackerKnowledge]
   {SubF: Type → Type}
@@ -203,10 +225,13 @@ theorem Bytes.AttackerKnows.prove
 
   We can use `SubAttackerKnowledge.Implies` to modularly prove that a predicate `P` satisfy this property.
 -/
+@[expose]
+public
 def SubAttackerKnowledge.Implies {SubF: Type → Type} (att: SubAttackerKnowledge SubF) (p: Bytes → Prop): Prop :=
   ∀ b, att.pred p b → p b
 
-def SubAttackerKnowledge.combine'.implies
+public
+theorem SubAttackerKnowledge.combine'.implies
   {SubF: Type → Type}
   {t: Type}
   (atts: t → SubAttackerKnowledge SubF)
@@ -219,7 +244,8 @@ def SubAttackerKnowledge.combine'.implies
   intro id
   exact pfs id b
 
-def SubAttackerKnowledge.combine.implies
+public
+theorem SubAttackerKnowledge.combine.implies
   {t: Type}
   {SubFs: t → Type → Type}
   (atts: ∀ id, SubAttackerKnowledge (SubFs id))
@@ -232,6 +258,7 @@ def SubAttackerKnowledge.combine.implies
   intro id
   exact pfs id b
 
+public
 theorem Bytes.AttackerKnows.is_least_fixpoint
   [AttackerKnowledge]
   (pred: Bytes → Prop)
@@ -249,6 +276,7 @@ theorem Bytes.AttackerKnows.is_least_fixpoint
     grind
   ) b
 
+public
 theorem Bytes.AttackerKnows.pred_trace_erase [AttackerKnowledge] (tr: Trace α) (b: Bytes):
   b.AttackerKnows tr = b.AttackerKnows (tr.erase)
 := by

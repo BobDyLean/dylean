@@ -1,10 +1,11 @@
-import DY.Trace.Basic
-import DY.Label
-import DY.Bytes
-import DY.Misc
+module
+
+public import DY.Bytes
+public import DY.Misc.Instances
 
 namespace DY.DiffieHellman
 
+public
 class CanDH (Bytes: Type u) where
   -- TODO: naming convention
   dh_pk: (sk: Bytes) → Bytes
@@ -15,12 +16,15 @@ export CanDH (dh)
 
 section Constructors
 
+public
 structure DhPk (Bytes: Type) where
   sk: Bytes
 
+public
 instance: ALaCarte.FunctorSizeOf DhPk where
   sizeOf | {sk} => sizeOf sk
 
+public
 instance: ALaCarte.Representable DhPk where
   CtorId := Unit
   ctors | () => { Data := Unit, nRec := 1 }
@@ -40,10 +44,11 @@ instance: ALaCarte.Representable DhPk where
     simp_all <;> grind
   sizeOf_eq | {sk} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-instance: ALaCarte.RepresentableDecidableEq DhPk where
-instance: ALaCarte.RepresentableOrd DhPk where
-instance: SubBytesFunctor DhPk where
+public instance: ALaCarte.RepresentableDecidableEq DhPk where
+public instance: ALaCarte.RepresentableOrd DhPk where
+public instance: SubBytesFunctor DhPk where
 
+public
 def DhPk.length [BytesFunctor]: Bytes.PartialLength DhPk :=
   fun _ _ =>
     32
@@ -59,13 +64,16 @@ theorem DhPk.sizeOf_eq
 
 grind_pattern DhPk.sizeOf_eq => DY.ALaCarte.FunctorSizeOf.sizeOf x
 
+public
 structure Dh (Bytes: Type) where
   pk: Bytes
   sk: Bytes
 
+public
 instance: ALaCarte.FunctorSizeOf Dh where
   sizeOf | {pk, sk} => sizeOf pk + sizeOf sk
 
+public
 instance: ALaCarte.Representable Dh where
   CtorId := Unit
   ctors | () => { Data := Unit, nRec := 2 }
@@ -86,47 +94,56 @@ instance: ALaCarte.Representable Dh where
     simp_all <;> grind
   sizeOf_eq | {pk, sk} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-instance: ALaCarte.RepresentableDecidableEq Dh where
-instance: ALaCarte.RepresentableOrd Dh where
-instance: SubBytesFunctor Dh where
+public instance: ALaCarte.RepresentableDecidableEq Dh where
+public instance: ALaCarte.RepresentableOrd Dh where
+public instance: SubBytesFunctor Dh where
 
+public
 def Dh.length [BytesFunctor]: Bytes.PartialLength Dh :=
   fun _ _ =>
     32
 
+public
 abbrev SubF.internal (id: Fin 2): Type → Type :=
   match id with
   | 0 => DhPk
   | 1 => Dh
 
+public
 abbrev SubF := BytesFunctor.combine SubF.internal
 
+public
 instance: ∀ id, SubBytesFunctor (SubF.internal id)
-  | 0 => inferInstance
-  | 1 => inferInstance
+  | 0 => inferInstanceAs (SubBytesFunctor DhPk)
+  | 1 => inferInstanceAs (SubBytesFunctor Dh)
 
-instance: SubBytesFunctor SubF := inferInstance
+public
+instance: SubBytesFunctor SubF := inferInstanceAs (SubBytesFunctor (BytesFunctor.combine SubF.internal))
 
-instance: BytesFunctor.HasStep DhPk SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) SubF)
-instance: BytesFunctor.HasStep Dh SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 1) SubF)
+public instance: BytesFunctor.HasStep DhPk SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) SubF)
+public instance: BytesFunctor.HasStep Dh SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 1) SubF)
 
+public
 def SubF.length.internal [BytesFunctor]: ∀ id, Bytes.PartialLength (SubF.internal id)
   | 0 => DhPk.length
   | 1 => Dh.length
 
+public
 abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
   Bytes.PartialLength.combine SubF.length.internal
 
-instance [BytesFunctor] [BytesLength]: BytesLength.HasStep DhPk.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 0) SubF.length)
-instance [BytesFunctor] [BytesLength]: BytesLength.HasStep Dh.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 1) SubF.length)
+public instance [BytesFunctor] [BytesLength]: BytesLength.HasStep DhPk.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 0) SubF.length)
+public instance [BytesFunctor] [BytesLength]: BytesLength.HasStep Dh.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 1) SubF.length)
 
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
-
+public
 abbrev DhPk.pack (x: DhPk Bytes) := BytesView.pack x
+
+public
 abbrev Dh.pack (x: Dh Bytes) := BytesView.pack x
 
+public
 instance: CanDH Bytes where
   dh_pk sk :=
     ({sk}: DhPk Bytes).pack
@@ -141,6 +158,7 @@ instance: CanDH Bytes where
     | none =>
       ({sk, pk}: Dh Bytes).pack
 
+public
 theorem dh_commutes
   (sk1 sk2: Bytes)
   : dh (dh_pk sk1) sk2 = dh (dh_pk sk2) sk1
@@ -173,6 +191,7 @@ def attackerKnowledge.internal (id: Fin 2): SubAttackerKnowledge SubF :=
   | 0 => attKnowsDhPk
   | 1 => attKnowsDh
 
+public
 def attackerKnowledge: SubAttackerKnowledge SubF :=
   SubAttackerKnowledge.combine' attackerKnowledge.internal
 
@@ -181,6 +200,7 @@ instance: AttackerKnowledge.HasStep attKnowsDh attackerKnowledge := inferInstanc
 
 variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
+public
 theorem attacker_knows_dh_pk
   (sk: Bytes) (tr: Trace α)
   : sk.AttackerKnows tr →
@@ -191,6 +211,7 @@ theorem attacker_knows_dh_pk
   simp only [attKnowsDhPk]
   grind
 
+public
 theorem attacker_knows_dh
   (pk sk: Bytes) (tr: Trace α)
   : pk.AttackerKnows tr →
@@ -208,6 +229,7 @@ section Invariants
 
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
+public
 def DhPk.invariants: Bytes.PartialInvariants DhPk where
   well_formed := fun {sk := sk} rec tr =>
     (rec sk) tr
@@ -221,6 +243,7 @@ def DhPk.invariants: Bytes.PartialInvariants DhPk where
   invariant := fun {sk := sk} rec tr =>
     (rec sk) tr
 
+public
 def DhPk.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs DhPk.invariants where
 
 section DhPkLemmas
@@ -228,6 +251,7 @@ section DhPkLemmas
 variable [BytesInvariants] [BytesInvariants.Has DhPk.invariants]
 
 @[simp]
+public
 theorem dh_pk.WellFormed
   (sk: Bytes) (tr: ProofTrace)
   :
@@ -236,6 +260,7 @@ theorem dh_pk.WellFormed
   simp [dh_pk, Bytes.WellFormed.eq, DhPk.invariants]
 
 @[simp]
+public
 theorem dh_pk.label
   (sk: Bytes) (tr: ProofTrace)
   : (dh_pk sk).label tr = Label.pub
@@ -243,6 +268,7 @@ theorem dh_pk.label
   simp [dh_pk, Bytes.label.eq, DhPk.invariants]
 
 @[simp]
+public
 theorem dh_pk.Invariant
   (sk: Bytes) (tr: ProofTrace)
   :
@@ -253,6 +279,7 @@ theorem dh_pk.Invariant
 
 end DhPkLemmas
 
+public
 def Dh.invariants: Bytes.PartialInvariants Dh where
   well_formed := fun {pk, sk} rec tr =>
       (rec pk) tr ∧
@@ -271,26 +298,30 @@ def Dh.invariants: Bytes.PartialInvariants Dh where
       (rec pk) tr ∧
       (rec sk) tr
 
+public
 def Dh.invariantsProofs [BytesInvariants] [BytesInvariants.Has DhPk.invariants]: Bytes.PartialInvariantsProofs Dh.invariants where
   label_later := by
     intro _ x rec tr1 tr2
     cases x
     simp_all [DhPk.invariants, invariants, DY.ALaCarte.FunctorSizeOf.sizeOf, GetLabelLaterT] <;> grind
 
+public
 def invariants.internal: (id: Fin 2) → Bytes.PartialInvariants (SubF.internal id)
   | 0 => DhPk.invariants
   | 1 => Dh.invariants
 
+public
 abbrev invariants: Bytes.PartialInvariants SubF :=
   Bytes.PartialInvariants.combine invariants.internal
 
-instance [BytesInvariants]: BytesInvariants.HasStep DhPk.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 0) invariants)
-instance [BytesInvariants]: BytesInvariants.HasStep Dh.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 1) invariants)
+public instance [BytesInvariants]: BytesInvariants.HasStep DhPk.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 0) invariants)
+public instance [BytesInvariants]: BytesInvariants.HasStep Dh.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 1) invariants)
 
 def invariantsProofs.internal [BytesInvariants] [BytesInvariants.Has invariants]: (id: Fin 2) → Bytes.PartialInvariantsProofs (invariants.internal id)
   | 0 => DhPk.invariantsProofs
   | 1 => Dh.invariantsProofs
 
+public
 def invariantsProofs [BytesInvariants] [BytesInvariants.Has invariants]: Bytes.PartialInvariantsProofs invariants :=
   Bytes.PartialInvariantsProofs.combine invariantsProofs.internal
 
@@ -326,6 +357,7 @@ theorem DiffieHellman.extractDhSk.preserves_WellFormed
   simp [ExtractPreservesWellFormed]
   grind [DiffieHellman.dh_pk_extractDhSk, DiffieHellman.dh_pk.WellFormed]
 
+public
 noncomputable
 def Bytes.dhSkLabel
   [BytesInvariants]
@@ -333,6 +365,7 @@ def Bytes.dhSkLabel
 :=
   Bytes.xxxLabel DiffieHellman.extractDhSk pk tr
 
+public
 theorem Bytes.dhSkLabel_dh_pk
   [BytesInvariants]
   [BytesInvariants.Has DiffieHellman.invariants]
@@ -344,6 +377,7 @@ theorem Bytes.dhSkLabel_dh_pk
 
 grind_pattern Bytes.dhSkLabel_dh_pk => (DiffieHellman.dh_pk sk).dhSkLabel tr
 
+public
 theorem Bytes.dhSkLabel_later
   [BytesInvariants]
   [BytesInvariants.Has DiffieHellman.invariants]
@@ -368,6 +402,7 @@ variable [BytesFunctor] [BytesFunctor.Has SubF]
 variable [BytesInvariants] [BytesInvariants.Has invariants]
 
 @[simp]
+public
 theorem dh.WellFormed
   (pk sk: Bytes) (tr: ProofTrace)
   : (dh pk sk).WellFormed tr = (pk.WellFormed tr ∧ sk.WellFormed tr)
@@ -383,6 +418,7 @@ theorem dh.WellFormed
   · simp [Dh.invariants]
 
 @[simp]
+public
 theorem dh.label
   (pk sk: Bytes) (tr: ProofTrace)
   : (dh pk sk).label tr = Label.join (pk.dhSkLabel tr) (sk.label tr)
@@ -397,6 +433,7 @@ theorem dh.label
     grind
 
 @[simp]
+public
 theorem dh.Invariant
   (pk sk: Bytes) (tr: ProofTrace)
   : (
@@ -445,6 +482,7 @@ instance: ∀ id, SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)
   | 0 => inferInstanceAs (SubAttackerKnowledgeTheorem attKnowsDhPk)
   | 1 => inferInstanceAs (SubAttackerKnowledgeTheorem attKnowsDh)
 
+public
 instance: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstanceAs (SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine' attackerKnowledge.internal))
 
 end AttackerKnowledgeTheorem

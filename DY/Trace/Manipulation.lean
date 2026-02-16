@@ -1,7 +1,11 @@
+module
+
 import Init.Control.Lawful.Basic
-import DY.Trace.Basic
-import DY.Label
-import Lean
+public import Lean
+public import DY.Trace.Basic
+public import DY.Label
+
+@[expose] public section
 
 namespace DY
 
@@ -327,3 +331,5 @@ where
       grind
 
 end DY
+
+end

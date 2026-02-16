@@ -1,10 +1,11 @@
-import DY.Trace.Basic
-import DY.Label
-import DY.Bytes
-import DY.Misc
+module
+
+public import DY.Bytes
+public import DY.Misc.Instances
 
 namespace DY.Hash
 
+public
 class CanHash (Bytes: Type u) where
   hash: Bytes → Bytes
 
@@ -12,12 +13,15 @@ export CanHash (hash)
 
 section Constructors
 
+public
 structure Hash (Bytes: Type) where
   input: Bytes
 
+public
 instance: ALaCarte.FunctorSizeOf Hash where
   sizeOf | {input} => sizeOf input
 
+public
 instance: ALaCarte.Representable Hash where
   CtorId := Unit
   ctors | () => { Data := Unit, nRec := 1 }
@@ -37,25 +41,31 @@ instance: ALaCarte.Representable Hash where
     simp_all <;> grind
   sizeOf_eq | {input} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-instance: ALaCarte.RepresentableDecidableEq Hash where
-instance: ALaCarte.RepresentableOrd Hash where
-instance: SubBytesFunctor Hash where
+public instance: ALaCarte.RepresentableDecidableEq Hash where
+public instance: ALaCarte.RepresentableOrd Hash where
+public instance: SubBytesFunctor Hash where
 
+public
 abbrev SubF := Hash
 
+public
 def Hash.length [BytesFunctor]: Bytes.PartialLength Hash :=
   fun _ _ =>
     32
 
+public
 abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF := Hash.length
 
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
+public
 abbrev Hash.pack (x: Hash Bytes) := BytesView.pack x
 
+public
 instance: CanHash Bytes where
   hash input := ({input}: Hash Bytes).pack
 
+public
 theorem hash_inj
   (inp1 inp2: Bytes)
   :
@@ -71,16 +81,19 @@ section AttackerKnowledge
 
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
+public
 def attKnowsHash: SubAttackerKnowledge Hash where
   pred p out :=
     ∃ inp,
       out = hash inp ∧
       p inp
 
+public
 abbrev attackerKnowledge := attKnowsHash
 
 variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
+public
 theorem attacker_knows_hash
   (inp: Bytes) (tr: Trace α)
   : inp.AttackerKnows tr →
@@ -97,6 +110,7 @@ section Invariants
 
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
+public
 def Hash.invariants: Bytes.PartialInvariants Hash where
   well_formed := fun {input := input} rec tr =>
     (rec input) tr
@@ -109,15 +123,19 @@ def Hash.invariants: Bytes.PartialInvariants Hash where
   invariant := fun {input := input} rec tr =>
     (rec input) tr
 
+public
 abbrev invariants: Bytes.PartialInvariants SubF := Hash.Hash.invariants
 
+public
 def Hash.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Hash.invariants where
 
+public
 abbrev invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs invariants := Hash.Hash.invariantsProofs
 
 variable [BytesInvariants] [BytesInvariants.Has invariants]
 
 @[simp]
+public
 theorem hash.WellFormed
   (inp: Bytes) (tr: ProofTrace)
   :
@@ -126,6 +144,7 @@ theorem hash.WellFormed
   simp [hash, Bytes.WellFormed.eq, Hash.invariants]
 
 @[simp]
+public
 theorem hash.label
   (inp: Bytes) (tr: ProofTrace)
   : (hash inp).label tr = inp.label tr
@@ -133,6 +152,7 @@ theorem hash.label
   simp [hash, Bytes.label.eq, Hash.invariants]
 
 @[simp]
+public
 theorem hash.Invariant
   (inp: Bytes) (tr: ProofTrace)
   :
@@ -149,6 +169,7 @@ variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
 variable [BytesInvariants.Has invariants]
 
+public
 instance: SubAttackerKnowledgeTheorem attKnowsHash where
   pf := by
     simp only [attKnowsHash]
@@ -156,6 +177,7 @@ instance: SubAttackerKnowledgeTheorem attKnowsHash where
     subst h_out
     simp_all [Bytes.Publishable]
 
+public
 example: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstance
 
 end AttackerKnowledgeTheorem

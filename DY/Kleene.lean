@@ -3,10 +3,15 @@
   https://en.wikipedia.org/wiki/Kleene_fixed-point_theorem
 -/
 
+module
+
 namespace DY.Kleene
 
+@[expose]
+public
 def Set (α: Type u) := α → Prop
 
+public
 instance: HasSubset (Set α) where
   Subset set1 set2 :=
     ∀ x, set1 x → set2 x
@@ -23,17 +28,26 @@ theorem Set.ext
     funext
     simp_all
 
+@[expose]
+public
 def Chain (α: Type u) := Nat → Set α
 
+public
 def Chain.IsDirected {α: Type u} (chain: Chain α): Prop :=
   ∀ i j, i ≤ j → (chain i) ⊆ (chain j)
 
+@[expose]
+public
 def Chain.union (chain: Chain α): Set α :=
   fun x => ∃ n, chain n x
 
+@[expose]
+public
 def Chain.map (f: Set α → Set α) (chain: Chain α): Chain α :=
   fun n => fun x => f (chain n) x
 
+@[expose]
+public
 def IsScottContinuous {α: Type u} (f: Set α → Set α): Prop :=
   ∀ chain: Chain α,
     chain.IsDirected →
@@ -87,6 +101,7 @@ def mkWeakestFixpointAux {α: Type u} (f: Set α → Set α): Chain α :=
     else
       f (mkWeakestFixpointAux f (n-1))
 
+public
 def mkWeakestFixpoint {α: Type u} (f: Set α → Set α): Set α :=
   (mkWeakestFixpointAux f).union
 
@@ -120,6 +135,7 @@ theorem mkWeakestFixpointAux_monotonic
       have := mkWeakestFixpointAux_monotonic_consecutive f h_scott j'
       simp_all [Subset]
 
+public
 theorem mkWeakestFixpoint_is_fixpoint
   {α: Type u}
   (f: Set α → Set α)
@@ -172,6 +188,7 @@ theorem mkWeakestFixpoint_is_weakest_aux
       intro h
       simp_all [Subset]
 
+public
 theorem mkWeakestFixpoint_is_weakest
   {α: Type u}
   (f: Set α → Set α)
@@ -187,10 +204,12 @@ theorem mkWeakestFixpoint_is_weakest
     have := mkWeakestFixpoint_is_weakest_aux f h_scott set n h
     simp_all [Subset]
 
-
+@[expose]
+public
 def combine {α: Type u} {Id: Type} (fs: Id → (Set α → Set α)) (set: Set α): Set α :=
   fun x => ∃ id, fs id set x
 
+public
 theorem combine_isScottContinuous
   {α: Type u}
   {Id: Type}
@@ -213,9 +232,12 @@ theorem combine_isScottContinuous
       simp_all only
       exists n
 
+@[expose]
+public
 def Forall {α: Type u} (p: α → Prop) (l: List α): Prop :=
   ∀ x, x ∈ l → p x
 
+public
 theorem isScottContinuous_Forall_lemma
   {α: Type u}
   (chain: Chain α)

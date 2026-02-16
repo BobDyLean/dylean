@@ -1,11 +1,12 @@
-import DY.Bytes.Basic
-import DY.Label
-import DY.Trace
-
 /-
   This module allows to define invariants on `Bytes`.
   TODO: explain what is happening once things are stabilized
 -/
+
+module
+
+public import DY.Bytes.Basic
+public import DY.Trace
 
 namespace DY
 
@@ -13,18 +14,24 @@ variable [BytesFunctor]
 
 -- Well formed
 
+@[expose]
+public
 def BytesWellFormedT := ProofTrace → Prop
 
+public
 class BytesWellFormed where
   funs: Bytes.Function BytesWellFormedT
 
+public
 def Bytes.WellFormed [BytesWellFormed] (b: Bytes) : BytesWellFormedT :=
   Bytes.rec BytesWellFormed.funs b
 
+public
 class BytesWellFormed.Has [BytesWellFormed] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (binv: outParam (Bytes.PartialFunction SubF BytesWellFormedT)) where
   pf: Bytes.SubFunction binv BytesWellFormed.funs
 
 @[simp]
+public
 theorem Bytes.WellFormed.eq
   {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
   [BytesWellFormed]
@@ -42,12 +49,16 @@ grind_pattern Bytes.WellFormed.eq => b.pack.WellFormed tr
 
 -- Well formed later
 
+@[expose]
+public
 def BytesWellFormedLaterT (bwf: BytesWellFormedT) :=
   ∀ tr1 tr2, tr1 ≤ tr2 → bwf tr1 → bwf tr2
 
+public
 class BytesWellFormedLater [BytesWellFormed] where
   proofs: Bytes.Proof1 BytesWellFormed.funs BytesWellFormedLaterT
 
+public
 theorem Bytes.WellFormed.later
   [BytesWellFormed] [BytesWellFormedLater]
   (b: Bytes)
@@ -63,28 +74,37 @@ grind_pattern Bytes.WellFormed.later => Bytes.WellFormed b tr1, tr1 ≤ tr2
 
 -- Usage
 
+public
 structure Usage where
   type: String
   tag: String
   data: Option Bytes
 
+@[expose]
+public
 def Usage.nothing: Usage where
   type := ""
   tag := ""
   data := none
 
+@[expose]
+public
 def GetUsageT := ProofTrace → Usage
 
+public
 class GetUsage where
   funs: Bytes.Function GetUsageT
 
+public
 def Bytes.usage [GetUsage] (b: Bytes) : GetUsageT :=
   Bytes.rec GetUsage.funs b
 
+public
 class GetUsage.Has [GetUsage] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (binv: outParam (Bytes.PartialFunction SubF GetUsageT)) where
   pf: Bytes.SubFunction binv GetUsage.funs
 
 @[simp]
+public
 theorem Bytes.usage.eq
   {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
   [GetUsage]
@@ -102,13 +122,17 @@ grind_pattern Bytes.usage.eq => (b.pack).usage tr
 
 -- Usage later
 
+@[expose]
+public
 def GetUsageLaterT (x: BytesWellFormedT × GetUsageT) :=
   let (wf, usg) := x
   ∀ tr1 tr2: ProofTrace, tr1 ≤ tr2 → wf tr1 → usg tr1 = usg tr2
 
+public
 class GetUsageLater [BytesWellFormed] [GetUsage] where
   proofs: Bytes.Proof2 BytesWellFormed.funs GetUsage.funs GetUsageLaterT
 
+public
 theorem Bytes.usage_later
   [BytesWellFormed] [GetUsage] [GetUsageLater]
   (b: Bytes)
@@ -124,18 +148,24 @@ grind_pattern Bytes.usage_later => Bytes.usage b tr1, tr1 ≤ tr2
 
 -- Label
 
+@[expose]
+public
 def GetLabelT := ProofTrace → Label
 
+public
 class GetLabel where
   funs: Bytes.Function GetLabelT
 
+public
 def Bytes.label [GetLabel] (b: Bytes) : GetLabelT :=
   Bytes.rec GetLabel.funs b
 
+public
 class GetLabel.Has [GetLabel] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (binv: outParam (Bytes.PartialFunction SubF GetLabelT)) where
   pf: Bytes.SubFunction binv GetLabel.funs
 
 @[simp]
+public
 theorem Bytes.label.eq
   {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
   [GetLabel]
@@ -153,13 +183,17 @@ grind_pattern Bytes.label.eq => b.pack.label tr
 
 -- Label later
 
+@[expose]
+public
 def GetLabelLaterT (x: BytesWellFormedT × GetLabelT) :=
   let (wf, usg) := x
   ∀ tr1 tr2: ProofTrace, tr1 ≤ tr2 → wf tr1 → usg tr1 = usg tr2
 
+public
 class GetLabelLater [BytesWellFormed] [GetLabel] where
   proofs: Bytes.Proof2 BytesWellFormed.funs GetLabel.funs GetLabelLaterT
 
+public
 theorem Bytes.label_later
   [BytesWellFormed] [GetLabel] [GetLabelLater]
   (b: Bytes)
@@ -175,18 +209,24 @@ grind_pattern Bytes.label_later => Bytes.label b tr1, tr1 ≤ tr2
 
 -- Invariant
 
+@[expose]
+public
 def BytesInvariantT := ProofTrace → Prop
 
+public
 class BytesInvariant where
   funs: Bytes.Function BytesInvariantT
 
+public
 def Bytes.Invariant [BytesInvariant] (b: Bytes) (tr: ProofTrace) : Prop :=
   Bytes.rec BytesInvariant.funs b tr
 
+public
 class BytesInvariant.Has [BytesInvariant] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (binv: outParam (Bytes.PartialFunction SubF BytesInvariantT)) where
   pf: Bytes.SubFunction binv BytesInvariant.funs
 
 @[simp]
+public
 theorem Bytes.Invariant.eq
   {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
   [BytesInvariant]
@@ -204,13 +244,17 @@ grind_pattern Bytes.Invariant.eq => Bytes.Invariant (b.pack) tr
 
 -- Invariant implies well formed
 
+@[expose]
+public
 def BytesInvariantImpliesBytesWellFormedT (x: BytesInvariantT × BytesWellFormedT) :=
   let (binv, bwf) := x
   ∀ tr, binv tr → bwf tr
 
+public
 class BytesInvariantImpliesBytesWellFormed [BytesWellFormed] [BytesInvariant] where
   proofs: Bytes.Proof2 BytesInvariant.funs BytesWellFormed.funs BytesInvariantImpliesBytesWellFormedT
 
+public
 theorem Bytes.Invariant_implies_WellFormed
   [BytesWellFormed] [BytesInvariant] [BytesInvariantImpliesBytesWellFormed]
   (b: Bytes)
@@ -225,12 +269,16 @@ grind_pattern Bytes.Invariant_implies_WellFormed => Bytes.WellFormed b tr
 
 -- Invariant later
 
+@[expose]
+public
 def BytesInvariantLaterT (binv: BytesInvariantT) :=
   ∀ tr1 tr2, tr1 ≤ tr2 → binv tr1 → binv tr2
 
+public
 class BytesInvariantLater [BytesInvariant] where
   proofs: Bytes.Proof1 BytesInvariant.funs BytesInvariantLaterT
 
+public
 theorem Bytes.Invariant.later
   [BytesInvariant] [BytesInvariantLater]
   (b: Bytes)
@@ -257,24 +305,30 @@ grind_pattern Bytes.Invariant.later => Bytes.Invariant b tr1, tr1 ≤ tr2
   we do not bundle them here because in these proofs
   we want to be able to assume a particular implementation of `well_formed`.
 -/
+public
 structure Bytes.PartialInvariants (SubF: Type → Type) [SubBytesFunctor SubF] where
   well_formed: Bytes.PartialFunction SubF BytesWellFormedT
   usage: Bytes.PartialFunction SubF GetUsageT
   label: [GetUsage] → Bytes.PartialFunction SubF GetLabelT
   invariant: [BytesWellFormed] → [GetUsage] → [GetLabel] → Bytes.PartialFunction SubF BytesInvariantT
 
+public
 class BytesInvariants where
   invs: Bytes.PartialInvariants BytesF
 
+public
 instance [BytesInvariants]: BytesWellFormed where
   funs := BytesInvariants.invs.well_formed
 
+public
 instance [BytesInvariants]: GetUsage where
   funs := BytesInvariants.invs.usage
 
+public
 instance [BytesInvariants]: GetLabel where
   funs := BytesInvariants.invs.label
 
+public
 instance [BytesInvariants]: BytesInvariant where
   funs := BytesInvariants.invs.invariant
 
@@ -288,6 +342,7 @@ instance [BytesInvariants]: BytesInvariant where
   a custom lemma proving the unfolding of `FunctorSizeOf.sizeOf`
   and adding a grind pattern.
 -/
+public
 structure Bytes.PartialInvariantsProofs [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] (invs: Bytes.PartialInvariants SubF) where
   well_formed_later: Bytes.PartialProof1 invs.well_formed Bytes.WellFormed BytesWellFormedLaterT := by
     intro x rec tr1 tr2
@@ -314,24 +369,31 @@ structure Bytes.PartialInvariantsProofs [BytesInvariants] {SubF: Type → Type} 
     cases x
     simp_all [invariants, DY.ALaCarte.FunctorSizeOf.sizeOf, BytesInvariantLaterT] <;> grind
 
+public
 class BytesInvariantsProofs [BytesInvariants] where
   pfs: Bytes.PartialInvariantsProofs (BytesInvariants.invs)
 
+public
 instance [BytesInvariants] [BytesInvariantsProofs]: BytesWellFormedLater where
   proofs := BytesInvariantsProofs.pfs.well_formed_later
 
+public
 instance [BytesInvariants] [BytesInvariantsProofs]: GetUsageLater where
   proofs := BytesInvariantsProofs.pfs.usage_later
 
+public
 instance [BytesInvariants] [BytesInvariantsProofs]: GetLabelLater where
   proofs := BytesInvariantsProofs.pfs.label_later
 
+public
 instance [BytesInvariants] [BytesInvariantsProofs]: BytesInvariantImpliesBytesWellFormed where
   proofs := BytesInvariantsProofs.pfs.invariant_implies_wellformed
 
+public
 instance [BytesInvariants] [BytesInvariantsProofs]: BytesInvariantLater where
   proofs := BytesInvariantsProofs.pfs.invariant_later
 
+public
 class BytesInvariants.HasStep
   [BytesInvariants]
   {SubF1 SubF2: Type → Type}
@@ -345,6 +407,7 @@ where
   [label_sub: Bytes.SubFunctionStep partialInvs1.label partialInvs2.label]
   [invariant_sub: Bytes.SubFunctionStep partialInvs1.invariant partialInvs2.invariant]
 
+public
 class BytesInvariants.Has
   [BytesInvariants]
   {SubF: Type → Type}
@@ -357,6 +420,7 @@ where
   [label_sub: Bytes.SubFunction partialInvs.label GetLabel.funs]
   [invariant_sub: Bytes.SubFunction partialInvs.invariant BytesInvariant.funs]
 
+public
 def Bytes.PartialInvariants.combine
   {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
   {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
@@ -368,6 +432,7 @@ where
   label := Bytes.PartialFunction.combine (fun id => (invs id).label)
   invariant := Bytes.PartialFunction.combine (fun id => (invs id).invariant)
 
+public
 def Bytes.PartialInvariantsProofs.combine
   [BytesInvariants]
   {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
@@ -384,9 +449,9 @@ where
 
 namespace BytesInvariants
 
-instance [BytesInvariants]: BytesInvariants.Has (BytesInvariants.invs) where
+public instance [BytesInvariants]: BytesInvariants.Has (BytesInvariants.invs) where
 
-instance
+public instance
   [BytesInvariants]
   {SubF1 SubF2: Type → Type}
   [SubBytesFunctor SubF1] [SubBytesFunctor SubF2]
@@ -402,7 +467,7 @@ instance
   cases inst2
   exact {}
 
-instance
+public instance
   [BytesInvariants]
   {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
   (SubFs: t → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]
@@ -421,29 +486,37 @@ instance
     invariant_sub := inferInstanceAs (Bytes.SubFunctionStep (invariants id) (Bytes.PartialFunction.combine invariants))
   }
 
+public
 instance [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (invs: Bytes.PartialInvariants SubF) [tc: BytesInvariants.Has invs]: BytesWellFormed.Has invs.well_formed where
   pf := tc.well_formed_sub
 
+public
 instance [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (invs: Bytes.PartialInvariants SubF) [tc: BytesInvariants.Has invs]: GetUsage.Has invs.usage where
   pf := tc.usage_sub
 
+public
 instance [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (invs: Bytes.PartialInvariants SubF) [tc: BytesInvariants.Has invs]: GetLabel.Has invs.label where
   pf := tc.label_sub
 
+public
 instance [BytesInvariants] {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF] (invs: Bytes.PartialInvariants SubF) [tc: BytesInvariants.Has invs]: BytesInvariant.Has invs.invariant where
   pf := tc.invariant_sub
 
 end BytesInvariants
 
-@[grind]
+@[expose, grind]
+public
 def Bytes.Publishable [BytesInvariants] (b: Bytes) (tr: ProofTrace) :=
   b.Invariant tr ∧
   (b.label tr).canFlow Label.pub tr
 
+@[expose]
+public
 def Bytes.HasUsage [GetUsage] [GetLabel] (b: Bytes) (usg: Usage) (tr: ProofTrace) :=
   b.usage tr = usg ∨
   (b.label tr).canFlow Label.pub tr
 
+public
 theorem Bytes.HasUsage_later
   [BytesWellFormed] [GetUsage] [GetUsageLater] [GetLabel] [GetLabelLater]
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
@@ -456,6 +529,7 @@ theorem Bytes.HasUsage_later
 
 grind_pattern Bytes.HasUsage_later => b.HasUsage usg tr1, tr1 ≤ tr2
 
+public
 theorem Bytes.HasUsage_inj
   [BytesWellFormed] [GetUsage] [GetLabel]
   (b: Bytes) (usg1 usg2: Usage) (tr: ProofTrace)
@@ -465,6 +539,7 @@ theorem Bytes.HasUsage_inj
 := by
   grind [Bytes.HasUsage]
 
+public
 theorem Bytes.HasUsage_public
   [BytesWellFormed] [GetUsage] [GetLabel]
   (b: Bytes) (usg: Usage) (tr: ProofTrace)
@@ -473,6 +548,8 @@ theorem Bytes.HasUsage_public
 := by
   grind [Bytes.HasUsage]
 
+@[expose]
+public
 def Bytes.xxxLabel
   [GetLabel]
   (extract: Bytes → Option Bytes)
@@ -482,6 +559,8 @@ def Bytes.xxxLabel
   | some sk => sk.label tr
   | none => Label.pub
 
+@[expose]
+public
 def Bytes.XXXHasUsage
   [GetUsage] [GetLabel]
   (extract: Bytes → Option Bytes)
@@ -491,6 +570,8 @@ def Bytes.XXXHasUsage
   | some sk => sk.HasUsage usg tr
   | none => True
 
+@[expose]
+public
 def ExtractPreservesWellFormed [BytesWellFormed] (extract: Bytes → Option Bytes): Prop :=
   ∀ b tr, b.WellFormed tr → (
     match extract b with
@@ -498,6 +579,7 @@ def ExtractPreservesWellFormed [BytesWellFormed] (extract: Bytes → Option Byte
     | none => True
   )
 
+public
 theorem Bytes.xxxLabel_later
   [BytesWellFormed] [GetLabel] [GetLabelLater]
   (extract: Bytes → Option Bytes)
@@ -510,6 +592,7 @@ theorem Bytes.xxxLabel_later
   simp [Bytes.xxxLabel]
   grind [ExtractPreservesWellFormed]
 
+public
 theorem Bytes.XXXHasUsage_later
   [BytesWellFormed] [GetUsage] [GetUsageLater] [GetLabel] [GetLabelLater]
   (extract: Bytes → Option Bytes)

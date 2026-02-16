@@ -149,16 +149,22 @@
   and instead allow for well-founded recursion using Lean's built-in `sizeOf`.
 -/
 
+module
+
+import DY.Misc.Array
+
 namespace DY.ALaCarte
 
 /--
   Compute the sum of `sizeOf` on the `t` contained by `Functor`.
   This is needed to prove `Representable.sizeOf_eq`.
 -/
+public
 class FunctorSizeOf (f: Type → Type) where
   sizeOf {t: Type} [SizeOf t]: f t → Nat
 
 -- The combo SubFunctor / SubFunctorTC is inspired by Coe / CoeTC
+public
 class SubFunctor (f: Type → Type) (g: semiOutParam (Type → Type)) [FunctorSizeOf f] [semiOutParam (FunctorSizeOf g)] where
   inj: {a: Type} → f a → g a
   proj: {a: Type} → g a → Option (f a)
@@ -174,6 +180,7 @@ class SubFunctor (f: Type → Type) (g: semiOutParam (Type → Type)) [FunctorSi
 
 -- Transitive Closure for SubFunctor
 -- Inspired by Coe / CoeTC
+public
 class SubFunctorTC (f g: Type → Type) [FunctorSizeOf f] [FunctorSizeOf g] where
   inj: {a: Type} → f a → g a
   proj: {a: Type} → g a → Option (f a)
@@ -187,6 +194,7 @@ class SubFunctorTC (f g: Type → Type) [FunctorSizeOf f] [FunctorSizeOf g] wher
   sizeOf_inj {a: Type} [SizeOf a] (x: f a):
     FunctorSizeOf.sizeOf (inj x) = FunctorSizeOf.sizeOf x
 
+public
 instance (f: Type → Type) [FunctorSizeOf f]: SubFunctorTC f f where
   inj x := x
   proj x := x
@@ -194,6 +202,7 @@ instance (f: Type → Type) [FunctorSizeOf f]: SubFunctorTC f f where
   inj_proj x := by simp
   sizeOf_inj x := by simp
 
+public
 instance {f g h: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [FunctorSizeOf h] [SubFunctor f g] [SubFunctorTC g h]: SubFunctorTC f h where
   inj x := SubFunctorTC.inj (SubFunctor.inj (g := g) x)
   proj x :=
@@ -222,17 +231,22 @@ instance {f g h: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [FunctorSize
       nRec := 2
     }
 -/
+public
 structure Ctor where
   Data: Type
   nRec: Nat
 
+@[expose]
+public
 def Ctors (CtorId: Type) := CtorId -> Ctor
 
+public
 structure FunctorRepr {CtorId} (ctors: Ctors CtorId) (a: Type) where
   id: CtorId
   data: (ctors id).Data
   as: Vector a ((ctors id).nRec)
 
+public
 noncomputable
 instance {CtorId} (ctors: Ctors CtorId): FunctorSizeOf (FunctorRepr ctors) where
   sizeOf | {id := _, data := _, as} => (as.map sizeOf).sum
@@ -241,6 +255,7 @@ instance {CtorId} (ctors: Ctors CtorId): FunctorSizeOf (FunctorRepr ctors) where
   A functor is "representable" when there exists a set of `Ctor`
   such that the functor is isomorphic to `FunctorRepr` with this set of `Ctor`.
 -/
+public
 class Representable (f: Type → Type) [FunctorSizeOf f] where
   CtorId: Type
   ctors: Ctors CtorId
@@ -250,11 +265,13 @@ class Representable (f: Type → Type) [FunctorSizeOf f] where
   to_from: {a: Type} → ∀ x: FunctorRepr ctors a, toRepr (fromRepr x) = x
   sizeOf_eq {a: Type} [SizeOf a]: ∀ x: f a, FunctorSizeOf.sizeOf x = FunctorSizeOf.sizeOf (toRepr x)
 
+public
 structure BareContainer {CtorId} (ctors: Ctors CtorId) where
   id: CtorId
   data: (ctors id).Data
   as: Array (BareContainer ctors)
 
+public
 def BareContainer.wf {CtorId} {ctors: Ctors CtorId} (x: BareContainer ctors): Prop :=
   x.as.size = (ctors x.id).nRec ∧
   ∀ y, y ∈ x.as → y.wf
@@ -268,9 +285,12 @@ decreasing_by
 /--
   `Container ctors` is a type that is, by construction, isomorphic to `FunctorRepr ctors (Container ctors)`.
 -/
+@[expose]
+public
 def Container {CtorId} (ctors: Ctors CtorId): Type :=
   Subtype (BareContainer.wf (ctors := ctors))
 
+public
 noncomputable
 instance {CtorId: Type} (ctors: Ctors CtorId) [SizeOf CtorId]: SizeOf (Container ctors) := inferInstanceAs (SizeOf (Subtype (BareContainer.wf (ctors := ctors))))
 
@@ -284,23 +304,9 @@ instance {CtorId: Type} (ctors: Ctors CtorId) [SizeOf CtorId]: SizeOf (Container
     = FunctorRepr ctors (ContainerFor f)    [by refolding ContainerFor]
     ≅ f (ContainerFor f)                    [by f being Representable]
 -/
+public
 abbrev ContainerFor (f: Type → Type) [FunctorSizeOf f] [Representable f] :=
   Container (Representable.ctors (f := f))
-
--- TODO: upstream?
--- there is Array.unattach_attachWith, but not this version
-theorem Array.attachWith_unattach
-  {a: Type u}
-  {p: a → Prop}
-  (arr: Array (Subtype p)) (h: ∀ x, x ∈ (Array.unattach arr) → p x)
-  : Array.attachWith (Array.unattach arr) p h = arr
-:= by
-  cases arr
-  rename_i l
-  simp only [Array.attachWith, Array.unattach]
-  simp only [List.unattach_toArray, List.mem_toArray] at h
-  induction l <;>
-  simp_all
 
 def Container.intoFunctor
   {CtorId: Type} {ctors: Ctors CtorId}
@@ -376,18 +382,22 @@ theorem Container.sizeOf_intoFunctor
   Such an union is representable,
   and each functor will then be a sub-functor of this union.
 -/
+public
 structure FunctorUnion {a: Type} (Functors: a → (Type → Type)) (t: Type) where
   id: a
   val: Functors id t
 
+public
 structure FunctorUnion.CtorId {a: Type} (Functors: a → (Type → Type)) [∀ id, FunctorSizeOf (Functors id)] [∀ id, Representable (Functors id)] where
   idHead: a
   idTail: Representable.CtorId (Functors idHead)
 
+public
 instance {a: Type} (Functors: a → (Type → Type)) [∀ id, FunctorSizeOf (Functors id)]: FunctorSizeOf (FunctorUnion Functors) where
   sizeOf x :=
     FunctorSizeOf.sizeOf x.val
 
+public
 instance {a: Type} (Functors: a → (Type → Type)) [∀ id, FunctorSizeOf (Functors id)] [∀ id, Representable (Functors id)]: Representable (FunctorUnion Functors) where
   CtorId := FunctorUnion.CtorId Functors
   ctors id :=
@@ -422,6 +432,7 @@ instance {a: Type} (Functors: a → (Type → Type)) [∀ id, FunctorSizeOf (Fun
     cases y
     simp [FunctorSizeOf.sizeOf]
 
+public
 instance {a: Type} [DecidableEq a] (Functors: a → (Type → Type)) [∀ id, FunctorSizeOf (Functors id)] (id: a): SubFunctor (Functors id) (FunctorUnion Functors) where
   inj x := {
     id := id
@@ -436,6 +447,7 @@ instance {a: Type} [DecidableEq a] (Functors: a → (Type → Type)) [∀ id, Fu
   inj_proj x := by cases x; grind
   sizeOf_inj x := by simp [FunctorSizeOf.sizeOf]
 
+public
 def Container.pack (f: Type → Type) {g: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [SubFunctorTC f g] [Representable g] (x: f (ContainerFor g)): (ContainerFor g) :=
   Container.fromFunctor (
     Representable.toRepr (
@@ -443,6 +455,7 @@ def Container.pack (f: Type → Type) {g: Type → Type} [FunctorSizeOf f] [Func
     )
   )
 
+public
 def Container.view (f: Type → Type) {g: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [SubFunctorTC f g] [Representable g] (x: ContainerFor g): Option (f (ContainerFor g)) :=
   SubFunctorTC.proj (
     Representable.fromRepr (
@@ -450,6 +463,7 @@ def Container.view (f: Type → Type) {g: Type → Type} [FunctorSizeOf f] [Func
     )
   )
 
+public
 theorem Container.view_pack
   (f: Type → Type) {g: Type → Type}
   [FunctorSizeOf f] [FunctorSizeOf g]
@@ -460,6 +474,7 @@ theorem Container.view_pack
   unfold view pack
   simp [Container.intoFunctor_fromFunctor, Representable.from_to, SubFunctorTC.proj_inj]
 
+public
 theorem Container.pack_view
   (f: Type → Type) {g: Type → Type}
   [FunctorSizeOf f] [FunctorSizeOf g]
@@ -477,6 +492,7 @@ theorem Container.pack_view
     have := Container.fromFunctor_intoFunctor x
     simp_all
 
+public
 theorem Container.sizeOf_pack
   (f: Type → Type) {g: Type → Type}
   [FunctorSizeOf f] [FunctorSizeOf g]
@@ -492,6 +508,7 @@ theorem Container.sizeOf_pack
   have := Container.intoFunctor_fromFunctor (Representable.toRepr (SubFunctorTC.inj x))
   grind
 
+public
 theorem Container.sizeOf_view
   (f: Type → Type) {g: Type → Type}
   [FunctorSizeOf f] [FunctorSizeOf g]
@@ -508,6 +525,8 @@ theorem Container.sizeOf_view
   have: pack f y = x := by grind [Container.pack_view]
   grind [Container.sizeOf_pack]
 
+@[expose]
+public
 def Container.PartialFunDep
   (f: Type → Type) {g: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [Representable g] [SubFunctorTC f g]
   (motive: ContainerFor g → Sort u)
@@ -515,6 +534,8 @@ def Container.PartialFunDep
   (∀ x: f (ContainerFor g), (∀ y: ContainerFor g, sizeOf y ≤ FunctorSizeOf.sizeOf x → motive y) → motive (pack f x))
 
 -- This one does not require the typeclass instance [SubFunctorTC f g]
+@[expose]
+public
 def Container.PartialFun
   (f: Type → Type) (g: Type → Type) [FunctorSizeOf f] [FunctorSizeOf g] [Representable g]
   (a: Type)
@@ -525,6 +546,7 @@ def Container.PartialFun
   Generic recursion principle on `Container`.
   This allows to define functions, predicates, and to do proofs.
 -/
+public
 def Container.rec
   {f: Type → Type} [FunctorSizeOf f] [Representable f]
   {motive: ContainerFor f → Sort u}
@@ -542,6 +564,7 @@ decreasing_by
   have := Container.sizeOf_intoFunctor x
   grind
 
+public
 class SubPartialFun
   {f g h: Type → Type}
   [FunctorSizeOf f] [FunctorSizeOf g] [FunctorSizeOf h]
@@ -553,6 +576,7 @@ class SubPartialFun
 where
   pf (f1 f2): ∀ x rec, f1 x rec = f2 (SubFunctor.inj x) (fun y h => rec y (by simp_all [SubFunctor.sizeOf_inj x]))
 
+public
 class SubPartialFunTC
   {f g h: Type → Type}
   [FunctorSizeOf f] [FunctorSizeOf g] [FunctorSizeOf h]
@@ -564,10 +588,12 @@ class SubPartialFunTC
 where
   pf (f1 f2): ∀ x rec, f1 x rec = f2 (SubFunctorTC.inj x) (fun y h => rec y (by simp_all [SubFunctorTC.sizeOf_inj x]))
 
+public
 instance {f: Type → Type} [FunctorSizeOf f] [Representable f] {a: Type} (f: Container.PartialFun f f a): SubPartialFunTC f f where
   pf := by
     simp [SubFunctorTC.inj]
 
+public
 instance
   {f g h i: Type → Type}
   [FunctorSizeOf f] [FunctorSizeOf g] [FunctorSizeOf h] [FunctorSizeOf i]
@@ -589,6 +615,7 @@ where
     rewrite [← SubPartialFun.pf f1 f2 x (fun y h => rec y (by grind))]
     rfl
 
+public
 theorem Container.rec_eq
   {f: Type → Type} {g: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [SubFunctorTC f g] [Representable g]
   {a: Type}
@@ -605,6 +632,7 @@ theorem Container.rec_eq
   rewrite [<- SubPartialFunTC.pf partialFun totalFun x (fun y h => rec totalFun y)]
   grind
 
+public
 def Container.PartialFun.combine
   {t: Type} [DecidableEq t]
   {functors: t → Type → Type} [∀ id, FunctorSizeOf (functors id)]
@@ -616,6 +644,7 @@ def Container.PartialFun.combine
   fun {id, val} rec =>
     funs id val rec
 
+public
 def Container.PartialFunDep.combine
   {t: Type} [DecidableEq t]
   {functors: t → Type → Type} [∀ id, FunctorSizeOf (functors id)]
@@ -628,6 +657,7 @@ def Container.PartialFunDep.combine
   fun {id, val} rec =>
     funs id val rec
 
+public
 instance
   {t: Type} [DecidableEq t]
   {functors: t → Type → Type} [∀ id, FunctorSizeOf (functors id)]
@@ -644,6 +674,8 @@ where
 /--
   Helper to write a modular proof on one modular function
 -/
+@[expose]
+public
 def Container.PartialProof1
   {f g: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [Representable g]
   {a: Type}
@@ -654,6 +686,7 @@ def Container.PartialProof1
 :=
   ∀ x: f (ContainerFor g), (∀ y: ContainerFor g, sizeOf y ≤ FunctorSizeOf.sizeOf x → p (rec y)) → p (fn x (fun y _ => rec y))
 
+public
 theorem Container.PartialProof1.into
   {f: Type → Type} [FunctorSizeOf f] [Representable f]
   {a: Type}
@@ -670,6 +703,7 @@ theorem Container.PartialProof1.into
   rewrite [Representable.from_to]
   exact pf x rec
 
+public
 def Container.PartialProof1.combine
   {t: Type} [DecidableEq t]
   {functors: t → Type → Type} [∀ id, FunctorSizeOf (functors id)]
@@ -687,6 +721,8 @@ def Container.PartialProof1.combine
 /--
   Helper to write a modular proof on two modular functions
 -/
+@[expose]
+public
 def Container.PartialProof2
   {f g: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [Representable g]
   {a b: Type}
@@ -699,6 +735,7 @@ def Container.PartialProof2
 :=
   ∀ x: f (ContainerFor g), (∀ y: ContainerFor g, sizeOf y ≤ FunctorSizeOf.sizeOf x → p (rec1 y, rec2 y)) → p (fn1 x (fun y _ => rec1 y), fn2 x (fun y _ => rec2 y))
 
+public
 theorem Container.PartialProof2.into
   {f: Type → Type} [FunctorSizeOf f] [Representable f]
   {a b: Type}
@@ -716,6 +753,7 @@ theorem Container.PartialProof2.into
   rewrite [Representable.from_to]
   exact pf x rec
 
+public
 def Container.PartialProof2.combine
   {t: Type} [DecidableEq t]
   {functors: t → Type → Type} [∀ id, FunctorSizeOf (functors id)]

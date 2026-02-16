@@ -1,9 +1,11 @@
-import DY.ALaCarte.Basic
-
 /-
   This module allows to derive `Ord` and associated properties
   on inductives defined modularly through the "à la carte" system
 -/
+
+module
+
+public import DY.ALaCarte.Basic
 
 namespace DY.ALaCarte
 
@@ -417,6 +419,7 @@ decreasing_by
   Comparison function for BareContainer
 -/
 
+public
 def Container.compare
   {CtorId} {ctors: Ctors CtorId}
   [Ord CtorId] [Std.LawfulEqOrd CtorId]
@@ -430,6 +433,7 @@ def Container.compare
   Theorems on Container.compare
 -/
 
+public
 theorem Container.compare.compare_self
   {CtorId} {ctors: Ctors CtorId}
   [Ord CtorId] [Std.LawfulEqOrd CtorId]
@@ -442,6 +446,7 @@ theorem Container.compare.compare_self
   simp [Container.compare]
   apply BareContainer.compare.compare_self
 
+public
 theorem Container.compare.eq_of_compare
   {CtorId} {ctors: Ctors CtorId}
   [Ord CtorId] [Std.LawfulEqOrd CtorId]
@@ -455,6 +460,7 @@ theorem Container.compare.eq_of_compare
   simp [Container.compare]
   apply BareContainer.compare.eq_of_compare
 
+public
 theorem Container.compare.eq_swap
   {CtorId} {ctors: Ctors CtorId}
   [Ord CtorId] [Std.LawfulEqOrd CtorId]
@@ -468,6 +474,7 @@ theorem Container.compare.eq_swap
   simp [Container.compare]
   apply BareContainer.compare.eq_swap
 
+public
 theorem Container.compare.isLE_trans
   {CtorId} {ctors: Ctors CtorId}
   [Ord CtorId] [Std.LawfulEqOrd CtorId]
@@ -482,6 +489,7 @@ theorem Container.compare.isLE_trans
   simp [Container.compare]
   apply BareContainer.compare.isLE_trans
 
+public
 class RepresentableOrd (f: Type → Type) [FunctorSizeOf f] [Representable f] where
   ctoridOrd: Ord (Representable.CtorId f) := by
     simp only [ALaCarte.Representable.CtorId]
@@ -511,29 +519,35 @@ class RepresentableOrd (f: Type → Type) [FunctorSizeOf f] [Representable f] wh
 
 section FunctorUnionOrd
 
-local instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [inst: RepresentableOrd f]: Ord (Representable.CtorId f) := inst.ctoridOrd
-local instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [inst: RepresentableOrd f]: Std.LawfulEqOrd (Representable.CtorId f) := inst.ctoridOrd_lawfulEq
+public local instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [inst: RepresentableOrd f]: Ord (Representable.CtorId f) := inst.ctoridOrd
+public local instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [inst: RepresentableOrd f]: Std.LawfulEqOrd (Representable.CtorId f) := inst.ctoridOrd_lawfulEq
 local instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [inst: RepresentableOrd f]: Std.TransOrd (Representable.CtorId f) := inst.ctoridOrd_trans
 
-local instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [inst: RepresentableOrd f] (id: Representable.CtorId f): Ord (Representable.ctors (f := f) id).Data := inst.ctorDataOrd id
+public local instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [inst: RepresentableOrd f] (id: Representable.CtorId f): Ord (Representable.ctors (f := f) id).Data := inst.ctorDataOrd id
 local instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [inst: RepresentableOrd f] (id: Representable.CtorId f): Std.LawfulEqOrd (Representable.ctors (f := f) id).Data := inst.ctorDataOrd_lawfulEq id
 local instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [inst: RepresentableOrd f] (id: Representable.CtorId f): Std.TransOrd (Representable.ctors (f := f) id).Data := inst.ctorDataOrd_trans id
 
+public
 instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [RepresentableOrd f]: Ord (ContainerFor f) where
   compare := Container.compare
 
+public
 instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [RepresentableOrd f]: Std.ReflOrd (ContainerFor f) where
   compare_self {x} := Container.compare.compare_self x
 
+public
 instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [RepresentableOrd f]: Std.LawfulEqOrd (ContainerFor f) where
   eq_of_compare {x1} {x2} := Container.compare.eq_of_compare x1 x2
 
+public
 instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [RepresentableOrd f]: Std.OrientedOrd (ContainerFor f) where
   eq_swap {x1} {x2} := Container.compare.eq_swap x1 x2
 
+public
 instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [RepresentableOrd f]: Std.TransOrd (ContainerFor f) where
   isLE_trans {x1} {x2} {x3} := Container.compare.isLE_trans x1 x2 x3
 
+public
 def FunctorUnion.CtorId.compare
   {a: Type}
   [Ord a] [Std.LawfulEqOrd a]
@@ -552,6 +566,7 @@ def FunctorUnion.CtorId.compare
     subst h
     exact (Ord.compare idTail1 idTail2)
 
+public
 theorem FunctorUnion.CtorId.compare.compare_self
   {a: Type}
   [Ord a] [Std.LawfulEqOrd a]
@@ -566,6 +581,7 @@ theorem FunctorUnion.CtorId.compare.compare_self
   rewrite [idHead_refl]
   simp
 
+public
 theorem FunctorUnion.CtorId.compare.eq_of_compare
   {a: Type}
   [Ord a] [Std.LawfulEqOrd a]
@@ -584,6 +600,7 @@ theorem FunctorUnion.CtorId.compare.eq_of_compare
     subst this
     grind
 
+public
 theorem FunctorUnion.CtorId.compare.eq_swap
   {a: Type}
   [Ord a] [Std.LawfulEqOrd a] [Std.OrientedOrd a]
@@ -605,6 +622,7 @@ theorem FunctorUnion.CtorId.compare.eq_swap
   have idTail_swap: Ord.compare idTail1 idTail2 = (Ord.compare idTail2 idTail1).swap := Std.OrientedOrd.eq_swap
   split <;> grind
 
+public
 theorem FunctorUnion.CtorId.compare.isLE_trans
   {a: Type}
   [Ord a] [Std.LawfulEqOrd a] [Std.TransOrd a]
@@ -639,6 +657,7 @@ theorem FunctorUnion.CtorId.compare.isLE_trans
       dsimp only
       exact Std.TransCmp.lt_trans h12 h23
 
+public
 instance {a: Type} [Ord a] [Std.LawfulEqOrd a] [Std.TransOrd a] (fs: a → Type → Type) [∀ id, FunctorSizeOf (fs id)] [∀ id, Representable (fs id)] [∀ id, RepresentableOrd (fs id)]: RepresentableOrd (FunctorUnion fs) where
   ctoridOrd := {
     compare := FunctorUnion.CtorId.compare

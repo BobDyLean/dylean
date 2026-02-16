@@ -1,9 +1,11 @@
-import DY.ALaCarte.Basic
-
 /-
   This module allows to derive `DecidableEq`
   on inductives defined modularly through the "à la carte" system
 -/
+
+module
+
+public import DY.ALaCarte.Basic
 
 namespace DY.ALaCarte
 
@@ -49,6 +51,7 @@ def BareContainer.decideEquality
     simp_all
 termination_by max (sizeOf x1) (sizeOf x2)
 
+public
 def Container.decideEquality
   {CtorId} {ctors: Ctors CtorId}
   [DecidableEq CtorId]
@@ -61,6 +64,7 @@ def Container.decideEquality
   rewrite [Subtype.mk.injEq]
   apply BareContainer.decideEquality
 
+public
 class RepresentableDecidableEq (f: Type → Type) [FunctorSizeOf f] [Representable f] where
   ctorid_deq: DecidableEq (Representable.CtorId f) := by
     simp only [DY.ALaCarte.Representable.CtorId]
@@ -71,9 +75,11 @@ class RepresentableDecidableEq (f: Type → Type) [FunctorSizeOf f] [Representab
     cases id <;>
     exact inferInstance
 
+public
 instance (f: Type → Type) [FunctorSizeOf f] [Representable f] [RepresentableDecidableEq f]: DecidableEq (ContainerFor f)
   := @Container.decideEquality _ _ (RepresentableDecidableEq.ctorid_deq (f := f)) (RepresentableDecidableEq.ctor_data_deq (f := f))
 
+public
 instance {a: Type} [DecidableEq a] (fs: a → Type → Type) [∀ id, FunctorSizeOf (fs id)] [∀ id, Representable (fs id)] [∀ id, RepresentableDecidableEq (fs id)]: RepresentableDecidableEq (FunctorUnion fs) where
   ctorid_deq := by
     intro { idHead := idHead1, idTail := idTail1 } { idHead := idHead2, idTail := idTail2 }

@@ -1,2 +1,4 @@
-import DY.Label.Basic
-import DY.Label.Labels
+module
+
+public import DY.Label.Basic
+public import DY.Label.Labels

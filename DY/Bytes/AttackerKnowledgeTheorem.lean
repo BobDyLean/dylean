@@ -1,8 +1,3 @@
-import DY.Bytes.Basic
-import DY.Bytes.Invariants
-import DY.Bytes.AttackerKnowledge
-import DY.Trace
-
 /-
   This module allows to modularly prove the attacker knowledge theorem:
   this is a key theorem in the DyLean methodology,
@@ -11,19 +6,30 @@ import DY.Trace
   then this `Bytes` must be publishable.
 -/
 
+module
+
+public import DY.Bytes.Basic
+public import DY.Bytes.Invariants
+public import DY.Bytes.AttackerKnowledge
+public import DY.Trace
+
+
 namespace DY
 
 variable [BytesFunctor]
 variable [BytesInvariants]
 
+public
 class SubAttackerKnowledgeTheorem {SubF: Type → Type} (att: SubAttackerKnowledge SubF) where
   pf: ∀ b: Bytes, ∀ tr: ProofTrace, tr.invariant → att.pred (·.Publishable tr) b → b.Publishable tr
 
+public
 class AttackerKnowledgeTheorem [AttackerKnowledge] where
   inst: SubAttackerKnowledgeTheorem (AttackerKnowledge.attackerKnowledge)
 
 section AttackerKnowledgeTheorem
 
+public
 instance
   {SubF: Type → Type}
   {t: Type}
@@ -37,6 +43,7 @@ where
     intro id b
     exact (pfs id).pf b tr h_tr
 
+public
 instance
   {t: Type}
   {SubFs: t → Type → Type}
@@ -52,8 +59,10 @@ where
 
 end AttackerKnowledgeTheorem
 
+public
 axiom Bytes.MessageSent_implies_Publishable (b: Bytes) (tr: ProofTrace): tr.invariant → tr.MessageSent b → b.Publishable tr
 
+public
 theorem Bytes.AttackerKnows_implies_Publishable
   [AttackerKnowledge]
   [inst: AttackerKnowledgeTheorem]
