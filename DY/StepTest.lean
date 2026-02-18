@@ -6,6 +6,7 @@ open DY
 
 namespace StepTest
 
+variable [TraceTypes]
 variable [BytesFunctor]
 variable [BytesInvariants]
 variable [BytesInvariantsProofs]
@@ -30,7 +31,7 @@ def receive_message (n:Nat) : Traceful Bytes := sorry
 
 abbrev is_knowable_by (b: Bytes) (l: Label) (tr: ProofTrace): Prop :=
   b.Invariant tr ∧
-  (b.label tr).canFlow l tr
+  (b.label tr).canFlow l tr.erase
 
 set_option trace.Step true
 

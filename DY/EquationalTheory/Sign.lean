@@ -1,6 +1,7 @@
 module
 
 public import DY.Bytes
+public import DY.Trace
 public import DY.Misc.Instances
 
 namespace DY.Signature
@@ -215,6 +216,7 @@ end AttackerKnowledge
 
 section Invariants
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
@@ -314,7 +316,7 @@ def Sign.invariants [SignPred]: Bytes.PartialInvariants Sign where
           --   in practice knowing the nonce used to sign a message
           --   can be used to obtain the private key,
           --   hence this restriction)
-          (sk.label tr).canFlow (nonce.label tr) tr ∧
+          (sk.label tr).canFlow (nonce.label tr) tr.erase ∧
           -- - the nonce has the correct usage (for the same reason as above)
           -- nonce `has_usage tr` SigNonce
           True
@@ -324,7 +326,7 @@ def Sign.invariants [SignPred]: Bytes.PartialInvariants Sign where
           -- The message is not required to be known by the attacker:
           -- the EUF-CMA security assumption on signatures doesn't guarantee
           -- that in case of signature forgeries.
-          (sk.label tr).canFlow Label.pub tr
+          (sk.label tr).canFlow Label.pub tr.erase
         )
       )
 
@@ -364,6 +366,7 @@ end Signature
 
 section ExtractSignKey
 
+variable [TraceTypes]
 variable [BytesFunctor]
 variable [BytesFunctor.Has Signature.SubF]
 
@@ -462,6 +465,7 @@ namespace Signature
 
 section Invariants
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 variable [SignPred]
@@ -498,13 +502,13 @@ theorem sign.Invariant
       msg.Invariant tr ∧
       sk.HasUsage sk_usg tr ∧
       --nonce `has_usage tr` SigNonce /\
-      (sk.label tr).canFlow (nonce.label tr) tr ∧
+      (sk.label tr).canFlow (nonce.label tr) tr.erase ∧
       (
         (
           sk_usg.type = "SigKey" ∧
           SignPred.pred sk_usg (vk sk) msg tr
         ) ∨ (
-          (sk.label tr).canFlow Label.pub tr
+          (sk.label tr).canFlow Label.pub tr.erase
         )
       )
     ) →
@@ -527,7 +531,7 @@ theorem verify.Invariant
         skUsg.type = "SigKey" →
         SignPred.pred skUsg vk msg tr
       ) ∨ (
-        (vk.signkeyLabel tr).canFlow Label.pub tr
+        (vk.signkeyLabel tr).canFlow Label.pub tr.erase
       )
     )
 := by
@@ -547,6 +551,7 @@ end Invariants
 
 section AttackerKnowledgeTheorem
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
 variable [SignPred]

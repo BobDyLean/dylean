@@ -1,140 +1,90 @@
 module
 
-public import DY.Bytes.Basic
-
 namespace DY
 
-variable [BytesFunctor]
+-- Generic trace definition
 
 public
-inductive Trace.Entry (a:Type) where
-  | rand_gen: a -> Trace.Entry a
-  | send_msg: Bytes -> Trace.Entry a
-  | log_event: Trace.Entry a
-  -- TODO
+inductive Trace (α: Type) where
+  | nil: Trace α
+  | snoc: Trace α -> α -> Trace α
 
 public
-inductive Trace (a:Type) where
-  | nil: Trace a
-  | snoc: Trace a -> Trace.Entry a -> Trace a
-
-
-namespace Trace
-
-def Entry.map
-  (f: a -> b) (e: Entry a)
-  : Entry b
-  :=
-  match e with
-  | .rand_gen pf => .rand_gen (f pf)
-  | .send_msg msg => .send_msg msg
-  | .log_event => .log_event
-
-def Trace.map
-  (f: a -> b) (tr: Trace a)
-  : Trace b
-  :=
-  match tr with
-  | .nil => .nil
-  | .snoc tr_before e => .snoc (Trace.map f tr_before) (Entry.map f e)
-
-instance : Functor Trace where
-  map := Trace.map
-
-instance : LawfulFunctor Trace where
-  map_const := by
-    intros
-    simp [Functor.mapConst, Functor.map]
-  id_map := by
-    intros α tr
-    simp [Functor.map]
-    induction tr with
-    | nil =>
-      simp [Trace.map]
-    | snoc tr_before e =>
-      simp [Trace.map, Entry.map]
-      grind
-  comp_map := by
-    intros α β γ g h tr
-    simp [Functor.map]
-    induction tr with
-    | nil =>
-      simp [Trace.map]
-    | snoc tr_before e =>
-      simp [Trace.map, Entry.map]
-      grind
+inductive Trace.le {α: Type} : Trace α -> Trace α -> Prop where
+  | equal: (tr: Trace α) -> Trace.le tr tr
+  | extend: (tr1: Trace α) -> (tr2: Trace α) -> (e: α) -> Trace.le tr1 tr2 -> Trace.le tr1 (.snoc tr2 e)
 
 public
-inductive LETrace : Trace a -> Trace a -> Prop where
-  | equal: (tr: Trace a) -> LETrace tr tr
-  | extend: (tr1: Trace a) -> (tr2: Trace a) -> (e: Entry a) -> LETrace tr1 tr2 -> LETrace tr1 (.snoc tr2 e)
-
-public
-instance : LE (Trace a) where
-  le := LETrace
+instance {α: Type}: LE (Trace α) where
+  le := Trace.le
 
 -- TODO: is there a typeclass about this?
-@[grind, refl]
+@[grind ., refl]
 public
-theorem trace_le_refl
+theorem Trace.le_refl
+  {α: Type}
   (tr: Trace α)
   : tr ≤ tr
-  := by
-    exact LETrace.equal tr
+:=
+  Trace.le.equal tr
 
 public
-theorem trace_le_trans
-  (tr1: Trace a) (tr2: Trace a) (tr3: Trace a)
+theorem Trace.le_trans
+  {α: Type}
+  (tr1 tr2 tr3: Trace α)
   : tr1 ≤ tr2 → tr2 ≤ tr3 → tr1 ≤ tr3
-  := by
-    intros hxy hyz
-    induction hyz with
-    | equal => simp_all
-    | extend tr3 e _ ih =>
-      exact (LETrace.extend tr1 tr3 e ih)
-
--- grind_pattern trace_le_trans => tr1 ≤ tr2, tr1 ≤ tr3
+:= by
+  intros hxy hyz
+  induction hyz with
+  | equal => simp_all
+  | extend tr3 e _ ih =>
+    exact (Trace.le.extend tr1 tr3 e ih)
 
 public
-instance : Trans (· ≤ · : Trace a → Trace a → Prop) (· ≤ ·) (· ≤ ·) where
-  trans := by
-    intros x y z
-    exact trace_le_trans x y z
-  /-by
-    intros x y z hxy hyz
-    induction hyz with
-    | equal => simp_all
-    | extend e _ ih =>
-      exact (LETrace.extend e ih)
-      -/
-
-theorem trace_le_map
-  (f: α → β)
-  (tr1 tr2: Trace α):
-  tr1 ≤ tr2 →
-  (f <$> tr1) ≤ (f <$> tr2)
-  := by
-    intro h_le
-    induction h_le
-    · apply LETrace.equal
-    · apply LETrace.extend
-      assumption
+instance {α: Type} : Trans (· ≤ · : Trace α → Trace α → Prop) (· ≤ ·) (· ≤ ·) where
+  trans {x y z} := Trace.le_trans x y z
 
 public
-def erase (tr: Trace α): Trace Unit :=
-  Functor.mapConst () tr
+class IntoTraceEntry (EntryT: Type) (α: Type) where
+  make: EntryT → α
+
+-- instance {α: Type}: IntoTraceEntry α α where
+--   make x := x
 
 public
-theorem erase_idempotent (tr: Trace Unit): tr.erase = tr := by
-  unfold erase
-  simp only [LawfulFunctor.map_const]
-  apply LawfulFunctor.id_map
+def Trace.append
+  {EntryT α: Type} [IntoTraceEntry EntryT α]
+  (tr: Trace α) (entry: EntryT)
+  : Trace α
+:=
+  .snoc tr (IntoTraceEntry.make entry)
+
+-- Execution trace
 
 public
-theorem erase_le (tr1 tr2: Trace α)
-  : tr1 ≤ tr2 →
-  tr1.erase ≤ tr2.erase
-  := by apply trace_le_map
+structure ExecEntryType where
+  type: Type
 
+public
+class ExecTraceTypes where
+  n: Nat
+  entries: Fin n → ExecEntryType
 
-end DY.Trace
+public
+structure ExecTrace.Entry [ExecTraceTypes] where
+  id: Fin ExecTraceTypes.n
+  entry: (ExecTraceTypes.entries id).type
+
+public
+abbrev ExecTrace [ExecTraceTypes] := Trace ExecTrace.Entry
+
+-- class ExecTraceEntry [ExecTraceTypes] (Entry: ExecEntryType) extends IntoTraceEntry Entry.type ExecTrace.Entry
+--
+-- example
+--   [ExecTraceTypes] {Entry: ExecEntryType} [ExecTraceEntry Entry]
+--   (tr: ExecTrace) (entry: Entry.type)
+--   : ExecTrace
+-- :=
+--   tr.append entry
+
+end DY

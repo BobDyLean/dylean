@@ -11,6 +11,7 @@ open DY
 
 namespace Test
 
+variable [TraceTypes]
 variable [BytesFunctor]
 variable [BytesFunctor.Has Hash.SubF]
 variable [BytesFunctor.Has DiffieHellman.SubF]
@@ -289,7 +290,7 @@ def client_state_inv (me: Principal) (sid: Nat) (st: ClientState) (tr: ProofTrac
     True -- usage
   | .ClientFinishState k_c =>
     k_c.Invariant tr ∧
-    (k_c.label tr).canFlow (client_label me) tr
+    (k_c.label tr).canFlow (client_label me) tr.erase
 
 namespace DY -- ???
 -- scoped ??
@@ -307,7 +308,7 @@ def server_state_inv (me: Principal) (sid: Nat)(st: ServerState) (tr: ProofTrace
   match st with
   | .ServerFinishState k_s =>
     k_s.Invariant tr ∧
-    (k_s.label tr).canFlow (server_label me) tr
+    (k_s.label tr).canFlow (server_label me) tr.erase
 
 instance (sk: Bytes):
   HoareTriplePure
@@ -372,7 +373,7 @@ def signMetaprog: GhostParameterFinder where
 
     let usg_mvar: Lean.Expr := .mvar mvar
     let tr_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``ProofTrace #[none]))
-    let hasUsageToUnify ← Lean.Meta.mkAppOptM ``Bytes.HasUsage #[none, none, none, sk_mvar, usg_mvar, tr_mvar]
+    let hasUsageToUnify ← Lean.Meta.mkAppOptM ``Bytes.HasUsage #[none, none, none, none, sk_mvar, usg_mvar, tr_mvar]
     trace[Step] "gonna find {hasUsageToUnify} in assumptions"
     let .mvar hasUsageMvar ← Lean.Meta.mkFreshExprMVar hasUsageToUnify
       | throwError ""
@@ -392,13 +393,13 @@ instance (sk nonce msg: Bytes) (skUsg: Usage):
       msg.Invariant tr ∧
       sk.HasUsage skUsg tr ∧
       --nonce `has_usage tr` SigNonce /\
-      (sk.label tr).canFlow (nonce.label tr) tr ∧
+      (sk.label tr).canFlow (nonce.label tr) tr.erase ∧
       (
         (
           skUsg.type = "SigKey" ∧
           Signature.SignPred.pred skUsg (Signature.vk sk) msg tr
         ) ∨ (
-          (sk.label tr).canFlow Label.pub tr
+          (sk.label tr).canFlow Label.pub tr.erase
         )
       )
     )
@@ -431,7 +432,7 @@ def verifyMetaprog: GhostParameterFinder where
 
     let usg_mvar: Lean.Expr := .mvar mvar
     let tr_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``ProofTrace #[none]))
-    let hasUsageToUnify ← Lean.Meta.mkAppOptM ``Bytes.SignkeyHasUsage #[none, none, none, vkey_mvar, usg_mvar, tr_mvar]
+    let hasUsageToUnify ← Lean.Meta.mkAppOptM ``Bytes.SignkeyHasUsage #[none, none, none, none, vkey_mvar, usg_mvar, tr_mvar]
     trace[Step] "gonna find {hasUsageToUnify} in assumptions"
     let .mvar hasUsageMvar ← Lean.Meta.mkFreshExprMVar hasUsageToUnify
       | throwError ""
@@ -457,7 +458,7 @@ instance (vkey msg sig: Bytes) (skUsg: Usage):
           skUsg.type = "SigKey" →
           Signature.SignPred.pred skUsg vkey msg tr
         ) ∨ (
-          (vkey.signkeyLabel tr).canFlow Label.pub tr
+          (vkey.signkeyLabel tr).canFlow Label.pub tr.erase
         )
       )
     )
@@ -593,7 +594,7 @@ def event_pred (me: Principal) (ev: SignedDHEvent) (tr: ProofTrace) :=
       event_logged server (.ServerFinishEvent x_pk y_pk k_c) tr ∧
       k_c.Invariant tr ∧
       k_c.label tr = (client_label me).join (server_label server)
-    ) ∨ (long_term_label server).isCorrupt tr
+    ) ∨ (long_term_label server).isCorrupt tr.erase
   )
 
 instance:
@@ -748,7 +749,7 @@ theorem client_auth:
   tr.invariant → (
     let tr_before := tr.prefix time
     event_logged server (.ServerFinishEvent x_pk y_pk k) tr_before  ∨
-    (long_term_label server).isCorrupt tr_before
+    (long_term_label server).isCorrupt tr_before.erase
   )
   := by
     intro h_ev h_trinv
@@ -761,9 +762,9 @@ theorem client_secrecy:
   event_logged_at client (.ClientFinishEvent server x_pk y_pk k) time tr →
   tr.invariant → (
     let tr_before := tr.prefix time
-    (long_term_label server).isCorrupt tr_before ∨
-    (client_label client).isCorrupt tr ∨
-    (server_label server).isCorrupt tr
+    (long_term_label server).isCorrupt tr_before.erase ∨
+    (client_label client).isCorrupt tr.erase ∨
+    (server_label server).isCorrupt tr.erase
   )
   := by
     intro h_pub h_ev h_trinv
@@ -861,6 +862,8 @@ end TestGrindAnnot
 end SignedDH
 
 end Test
+
+variable [TraceTypes]
 
 abbrev SubF.internal: (id: Fin 3) → (Type → Type)
   | 0 => Hash.SubF

@@ -1,6 +1,7 @@
 module
 
 public import DY.Bytes
+public import DY.Trace
 public import DY.Misc.Instances
 
 namespace DY.Concat
@@ -177,6 +178,7 @@ end AttackerKnowledge
 
 section Invariants
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
@@ -279,6 +281,7 @@ end Invariants
 
 section AttackerKnowledgeTheorem
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
 variable [BytesLength]

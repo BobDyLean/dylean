@@ -6,11 +6,14 @@
 module
 
 public import DY.Bytes.Basic
-public import DY.Trace
+public import DY.Trace.Basic
+public import DY.Trace.Invariant
+public import DY.Label
 
 namespace DY
 
 variable [BytesFunctor]
+variable [TraceTypes]
 
 -- Well formed
 
@@ -508,13 +511,13 @@ end BytesInvariants
 public
 def Bytes.Publishable [BytesInvariants] (b: Bytes) (tr: ProofTrace) :=
   b.Invariant tr ∧
-  (b.label tr).canFlow Label.pub tr
+  (b.label tr).canFlow Label.pub tr.erase
 
 @[expose]
 public
 def Bytes.HasUsage [GetUsage] [GetLabel] (b: Bytes) (usg: Usage) (tr: ProofTrace) :=
   b.usage tr = usg ∨
-  (b.label tr).canFlow Label.pub tr
+  (b.label tr).canFlow Label.pub tr.erase
 
 public
 theorem Bytes.HasUsage_later
@@ -535,7 +538,7 @@ theorem Bytes.HasUsage_inj
   (b: Bytes) (usg1 usg2: Usage) (tr: ProofTrace)
   : b.HasUsage usg1 tr →
     b.HasUsage usg2 tr →
-    (usg1 = usg2 ∨ ((b.label tr).canFlow Label.pub tr))
+    (usg1 = usg2 ∨ ((b.label tr).canFlow Label.pub tr.erase))
 := by
   grind [Bytes.HasUsage]
 
@@ -543,7 +546,7 @@ public
 theorem Bytes.HasUsage_public
   [BytesWellFormed] [GetUsage] [GetLabel]
   (b: Bytes) (usg: Usage) (tr: ProofTrace)
-  : (b.label tr).canFlow Label.pub tr →
+  : (b.label tr).canFlow Label.pub tr.erase →
     b.HasUsage usg tr
 := by
   grind [Bytes.HasUsage]

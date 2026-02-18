@@ -9,7 +9,6 @@ public import DY.Kleene
 public import DY.Bytes.Basic
 public import DY.Trace.Basic
 
-
 namespace DY
 
 variable [BytesFunctor]
@@ -161,8 +160,6 @@ end AttackerKnowledge
 -- TODO
 public
 opaque Trace.MessageSent (tr: Trace α) (b: Bytes): Prop
-public
-axiom Trace.MessageSent_erase (tr: Trace α) (b: Bytes): tr.MessageSent b = tr.erase.MessageSent b
 
 @[expose]
 public
@@ -275,19 +272,5 @@ theorem Bytes.AttackerKnows.is_least_fixpoint
     have := pf2 b
     grind
   ) b
-
-public
-theorem Bytes.AttackerKnows.pred_trace_erase [AttackerKnowledge] (tr: Trace α) (b: Bytes):
-  b.AttackerKnows tr = b.AttackerKnows (tr.erase)
-:= by
-  simp only [Bytes.AttackerKnows, Bytes.AttackerKnows.attackerKnowledge]
-  congr
-  funext
-  split
-  · rfl
-  · simp only [Bytes.AttackerKnows.baseKnowledge]
-    congr 1
-    funext
-    apply Trace.MessageSent_erase
 
 end DY

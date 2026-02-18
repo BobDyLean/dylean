@@ -1,6 +1,7 @@
 module
 
 public import DY.Bytes
+public import DY.Trace
 public import DY.Misc.Instances
 
 namespace DY.DiffieHellman
@@ -227,6 +228,7 @@ end AttackerKnowledge
 
 section Invariants
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
@@ -332,6 +334,7 @@ end DiffieHellman
 
 section ExtractDhSk
 
+variable [TraceTypes]
 variable [BytesFunctor]
 variable [BytesFunctor.Has DiffieHellman.SubF]
 
@@ -398,6 +401,7 @@ end ExtractDhSk
 namespace DiffieHellman
 section Invariants
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 variable [BytesInvariants] [BytesInvariants.Has invariants]
 
@@ -458,6 +462,7 @@ end Invariants
 
 section AttackerKnowledgeTheorem
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
 variable [BytesInvariants.Has invariants]

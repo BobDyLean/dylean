@@ -2,26 +2,25 @@ module
 
 import Init.Control.Lawful.Basic
 public import Lean
+public import DY.Bytes.Basic
 public import DY.Trace.Basic
+public import DY.Trace.Invariant
 public import DY.Label
 
 @[expose] public section
 
 namespace DY
 
-variable [BytesFunctor]
+variable [TraceTypes]
 
-abbrev ExecutionTrace := Trace Unit
-abbrev ProofTrace := Trace Label -- TODO and usage
-
-abbrev Traceful := OptionT (StateT ExecutionTrace Id)
+abbrev Traceful := OptionT (StateT ExecTrace Id)
 abbrev Err := OptionT Id
 
 instance : MonadLift Err Traceful := {
   monadLift := fun x => StateT.pure x.run
 }
 
-def Traceful.run (x: Traceful a) (tr: ExecutionTrace): (Option a × ExecutionTrace) :=
+def Traceful.run (x: Traceful a) (tr: ExecTrace): (Option a × ExecTrace) :=
   Id.run (StateT.run (OptionT.run x) tr)
 
 -- This is missing from Lean's standard library??
@@ -40,13 +39,13 @@ theorem OptionT.run_bind {m : Type u → Type v} [Monad m] {α β : Type u} (x :
 
 
 theorem Traceful.run_pure
-  (x: a) (tr: ExecutionTrace)
+  (x: a) (tr: ExecTrace)
   : Traceful.run (pure x) tr = (some x, tr)
   := by
     rfl
 
 theorem Traceful.run_bind
-  (x: Traceful a) (f: a → Traceful b) (tr: ExecutionTrace)
+  (x: Traceful a) (f: a → Traceful b) (tr: ExecTrace)
   : Traceful.run (x >>= f) tr = (
     let (opt_x, tr) := x.run tr
     match opt_x with
@@ -242,7 +241,7 @@ theorem Traceful.bind_wp
   := by
     have := ht.pf
     simp_all only [WP.wp, hoareTriple, Traceful.run_bind]
-    grind [Trace.trace_le_trans]
+    grind [Trace.le_trans]
 
 theorem Traceful.finish_wp
   {a g}
