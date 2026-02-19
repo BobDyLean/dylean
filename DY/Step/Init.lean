@@ -1,6 +1,8 @@
+module
+
 import Lean
 import DY.Step.Trace
-import DY.Step.LetUtils
+public meta import DY.Step.LetUtils
 import DY.Step.Utils
 import DY.Trace
 
@@ -19,6 +21,7 @@ inductive StepSpecTheorem where
     (post: Expr)
 deriving Repr
 
+meta
 def preservesInvariantTelescope
   (type: Expr)
   : MetaM ((Array (MVarId × BinderInfo)) × StepSpecTheorem)
@@ -48,6 +51,7 @@ inductive SpecType where
   | bind (x:Expr) (f:Expr) (xName:Name)
   | final (x:Expr)
 
+meta
 def specTypeTelescope
   (type: Expr)
   : MetaM SpecType
@@ -82,6 +86,7 @@ structure StepArgs where
   xGhostTermProvided: Bool
   preTactic: Option Syntax
 
+meta
 def parseStepArgs (args: TSyntax ``DY.Step.stepArgs): TacticM StepArgs
   :=
   withMainContext do
@@ -102,6 +107,7 @@ def parseStepArgs (args: TSyntax ``DY.Step.stepArgs): TacticM StepArgs
     }
   | _ => throwUnsupportedSyntax
 
+meta
 def solvePrecondition
   (args: StepArgs)
   (pre: MVarId)
@@ -117,6 +123,7 @@ def solvePrecondition
       let _ ← grind pre {} false #[] none
       pure ()
 
+meta
 def monotonizeOneHypothesis
   (goal: MVarId)
   (hypFv: FVarId)
@@ -140,11 +147,12 @@ def monotonizeOneHypothesis
 
     pure (newHypExpr, newHypType)
 
+meta
 def isAnd (e : Expr) : Bool :=
   let (name, args) := e.getAppFnArgs
   name = `And ∧ args.size = 2
 
-partial
+meta partial
 def splitAndAt (goal: MVarId) (fv: FVarId) (name: Name) (i: Nat := 0): TacticM (MVarId) :=
   goal.withContext do
   let fvTy ← (← fv.getType).sanitize
@@ -166,6 +174,7 @@ def splitAndAt (goal: MVarId) (fv: FVarId) (name: Name) (i: Nat := 0): TacticM (
     goal.modifyLCtx (fun lctx => lctx.setUserName fv hypName)
     pure goal
 
+meta
 def introAndMassagePostX
   (xName: Name)
   (goal: MVarId)
@@ -197,6 +206,7 @@ structure EvalStepConfig where
   - clear old traces and old hypotheses (trace invariant etc)
 -/
 
+meta
 def massageNextGoal
   (conf: EvalStepConfig)
   (goal: MVarId)
@@ -237,7 +247,7 @@ def massageNextGoal
     -- get trace invariant for old trace
     -- how: unify Trace.invariant tr_old with an assumption
     let trInvOldFv ← do
-      let trInvOldType ← mkAppOptM ``DY.Trace.invariant #[none, mkFVar trOldFv]
+      let trInvOldType ← mkAppOptM ``DY.Trace.Invariant #[none, mkFVar trOldFv]
       let trInvOldMVarId ← mkFreshExprMVar trInvOldType
       trace[Step] "finding in assumptions {trInvOldType}"
       trInvOldMVarId.mvarId!.assumption
@@ -268,7 +278,7 @@ def massageNextGoal
       pure (
         isTcInstance ∨
         name = ``DY.ProofTrace ∨
-        name = ``DY.Trace.invariant ∨
+        name = ``DY.Trace.Invariant ∨
         name = ``LE.le
       )
     )
@@ -338,6 +348,7 @@ def massageNextGoal
 
     pure goal
 
+meta
 def assignGhostParameterAux
   (args: StepArgs)
   (ghostMVarId: MVarId)
@@ -354,6 +365,7 @@ def assignGhostParameterAux
   try to use a user-provided meta-program
   to obtain this ghost parameter
 -/
+meta
 def assignGhostParameter
   (args: StepArgs)
   (tcMVarId: MVarId) (ghostMVarId: MVarId)
@@ -405,6 +417,7 @@ def assignGhostParameter
   but works similarly for other similar theorems
   (as parametrized by `EvalStepConfig`)
 -/
+meta
 def evalStepAux
   (args: StepArgs)
   (conf: EvalStepConfig)
@@ -466,6 +479,7 @@ def evalStepAux
       let goals ← getUnsolvedGoals
       setGoals (bindTheoremGoals ++ goals)
 
+meta
 def evalStepBind
   (args: StepArgs)
   (xName: Name)
@@ -484,6 +498,7 @@ def evalStepBind
       xName
     }
 
+meta
 def evalStepFinal
   (args: StepArgs)
   : TacticM Unit
@@ -501,6 +516,7 @@ def evalStepFinal
       xName := `x
     }
 
+meta
 def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Unit :=
   goal.withContext do
   withTraceNode `Step (fun _ => pure m!"Apply let theorem") do
@@ -543,12 +559,14 @@ def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Uni
     let goals ← getUnsolvedGoals
     setGoals ([goal] ++ goals)
 
+meta
 def evalStepLet (args: StepArgs): TacticM Unit :=
   withTraceNode `Step (fun _ => pure m!"Apply step let") do
     let goal ← getMainGoal
     let (letFv, goal) ← stepIntro goal
     applyLetTheorem args goal letFv
 
+meta
 partial
 def evalStep (args: StepArgs): TacticM Unit := do
   withMainContext do -- useful to get the retrieve FVar names in the trace

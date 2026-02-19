@@ -6,32 +6,16 @@ import DY.EquationalTheory.Concat
 import DY.EquationalTheory.Hash
 import DY.EquationalTheory.Sign
 import DY.EquationalTheory.DiffieHellman
+import DY.Actions.Network
 
 open DY
 
 namespace Test
 
-variable [TraceTypes]
 variable [BytesFunctor]
 variable [BytesFunctor.Has Hash.SubF]
 variable [BytesFunctor.Has DiffieHellman.SubF]
 variable [BytesFunctor.Has Signature.SubF]
-
-instance:
-  HoareTriple
-    (pure x: Traceful a)
-    (fun _ => True)
-    (fun res _ => res = x)
-  where
-    pf := sorry
-
-instance:
-  HoareTriple
-    (OptionT.fail: Traceful a)
-    (fun _ => True)
-    (fun _ _ => True)
-  where
-    pf := sorry
 
 def Principal := String
 
@@ -63,7 +47,7 @@ grind_pattern parse_serialize_inv_grind => serialize x
 def formatRel [ParseableSerializeable a] (buf: Bytes) (x: a) :=
   buf = serialize x
 
-instance [ParseableSerializeable a]:
+instance [TraceInvariant] [ParseableSerializeable a]:
   HoareTriple
     (parse buf: Err a)
     (fun _ => True)
@@ -97,7 +81,7 @@ theorem isWellFormedFormatRel [ParseableSerializeable a] (pre: Bytes → τ → 
   := by
     grind [isWellFormed, formatRel]
 
-theorem isWellFormedFormatRelBytesWellFormed [BytesWellFormed] [ParseableSerializeable a]:
+theorem isWellFormedFormatRelBytesWellFormed [TraceTypes] [BytesWellFormed] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
   formatRel buf x →
   (buf.WellFormed tr = isWellFormed Bytes.WellFormed x tr)
@@ -105,7 +89,7 @@ theorem isWellFormedFormatRelBytesWellFormed [BytesWellFormed] [ParseableSeriali
 
 grind_pattern isWellFormedFormatRelBytesWellFormed => formatRel buf x, buf.WellFormed tr
 
-theorem isWellFormedFormatRelBytesInvariant [BytesInvariant] [ParseableSerializeable a]:
+theorem isWellFormedFormatRelBytesInvariant [TraceTypes] [BytesInvariant] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
   formatRel buf x →
   (buf.Invariant tr = isWellFormed Bytes.Invariant x tr)
@@ -113,7 +97,7 @@ theorem isWellFormedFormatRelBytesInvariant [BytesInvariant] [ParseableSerialize
 
 grind_pattern isWellFormedFormatRelBytesInvariant => formatRel buf x, buf.Invariant tr
 
-theorem isWellFormedFormatRelIsPublishable [BytesInvariants] [ParseableSerializeable a]:
+theorem isWellFormedFormatRelIsPublishable [TraceTypes] [BytesInvariants] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
   formatRel buf x →
   (buf.Publishable tr = isWellFormed Bytes.Publishable x tr)
@@ -131,13 +115,13 @@ theorem isWellFormedParse [ParseableSerializeable a] (pre: Bytes → τ → Prop
 class BytesCompatible (pre: Bytes → τ → Prop) where
   dummy: Unit
 
-instance [BytesWellFormed]: BytesCompatible Bytes.WellFormed where
+instance [TraceTypes] [BytesWellFormed]: BytesCompatible Bytes.WellFormed where
   dummy := ()
 
-instance [BytesInvariant]: BytesCompatible Bytes.Invariant where
+instance [TraceTypes] [BytesInvariant]: BytesCompatible Bytes.Invariant where
   dummy := ()
 
-instance [BytesInvariants]: BytesCompatible Bytes.Publishable where
+instance [TraceTypes] [BytesInvariants]: BytesCompatible Bytes.Publishable where
   dummy := ()
 
 inductive ClientState where
@@ -199,23 +183,20 @@ instance : ParseableSerializeable SignedDHEvent := sorry
 
 -- setup
 
-def _root_.DY.Trace.prefix (tr: Trace α) (i: Nat): Trace α := sorry
-axiom prefix_le (tr: Trace α) (i: Nat): (tr.prefix i) ≤ tr
-grind_pattern prefix_le => tr.prefix i
-
-axiom event_logged_at (who: Principal) (ev: SignedDHEvent) (i: Nat) (tr: ProofTrace): Prop
-abbrev event_logged (who: Principal) (ev: SignedDHEvent) (tr: ProofTrace) :=
+axiom event_logged_at [TraceTypes] (who: Principal) (ev: SignedDHEvent) (i: Nat) (tr: ProofTrace): Prop
+abbrev event_logged [TraceTypes] (who: Principal) (ev: SignedDHEvent) (tr: ProofTrace) :=
   ∃ i, event_logged_at who ev i tr
 
 namespace DY -- ???
 @[grind→]
-axiom _root_.DY.Trace.MonotoneLemmas.event_logged_at_later (who: Principal) (ev: SignedDHEvent) (i: Nat) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → event_logged_at who ev i tr1 → event_logged_at who ev i tr2
+axiom _root_.DY.Trace.MonotoneLemmas.event_logged_at_later [TraceTypes] (who: Principal) (ev: SignedDHEvent) (i: Nat) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → event_logged_at who ev i tr1 → event_logged_at who ev i tr2
 end DY
 
+section
+
+variable [ExecTraceTypes]
 
 def gen_rand (len: Nat) : Traceful Bytes := sorry
-def send_message (b:Bytes) : Traceful Nat := sorry
-def receive_message (ts: Nat): Traceful Bytes := sorry
 def new_sid (me: Principal): Traceful Nat := sorry
 def set_client_state (me: Principal) (sid: Nat) (st: ClientState): Traceful Unit := sorry
 def get_client_state (me: Principal) (sid: Nat): Traceful ClientState  := sorry
@@ -225,14 +206,16 @@ def get_public_key (who: Principal): Traceful Bytes := sorry
 def get_private_key (who: Principal): Traceful Bytes := sorry
 def log_event (who: Principal) (ev: SignedDHEvent): Traceful Unit := sorry
 
+end
+
 -- invariants
 
-instance: Inhabited Label where
+instance [ExecTraceTypes]: Inhabited Label where
   default := Label.secret
 
-opaque client_label (me: Principal): Label
-opaque server_label (me: Principal): Label
-opaque long_term_label (me: Principal): Label
+opaque client_label [ExecTraceTypes] (me: Principal): Label
+opaque server_label [ExecTraceTypes] (me: Principal): Label
+opaque long_term_label [ExecTraceTypes] (me: Principal): Label
 
 
 structure LongTermKeyUsage where
@@ -256,7 +239,7 @@ theorem mk_long_term_usage_inj:
     simp [Function.Injective, mk_long_term_usage]
     grind
 
-instance: Signature.SignPred where
+instance [TraceTypes]: Signature.SignPred where
   pred skUsg vk msg tr :=
     ∃ server, skUsg = mk_long_term_usage server ∧ (
       match parse msg with
@@ -269,18 +252,18 @@ instance: Signature.SignPred where
       )
     )
 
-instance [BytesInvariants] [BytesInvariants.Has DiffieHellman.DhPk.invariants]: Signature.SignPredProof where
+instance [TraceTypes] [BytesInvariants] [BytesInvariants.Has DiffieHellman.DhPk.invariants]: Signature.SignPredProof where
   pred_later := by
     intro _ _ _ _ _ _ _ _ _ _ _
     intro ⟨ server, h ⟩
     exists server
     grind [DiffieHellman.dh_pk.WellFormed]
 
+section
+
+variable [TraceTypes]
 variable [BytesInvariants]
 variable [BytesInvariantsProofs]
-variable [BytesInvariants.Has Hash.invariants]
-variable [BytesInvariants.Has DiffieHellman.invariants]
-variable [BytesInvariants.Has Signature.invariants]
 
 def client_state_inv (me: Principal) (sid: Nat) (st: ClientState) (tr: ProofTrace) :=
   match st with
@@ -310,7 +293,9 @@ def server_state_inv (me: Principal) (sid: Nat)(st: ServerState) (tr: ProofTrace
     k_s.Invariant tr ∧
     (k_s.label tr).canFlow (server_label me) tr.erase
 
-instance (sk: Bytes):
+end
+
+instance [TraceTypes] [BytesInvariants] [BytesInvariants.Has DiffieHellman.invariants] (sk: Bytes):
   HoareTriplePure
     (DiffieHellman.dh_pk sk)
     (fun tr => sk.Invariant tr)
@@ -323,7 +308,7 @@ instance (sk: Bytes):
     pf := by
       grind [DiffieHellman.dh_pk.Invariant, DiffieHellman.dh_pk.label]
 
-instance (pk sk: Bytes):
+instance [TraceTypes] [BytesInvariants] [BytesInvariants.Has DiffieHellman.invariants] (pk sk: Bytes):
   HoareTriplePure
     (DiffieHellman.dh pk sk)
     (fun tr =>
@@ -340,7 +325,7 @@ instance (pk sk: Bytes):
     pf := by
       grind [DiffieHellman.dh.Invariant, DiffieHellman.dh.label]
 
-instance (sk: Bytes):
+instance [TraceTypes] [BytesInvariants] [BytesInvariants.Has Signature.invariants] (sk: Bytes):
   HoareTriplePure
     (Signature.vk sk)
     (fun tr =>
@@ -383,7 +368,7 @@ instance (sk nonce msg: Bytes): HasGhostMetaprogram (Signature.sign sk nonce msg
 where
   dummy := ()
 
-instance (sk nonce msg: Bytes) (skUsg: Usage):
+instance [TraceTypes] [BytesInvariants] [BytesInvariants.Has Signature.invariants] (sk nonce msg: Bytes) (skUsg: Usage):
   HoareTriplePureGhost
     (Signature.sign sk nonce msg)
     (skUsg)
@@ -442,7 +427,7 @@ instance (vkey msg sig: Bytes): HasGhostMetaprogram (Signature.verify vkey msg s
 where
   dummy := ()
 
-instance (vkey msg sig: Bytes) (skUsg: Usage):
+instance [TraceTypes] [BytesInvariants] [BytesInvariants.Has Signature.invariants] (vkey msg sig: Bytes) (skUsg: Usage):
   HoareTriplePureGhost
     (Signature.verify vkey msg sig)
     (skUsg: Usage)
@@ -469,7 +454,7 @@ instance (vkey msg sig: Bytes) (skUsg: Usage):
       apply Signature.verify.Invariant vkey msg sig skUsg <;>
       grind
 
-instance (b: Bytes):
+instance [TraceTypes] [BytesInvariants] [BytesInvariants.Has Hash.invariants] (b: Bytes):
   HoareTriplePure
     (Hash.hash b)
     (fun tr => b.Invariant tr)
@@ -480,6 +465,12 @@ instance (b: Bytes):
   where
     pf := by
       simp
+
+section
+
+variable [TraceInvariant]
+variable [BytesInvariants]
+variable [BytesInvariantsProofs]
 
 instance: HasGhostArgumentType (gen_rand len) Label
 where
@@ -495,22 +486,6 @@ instance:
       b.label tr = lab
       -- usage, length
     )
-  where
-    pf := sorry
-
-instance:
-  HoareTriple
-    (send_message b)
-    (fun tr => b.Publishable tr)
-    (fun _ _ => True)
-  where
-    pf := sorry
-
-instance:
-  HoareTriple
-    (receive_message ts)
-    (fun _ => True)
-    (fun b tr => b.Publishable tr)
   where
     pf := sorry
 
@@ -609,12 +584,19 @@ instance:
 axiom event_logged_at_implies_event_pred
   (who: Principal) (ev: SignedDHEvent) (i: Nat) (tr: ProofTrace):
     event_logged_at who ev i tr →
-    tr.invariant →
+    tr.Invariant →
     event_pred who ev (tr.prefix i)
+
+end
 
 -- signed dh
 
 namespace SignedDH
+
+section Specification
+
+variable [ExecTraceTypes]
+variable [ExecTraceTypes.Has Network.ExecEntryT]
 
 def client_initiate (me: Principal): Traceful (Nat × Nat) := do
   let x_sk ← gen_rand 32
@@ -623,11 +605,12 @@ def client_initiate (me: Principal): Traceful (Nat × Nat) := do
   log_event me (.ClientInitiateEvent x_pk)
   let sid ← new_sid me
   set_client_state me sid (.ClientInitiateState x_sk)
-  let msg_ts ← send_message (serialize ({ x_pk } : ClientMessage))
+  let msg_ts ← Network.sendMessage (serialize ({ x_pk } : ClientMessage))
   pure (sid, msg_ts)
 
+noncomputable
 def server_receive (me: Principal) (msg_ts: Nat) : Traceful (Nat × Nat) := do
-  let msg_bytes ← receive_message msg_ts
+  let msg_bytes ← Network.receiveMessage msg_ts
   let msg: ClientMessage ← parse msg_bytes
   let x_pk := msg.x_pk
   let my_sig_key ← get_private_key me
@@ -641,12 +624,12 @@ def server_receive (me: Principal) (msg_ts: Nat) : Traceful (Nat × Nat) := do
   log_event me (.ServerFinishEvent x_pk y_pk k_s)
   let sid ← new_sid me
   set_server_state me sid (.ServerFinishState k_s)
-  let msg_ts ← send_message (serialize ({ y_pk, sig } : ServerMessage))
+  let msg_ts ← Network.sendMessage (serialize ({ y_pk, sig } : ServerMessage))
   pure (sid, msg_ts)
 
 noncomputable
 def client_finish (me: Principal) (server: Principal) (msg_ts: Nat) (sid: Nat) : Traceful Unit := do
-  let msg_bytes ← receive_message msg_ts
+  let msg_bytes ← Network.receiveMessage msg_ts
   let msg: ServerMessage ← parse msg_bytes
 
   let my_state ← get_client_state me sid
@@ -662,91 +645,15 @@ def client_finish (me: Principal) (server: Principal) (msg_ts: Nat) (sid: Nat) :
   log_event me (.ClientFinishEvent server x_pk msg.y_pk k_c)
   set_client_state me sid (.ClientFinishState k_c)
 
-instance:
-  HoareTriple
-    (client_initiate me)
-    (fun _ => True)
-    (fun _ _ => True)
-where
-  pf := by
-    unfold client_initiate
-    step with ⟨ client_label me ⟩
-    step
-    step by grind [event_pred]
-    step
-    step by grind [client_state_inv]
-    step
-    step
-    grind
+end Specification
 
-instance:
-  HoareTriple
-    (server_receive me msg_ts)
-    (fun _ => True)
-    (fun _ _ => True)
-where
-  pf := by
-    unfold server_receive
-    step
-    step
-    step_intro
-    step
-    step with ⟨ server_label me ⟩
-    step
-    hoist
-    step
-    step
-    step with ⟨ Label.secret ⟩
-    hoist
-    step_intro
-    -- for monotonicity TODO: how to infer Publishable automatically?
-    have h_sig_msg: sig_msg.Publishable tr := by grind
-    -- interesting stuff: we will prove things on `sig` later on,
-    -- because we need to log the event before
-    step_intro
-    step by grind [event_pred]
-    step_let sig with ⟨ mk_long_term_usage me ⟩ by
-      simp only [Signature.SignPred.pred]
-      grind
-    step
-    step by grind [server_state_inv]
-    step
-    step
-    grind
+section SecurityTheorems
 
-instance:
-  HoareTriple
-    (client_finish me server msg_ts sid)
-    (fun _ => True)
-    (fun _ _ => True)
-where
-  pf := by
-    unfold client_finish
-    step
-    step
-    step
-    split
-    case h_1 x_sk h_x_sk =>
-      -- this is useful to monotonize hypothesis
-      -- (probably best as a grind pattern on client_state_inv but well)
-      have h_x_sk': x_sk.Invariant tr := by grind [client_state_inv]
-      step
-      step
-      step with ⟨ mk_long_term_usage server ⟩
-      hoist
-      step
-      step
-      step by
-        simp_all [event_pred, Signature.SignPred.pred]
-        grind [event_pred, client_state_inv]
-      step by grind [client_state_inv]
-      grind
-    · step
-      grind
+variable [TraceInvariant] [BytesInvariants] [BytesInvariantsProofs]
 
 theorem client_auth:
   event_logged_at client (.ClientFinishEvent server x_pk y_pk k) time tr →
-  tr.invariant → (
+  tr.Invariant → (
     let tr_before := tr.prefix time
     event_logged server (.ServerFinishEvent x_pk y_pk k) tr_before  ∨
     (long_term_label server).isCorrupt tr_before.erase
@@ -760,7 +667,7 @@ theorem client_auth:
 theorem client_secrecy:
   k.Publishable tr → -- attacker_knows
   event_logged_at client (.ClientFinishEvent server x_pk y_pk k) time tr →
-  tr.invariant → (
+  tr.Invariant → (
     let tr_before := tr.prefix time
     (long_term_label server).isCorrupt tr_before.erase ∨
     (client_label client).isCorrupt tr.erase ∨
@@ -772,8 +679,17 @@ theorem client_secrecy:
     simp [event_pred] at h_ev
     grind
 
+end SecurityTheorems
 
 namespace TestGrindAnnot
+
+variable [TraceInvariant]
+variable [BytesInvariants] [BytesInvariantsProofs]
+
+variable [BytesInvariants.Has DiffieHellman.invariants]
+variable [BytesInvariants.Has Hash.invariants]
+variable [BytesInvariants.Has Signature.invariants]
+variable [TraceInvariant.Has Network.Invariant]
 
 -- Test for a more automatic feeling
 attribute [grind] event_pred
@@ -782,80 +698,83 @@ attribute [grind] server_state_inv
 attribute [grind] Signature.SignPred.pred
 attribute [grind] instSignPred
 
-instance:
+@[instance]
+theorem client_initiate.spec:
   HoareTriple
     (client_initiate me)
     (fun _ => True)
     (fun _ _ => True)
-where
-  pf := by
-    unfold client_initiate
-    step with ⟨ client_label me ⟩
-    step
-    step
-    step
-    step
-    step
-    step
-    grind
+:= by
+  apply HoareTriple.mk
+  unfold client_initiate
+  step with ⟨ client_label me ⟩
+  step
+  step
+  step
+  step
+  step
+  step
+  grind
 
-instance:
+@[instance]
+theorem server_receive.spec:
   HoareTriple
     (server_receive me msg_ts)
     (fun _ => True)
     (fun _ _ => True)
-where
-  pf := by
-    unfold server_receive
+:= by
+  apply HoareTriple.mk
+  unfold server_receive
+  step
+  step
+  step_intro
+  step
+  step with ⟨ server_label me ⟩
+  step
+  hoist
+  step
+  step
+  step with ⟨ Label.secret ⟩
+  hoist
+  step_intro
+  -- for monotonicity TODO: how to infer Publishable automatically?
+  have h_sig_msg: sig_msg.Publishable tr := by grind
+  -- interesting stuff: we will prove things on `sig` later on,
+  -- because we need to log the event before
+  step_intro
+  step
+  step_let sig
+  step
+  step
+  step
+  step
+  grind
+
+@[instance]
+theorem client_finish.spec:
+  HoareTriple
+    (client_finish me server msg_ts sid)
+    (fun _ => True)
+    (fun _ _ => True)
+:= by
+  apply HoareTriple.mk
+  unfold client_finish
+  step
+  step
+  step
+  split
+  case h_1 x_sk h_x_sk =>
     step
     step
-    step_intro
-    step
-    step with ⟨ server_label me ⟩
     step
     hoist
-    step
-    step
-    step with ⟨ Label.secret ⟩
-    hoist
-    step_intro
-    -- for monotonicity TODO: how to infer Publishable automatically?
-    have h_sig_msg: sig_msg.Publishable tr := by grind
-    -- interesting stuff: we will prove things on `sig` later on,
-    -- because we need to log the event before
-    step_intro
-    step
-    step_let sig
     step
     step
     step
     step
     grind
-
-instance:
-  HoareTriple
-    (client_finish me server msg_ts sid)
-    (fun _ => True)
-    (fun _ _ => True)
-where
-  pf := by
-    unfold client_finish
-    step
-    step
-    step
-    split
-    case h_1 x_sk h_x_sk =>
-      step
-      step
-      step
-      hoist
-      step
-      step
-      step
-      step
-      grind
-    · step
-      grind
+  · step
+    grind
 
 end TestGrindAnnot
 
@@ -863,7 +782,7 @@ end SignedDH
 
 end Test
 
-variable [TraceTypes]
+variable [TraceInvariant]
 
 abbrev SubF.internal: (id: Fin 3) → (Type → Type)
   | 0 => Hash.SubF
@@ -976,7 +895,7 @@ instance: AttackerKnowledgeTheorem where
   inst := inferInstanceAs (SubAttackerKnowledgeTheorem attackerKnowledge)
 
 theorem test (b: Bytes) (tr: ProofTrace) :
-    tr.invariant →
+    tr.Invariant →
     Bytes.AttackerKnows b tr →
     b.Publishable tr
   := by
@@ -988,8 +907,7 @@ info: 'test' depends on axioms: [propext,
  Quot.sound,
  Test.comparseExists,
  Test.event_logged_at,
- DY.Bytes.MessageSent_implies_Publishable,
- DY.Trace.invariant]
+ DY.Bytes.MessageSent_implies_Publishable]
 -/
 #guard_msgs in
 #print axioms test

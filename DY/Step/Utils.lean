@@ -1,6 +1,10 @@
-import Lean
+module
+
+public import Lean
 
 open Lean Elab Term Meta Tactic
+
+public section
 
 /--
   Variant of Batteries' Lean.MVarId.assignIfDefEq,
@@ -85,3 +89,4 @@ def makeTuple (arr: Array Expr): MetaM Expr := do
       mkAppM ``Prod.mk #[t, acc]
     ) (arr[sz-1]!) (start := sz-1)
 
+end

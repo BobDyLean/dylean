@@ -6,7 +6,7 @@ open DY
 
 namespace StepTest
 
-variable [TraceTypes]
+variable [TraceInvariant]
 variable [BytesFunctor]
 variable [BytesInvariants]
 variable [BytesInvariantsProofs]

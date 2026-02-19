@@ -36,7 +36,7 @@ theorem Trace.le_trans
 := by
   intros hxy hyz
   induction hyz with
-  | equal => simp_all
+  | equal => exact hxy
   | extend tr3 e _ ih =>
     exact (Trace.le.extend tr1 tr3 e ih)
 
@@ -59,29 +59,105 @@ def Trace.append
 :=
   .snoc tr (IntoTraceEntry.make entry)
 
--- Execution trace
+public
+def Trace.append_le
+  {EntryT α: Type} [IntoTraceEntry EntryT α]
+  (tr: Trace α) (entry: EntryT)
+  : tr ≤ tr.append entry
+:= by
+  apply Trace.le.extend
+  apply Trace.le.equal
 
 public
-structure ExecEntryType where
-  type: Type
+def Trace.length {α: Type} (tr: Trace α) : Nat :=
+  match tr with
+  | .nil => 0
+  | .snoc trBefore _ => trBefore.length + 1
+
+public
+def Trace.prefix {α: Type} (tr: Trace α) (i: Nat): Trace α :=
+  if i = tr.length then
+    tr
+  else
+    match tr with
+    | .nil => .nil
+    | .snoc trBefore _ => trBefore.prefix i
+
+public
+theorem Trace.prefix_le
+  {α: Type}
+  (tr: Trace α) (i: Nat)
+  : tr.prefix i ≤ tr
+:= by
+  fun_induction Trace.prefix
+  · apply Trace.le_refl
+  · apply Trace.le_refl
+  · apply Trace.le.extend
+    assumption
+
+grind_pattern Trace.prefix_le => tr.prefix i
+
+@[simp, grind =]
+public
+theorem Trace.prefix_eq
+  {α: Type}
+  (tr: Trace α)
+  : tr.prefix tr.length = tr
+:= by
+  unfold Trace.prefix
+  simp
+
+public
+def Trace.at {α: Type} (tr: Trace α) (i: Nat) (h_i: i < tr.length): α :=
+  match tr with
+  | .nil => False.elim (by simp_all [Trace.length])
+  | .snoc trBefore entry =>
+    if h: i = trBefore.length then
+      entry
+    else
+      trBefore.at i (by grind [Trace.length])
+
+-- Execution trace
 
 public
 class ExecTraceTypes where
   n: Nat
-  entries: Fin n → ExecEntryType
+  entries: Fin n → Type
 
 public
 structure ExecTrace.Entry [ExecTraceTypes] where
   id: Fin ExecTraceTypes.n
-  entry: (ExecTraceTypes.entries id).type
+  entry: (ExecTraceTypes.entries id)
 
 public
 abbrev ExecTrace [ExecTraceTypes] := Trace ExecTrace.Entry
 
--- class ExecTraceEntry [ExecTraceTypes] (Entry: ExecEntryType) extends IntoTraceEntry Entry.type ExecTrace.Entry
+public
+class ExecTraceTypes.Has [ExecTraceTypes] (ExecEntryT: Type) where
+  inj: ExecEntryT → ExecTrace.Entry
+  proj: ExecTrace.Entry → Option ExecEntryT
+  inj_proj_eq: ∀ x y, (proj x = some y) = (x = inj y)
+
+public
+instance [ExecTraceTypes] (id: Fin ExecTraceTypes.n): ExecTraceTypes.Has (ExecTraceTypes.entries id) where
+  inj entry := { id, entry }
+  proj entry :=
+    if h: entry.id = id then
+      some (h ▸ entry.entry)
+    else
+      none
+  inj_proj_eq x y := by
+    cases x
+    grind
+
+public
+instance [ExecTraceTypes] (ExecEntryT: Type) [ExecTraceTypes.Has ExecEntryT]: IntoTraceEntry ExecEntryT ExecTrace.Entry where
+  make entry := ExecTraceTypes.Has.inj entry
+
+-- class ExecTraceEntry [ExecTraceTypes] (Entry: Type) extends IntoTraceEntry Entry.type ExecTrace.Entry
 --
 -- example
---   [ExecTraceTypes] {Entry: ExecEntryType} [ExecTraceEntry Entry]
+--   [ExecTraceTypes] {Entry: Type} [ExecTraceEntry Entry]
 --   (tr: ExecTrace) (entry: Entry.type)
 --   : ExecTrace
 -- :=

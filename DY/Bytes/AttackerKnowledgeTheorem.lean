@@ -17,12 +17,12 @@ public import DY.Trace
 namespace DY
 
 variable [BytesFunctor]
-variable [ExecTraceTypes] [ProofTraceTypes]
+variable [TraceInvariant]
 variable [BytesInvariants]
 
 public
 class SubAttackerKnowledgeTheorem {SubF: Type → Type} (att: SubAttackerKnowledge SubF) where
-  pf: ∀ b: Bytes, ∀ tr: ProofTrace, tr.invariant → att.pred (·.Publishable tr) b → b.Publishable tr
+  pf: ∀ b: Bytes, ∀ tr: ProofTrace, tr.Invariant → att.pred (·.Publishable tr) b → b.Publishable tr
 
 public
 class AttackerKnowledgeTheorem [AttackerKnowledge] where
@@ -61,14 +61,14 @@ where
 end AttackerKnowledgeTheorem
 
 public
-axiom Bytes.MessageSent_implies_Publishable (b: Bytes) (tr: ProofTrace): tr.invariant → tr.MessageSent b → b.Publishable tr
+axiom Bytes.MessageSent_implies_Publishable (b: Bytes) (tr: ProofTrace): tr.Invariant → tr.MessageSent b → b.Publishable tr
 
 public
 theorem Bytes.AttackerKnows_implies_Publishable
   [AttackerKnowledge]
   [inst: AttackerKnowledgeTheorem]
   (b: Bytes) (tr: ProofTrace)
-  : tr.invariant →
+  : tr.Invariant →
     Bytes.AttackerKnows b tr →
     b.Publishable tr
 := by

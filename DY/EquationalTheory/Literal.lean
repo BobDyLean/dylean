@@ -181,7 +181,7 @@ end Invariants
 
 section AttackerKnowledgeTheorem
 
-variable [TraceTypes]
+variable [TraceInvariant]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
 variable [BytesInvariants.Has invariants]
