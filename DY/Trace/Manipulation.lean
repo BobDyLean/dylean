@@ -374,10 +374,10 @@ public
 def appendEntry
   [ExecTraceTypes] {EntryT: Type} [ExecTraceTypes.Has EntryT]
   (entry: EntryT)
-  : Traceful Unit
+  : Traceful Nat
 :=
   Traceful.mk (fun tr =>
-    (some (), tr.append entry)
+    (some tr.length, tr.append entry)
   )
 
 instance
@@ -406,13 +406,15 @@ theorem appendEntry.spec
       func.erase proofEntry = execEntry ∧
       inv.invariant tr proofEntry
     )
-    (fun _ _ => True)
+    (fun time tr =>
+      tr.at_is time proofEntry
+    )
 := by
   apply HoareTripleGhost.mk
   simp only [hoareTriple, wp, appendEntry, Traceful.run_mk]
   intro trProof h_pre h_inv
   exists trProof.append proofEntry
-  simp_all [Trace.append_erase, Trace.append_le, Trace.invariant_append]
+  simp_all [Trace.append_erase, Trace.append_le, Trace.invariant_append, Trace.at_is_append, Trace.erase_length]
 
 public
 def getEntry

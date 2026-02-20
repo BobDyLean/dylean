@@ -117,6 +117,22 @@ theorem Trace.append_erase
 := by
   simp [Trace.append, Trace.erase, IntoTraceEntry.make, TraceTypes.Has.erase_commutes]
 
+public
+theorem Trace.at_is_imp_proofProj_at
+  [TraceTypes]
+  {ExecEntryT ProofEntryT: Type}
+  {func: ProofEntryFun ExecEntryT ProofEntryT}
+  [TraceTypes.Has func]
+  (tr: ProofTrace) (i: Nat) (entry: ProofEntryT)
+  : tr.at_is i entry →
+    exists h: i < tr.length,
+    TraceTypes.Has.proofProj (tr.at i h) = some entry
+:= by
+  simp only [Trace.at_is, IntoTraceEntry.make]
+  intro ⟨ h1, h2 ⟩
+  exists h1
+  grind [TraceTypes.Has.proof_inj_proj_eq]
+
 -- Invariant
 
 public

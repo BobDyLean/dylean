@@ -7,12 +7,14 @@ import DY.EquationalTheory.Hash
 import DY.EquationalTheory.Sign
 import DY.EquationalTheory.DiffieHellman
 import DY.Actions.Network
+import DY.Actions.Random
 
 open DY
 
 namespace Test
 
 variable [BytesFunctor]
+variable [BytesFunctor.Has Random.SubF]
 variable [BytesFunctor.Has Hash.SubF]
 variable [BytesFunctor.Has DiffieHellman.SubF]
 variable [BytesFunctor.Has Signature.SubF]
@@ -196,7 +198,6 @@ section
 
 variable [ExecTraceTypes]
 
-def gen_rand (len: Nat) : Traceful Bytes := sorry
 def new_sid (me: Principal): Traceful Nat := sorry
 def set_client_state (me: Principal) (sid: Nat) (st: ClientState): Traceful Unit := sorry
 def get_client_state (me: Principal) (sid: Nat): Traceful ClientState  := sorry
@@ -472,23 +473,6 @@ variable [TraceInvariant]
 variable [BytesInvariants]
 variable [BytesInvariantsProofs]
 
-instance: HasGhostArgumentType (gen_rand len) Label
-where
-  dummy := ()
-
-instance:
-  HoareTripleGhost
-    (gen_rand len)
-    lab
-    (fun _ => True)
-    (fun b tr =>
-      b.Invariant tr ∧
-      b.label tr = lab
-      -- usage, length
-    )
-  where
-    pf := sorry
-
 instance:
   HoareTriple
     (new_sid me)
@@ -589,17 +573,16 @@ axiom event_logged_at_implies_event_pred
 
 end
 
--- signed dh
-
 namespace SignedDH
 
 section Specification
 
 variable [ExecTraceTypes]
 variable [ExecTraceTypes.Has Network.ExecEntryT]
+variable [ExecTraceTypes.Has Random.ExecEntryT]
 
 def client_initiate (me: Principal): Traceful (Nat × Nat) := do
-  let x_sk ← gen_rand 32
+  let x_sk ← Random.genRand 32
   let x_pk := DiffieHellman.dh_pk x_sk
 
   log_event me (.ClientInitiateEvent x_pk)
@@ -615,10 +598,10 @@ def server_receive (me: Principal) (msg_ts: Nat) : Traceful (Nat × Nat) := do
   let x_pk := msg.x_pk
   let my_sig_key ← get_private_key me
 
-  let y_sk ← gen_rand 32
+  let y_sk ← Random.genRand 32
   let y_pk := DiffieHellman.dh_pk y_sk
   let k_s := Hash.hash (DiffieHellman.dh x_pk y_sk)
-  let sig_nonce ← gen_rand 32
+  let sig_nonce ← Random.genRand 32
   let sig := Signature.sign my_sig_key sig_nonce (serialize ({x_pk, y_pk}: SigInput))
 
   log_event me (.ServerFinishEvent x_pk y_pk k_s)
@@ -686,10 +669,12 @@ namespace TestGrindAnnot
 variable [TraceInvariant]
 variable [BytesInvariants] [BytesInvariantsProofs]
 
+variable [TraceInvariant.Has Network.Invariant]
+variable [TraceInvariant.Has Random.Invariant]
 variable [BytesInvariants.Has DiffieHellman.invariants]
 variable [BytesInvariants.Has Hash.invariants]
 variable [BytesInvariants.Has Signature.invariants]
-variable [TraceInvariant.Has Network.Invariant]
+variable [BytesInvariants.Has Random.invariants]
 
 -- Test for a more automatic feeling
 attribute [grind] event_pred
@@ -707,7 +692,7 @@ theorem client_initiate.spec:
 := by
   apply HoareTriple.mk
   unfold client_initiate
-  step with ⟨ client_label me ⟩
+  step with ⟨ client_label me, Usage.nothing ⟩
   step
   step
   step
@@ -729,12 +714,12 @@ theorem server_receive.spec:
   step
   step_intro
   step
-  step with ⟨ server_label me ⟩
+  step with ⟨ server_label me, Usage.nothing ⟩
   step
   hoist
   step
   step
-  step with ⟨ Label.secret ⟩
+  step with ⟨ Label.secret, Usage.nothing ⟩
   hoist
   step_intro
   -- for monotonicity TODO: how to infer Publishable automatically?
@@ -782,12 +767,11 @@ end SignedDH
 
 end Test
 
-variable [TraceInvariant]
-
-abbrev SubF.internal: (id: Fin 3) → (Type → Type)
+abbrev SubF.internal: (id: Fin 4) → (Type → Type)
   | 0 => Hash.SubF
   | 1 => Signature.SubF
   | 2 => DiffieHellman.SubF
+  | 3 => Random.SubF
 
 abbrev SubF := BytesFunctor.combine SubF.internal
 
@@ -795,10 +779,12 @@ instance: ∀ id, SubBytesFunctor (SubF.internal id)
   | 0 => inferInstance
   | 1 => inferInstance
   | 2 => inferInstance
+  | 3 => inferInstance
 
 instance: BytesFunctor.HasStep Hash.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) SubF)
 instance: BytesFunctor.HasStep Signature.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 1) SubF)
 instance: BytesFunctor.HasStep DiffieHellman.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 2) SubF)
+instance: BytesFunctor.HasStep Random.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 3) SubF)
 
 instance: BytesFunctor where
   BytesF := SubF
@@ -808,11 +794,13 @@ instance: BytesFunctor.Has SubF := inferInstanceAs (BytesFunctor.Has BytesF)
 example: BytesFunctor.Has Hash.SubF := inferInstance
 example: BytesFunctor.Has Signature.SubF := inferInstance
 example: BytesFunctor.Has DiffieHellman.SubF := inferInstance
+example: BytesFunctor.Has Random.SubF := inferInstance
 
 def SubF.length.internal [BytesFunctor]: ∀ id, Bytes.PartialLength (SubF.internal id)
   | 0 => Hash.SubF.length
   | 1 => Signature.SubF.length
   | 2 => DiffieHellman.SubF.length
+  | 3 => Random.SubF.length
 
 abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
   Bytes.PartialLength.combine SubF.length.internal
@@ -823,18 +811,21 @@ instance: BytesLength where
 instance: BytesLength.HasStep Hash.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 0) SubF.length)
 instance: BytesLength.HasStep Signature.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 1) SubF.length)
 instance: BytesLength.HasStep DiffieHellman.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 2) SubF.length)
+instance: BytesLength.HasStep Random.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 3) SubF.length)
 
 instance: BytesLength.Has SubF.length := inferInstanceAs (BytesLength.Has SubF.length)
 
 example: BytesLength.Has Hash.SubF.length := inferInstance
 example: BytesLength.Has Signature.SubF.length := inferInstance
 example: BytesLength.Has DiffieHellman.SubF.length := inferInstance
+example: BytesLength.Has Random.SubF.length := inferInstance
 
-def attackerKnowledge.internal (id: Fin 3): SubAttackerKnowledge (SubF.internal id) :=
+def attackerKnowledge.internal (id: Fin 4): SubAttackerKnowledge (SubF.internal id) :=
   match id with
   | 0 => Hash.attackerKnowledge
   | 1 => Signature.attackerKnowledge
   | 2 => DiffieHellman.attackerKnowledge
+  | 3 => Random.attackerKnowledge
 
 def attackerKnowledge: SubAttackerKnowledge SubF :=
   SubAttackerKnowledge.combine attackerKnowledge.internal
@@ -842,6 +833,7 @@ def attackerKnowledge: SubAttackerKnowledge SubF :=
 instance: AttackerKnowledge.HasStep Hash.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 0) (SubAttackerKnowledge.combine attackerKnowledge.internal))
 instance: AttackerKnowledge.HasStep Signature.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 1) (SubAttackerKnowledge.combine attackerKnowledge.internal))
 instance: AttackerKnowledge.HasStep DiffieHellman.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 2) (SubAttackerKnowledge.combine attackerKnowledge.internal))
+instance: AttackerKnowledge.HasStep Random.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 3) (SubAttackerKnowledge.combine attackerKnowledge.internal))
 
 instance: AttackerKnowledge where
   attackerKnowledge
@@ -851,11 +843,33 @@ instance: AttackerKnowledge.Has attackerKnowledge := inferInstanceAs (AttackerKn
 example: AttackerKnowledge.Has Hash.attackerKnowledge := inferInstance
 example: AttackerKnowledge.Has Signature.attackerKnowledge := inferInstance
 example: AttackerKnowledge.Has DiffieHellman.attackerKnowledge := inferInstance
+example: AttackerKnowledge.Has Random.attackerKnowledge := inferInstance
 
-def invariants.internal: (id: Fin 3) → Bytes.PartialInvariants (SubF.internal id)
+instance: ExecTraceTypes where
+  n := 2
+  entries
+  | 0 => Network.ExecEntryT
+  | 1 => Random.ExecEntryT
+
+instance: ExecTraceTypes.Has Network.ExecEntryT := inferInstanceAs (ExecTraceTypes.Has (ExecTraceTypes.entries 0))
+instance: ExecTraceTypes.Has Random.ExecEntryT := inferInstanceAs (ExecTraceTypes.Has (ExecTraceTypes.entries 1))
+
+instance: TraceTypes where
+  proofEntries
+  | 0 => Network.ProofEntryT
+  | 1 => Random.ProofEntryT
+  funs
+  | 0 => Network.ProofEntryFunc
+  | 1 => Random.ProofEntryFunc
+
+instance: TraceTypes.Has Network.ProofEntryFunc := inferInstanceAs (TraceTypes.Has (TraceTypes.funs 0))
+instance: TraceTypes.Has Random.ProofEntryFunc := inferInstanceAs (TraceTypes.Has (TraceTypes.funs 1))
+
+def invariants.internal: (id: Fin 4) → Bytes.PartialInvariants (SubF.internal id)
   | 0 => Hash.invariants
   | 1 => Signature.invariants
   | 2 => DiffieHellman.invariants
+  | 3 => Random.invariants
 
 abbrev invariants: Bytes.PartialInvariants SubF :=
   Bytes.PartialInvariants.combine invariants.internal
@@ -863,6 +877,7 @@ abbrev invariants: Bytes.PartialInvariants SubF :=
 instance [BytesInvariants]: BytesInvariants.HasStep Hash.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 0) invariants)
 instance [BytesInvariants]: BytesInvariants.HasStep Signature.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 1) invariants)
 instance [BytesInvariants]: BytesInvariants.HasStep DiffieHellman.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 2) invariants)
+instance [BytesInvariants]: BytesInvariants.HasStep Random.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 3) invariants)
 
 instance: BytesInvariants where
   invs := invariants
@@ -872,11 +887,13 @@ instance: BytesInvariants.Has invariants := inferInstance
 example: BytesInvariants.Has Hash.invariants := inferInstance
 example: BytesInvariants.Has Signature.invariants := inferInstance
 example: BytesInvariants.Has DiffieHellman.invariants := inferInstance
+example: BytesInvariants.Has Random.invariants := inferInstance
 
-def invariantsProofs.internal: (id: Fin 3) → Bytes.PartialInvariantsProofs (invariants.internal id)
+def invariantsProofs.internal: (id: Fin 4) → Bytes.PartialInvariantsProofs (invariants.internal id)
   | 0 => Hash.invariantsProofs
   | 1 => Signature.invariantsProofs
   | 2 => DiffieHellman.invariantsProofs
+  | 3 => Random.invariantsProofs
 
 abbrev invariantsProofs: Bytes.PartialInvariantsProofs invariants :=
   Bytes.PartialInvariantsProofs.combine invariantsProofs.internal
@@ -884,10 +901,16 @@ abbrev invariantsProofs: Bytes.PartialInvariantsProofs invariants :=
 instance: BytesInvariantsProofs where
   pfs := invariantsProofs
 
-instance: (id: Fin 3) → SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)
+instance: TraceInvariant where
+  invs
+  | 0 => Network.Invariant
+  | 1 => Random.Invariant
+
+instance: (id: Fin 4) → SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)
   | 0 => inferInstanceAs (SubAttackerKnowledgeTheorem Hash.attackerKnowledge)
   | 1 => inferInstanceAs (SubAttackerKnowledgeTheorem Signature.attackerKnowledge)
   | 2 => inferInstanceAs (SubAttackerKnowledgeTheorem DiffieHellman.attackerKnowledge)
+  | 3 => inferInstanceAs (SubAttackerKnowledgeTheorem Random.attackerKnowledge)
 
 instance: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstanceAs (SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine attackerKnowledge.internal))
 

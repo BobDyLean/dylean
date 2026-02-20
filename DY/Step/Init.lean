@@ -344,7 +344,7 @@ def massageNextGoal
     -- Cleanup random garbage
     -- e.g. True hypothesis, or useless x: Unit
     -- TODO: it may be a bit brutal?
-    goal ← goal.cleanup
+    -- goal ← goal.cleanup
 
     pure goal
 

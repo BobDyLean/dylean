@@ -75,6 +75,18 @@ def Trace.length {α: Type} (tr: Trace α) : Nat :=
   | .snoc trBefore _ => trBefore.length + 1
 
 public
+theorem Trace.length_le
+  {α: Type} (tr1 tr2: Trace α)
+  : tr1 ≤ tr2 →
+    tr1.length ≤ tr2.length
+:= by
+  intro h
+  induction h <;>
+  grind [Trace.length]
+
+grind_pattern Trace.length_le => tr1 ≤ tr2, tr1.length
+
+public
 def Trace.prefix {α: Type} (tr: Trace α) (i: Nat): Trace α :=
   if i = tr.length then
     tr
@@ -117,6 +129,47 @@ def Trace.at {α: Type} (tr: Trace α) (i: Nat) (h_i: i < tr.length): α :=
     else
       trBefore.at i (by grind [Trace.length])
 
+public
+theorem Trace.at_le
+  {α: Type} (tr1 tr2: Trace α) (i: Nat) (h_i: i < tr1.length)
+  (h_le: tr1 ≤ tr2)
+  : tr1.at i h_i = tr2.at i (by grind)
+:= by
+  induction h_le <;>
+  grind [Trace.at]
+
+grind_pattern Trace.at_le => tr1 ≤ tr2, tr1.at i h_i
+
+public
+def Trace.at_is
+  {EntryT α: Type} [IntoTraceEntry EntryT α]
+  (tr: Trace α) (i: Nat) (entry: EntryT)
+  : Prop
+:=
+  exists h: i < tr.length,
+  tr.at i h = IntoTraceEntry.make entry
+
+public
+theorem Trace.at_is_le
+  {EntryT α: Type} [IntoTraceEntry EntryT α]
+  (tr1 tr2: Trace α) (i: Nat) (entry: EntryT)
+  : tr1 ≤ tr2 →
+    tr1.at_is i entry →
+    tr2.at_is i entry
+:= by
+  simp only [Trace.at_is]
+  grind
+
+grind_pattern Trace.at_is_le => tr1 ≤ tr2, tr1.at_is i entry
+
+public
+theorem Trace.at_is_append
+  {EntryT α: Type} [IntoTraceEntry EntryT α]
+  (tr: Trace α) (entry: EntryT)
+  : (tr.append entry).at_is tr.length entry
+:= by
+  grind [Trace.append, Trace.at_is, Trace.at, Trace.length]
+
 -- Execution trace
 
 public
@@ -153,14 +206,5 @@ instance [ExecTraceTypes] (id: Fin ExecTraceTypes.n): ExecTraceTypes.Has (ExecTr
 public
 instance [ExecTraceTypes] (ExecEntryT: Type) [ExecTraceTypes.Has ExecEntryT]: IntoTraceEntry ExecEntryT ExecTrace.Entry where
   make entry := ExecTraceTypes.Has.inj entry
-
--- class ExecTraceEntry [ExecTraceTypes] (Entry: Type) extends IntoTraceEntry Entry.type ExecTrace.Entry
---
--- example
---   [ExecTraceTypes] {Entry: Type} [ExecTraceEntry Entry]
---   (tr: ExecTrace) (entry: Entry.type)
---   : ExecTrace
--- :=
---   tr.append entry
 
 end DY

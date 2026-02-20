@@ -5,9 +5,7 @@ public import DY.Bytes
 public import DY.Trace.Manipulation
 import DY.Step.Init
 
-namespace DY
-
-namespace Network
+namespace DY.Network
 
 variable [BytesFunctor]
 
@@ -42,10 +40,8 @@ def Invariant [TraceTypes] [BytesInvariants]: TraceEntryInvariant ProofEntryFunc
 public
 def sendMessage [BytesFunctor] [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] (msg: Bytes): Traceful Nat :=
   do
-  let time ← getTimestamp
   let entry: ExecEntryT := MsgSent.mk msg
   appendEntry entry
-  return time
 
 @[instance]
 public
@@ -62,9 +58,7 @@ theorem sendMessage.spec
   apply HoareTriple.mk
   unfold sendMessage
   dsimp only
-  step
   step with ⟨ MsgSent.mk msg ⟩ by simp_all [ProofEntryFunc, Invariant]
-  step
   trivial
 
 public
@@ -93,6 +87,4 @@ theorem receiveMessage.spec
   step
   grind
 
-end Network
-
-end DY
+end DY.Network
