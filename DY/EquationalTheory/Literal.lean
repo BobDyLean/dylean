@@ -111,11 +111,12 @@ def attKnowsLit: SubAttackerKnowledge Literal where
 public
 abbrev attackerKnowledge := attKnowsLit
 
+variable [ExecTraceTypes] [BaseAttackerKnowledge]
 variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
 public
 theorem attacker_knows_literalToBytes
-  (lit: ByteArray) (tr: Trace α)
+  (lit: ByteArray) (tr: ExecTrace)
   : (literalToBytes lit: Bytes).AttackerKnows tr
 := by
   apply Bytes.AttackerKnows.prove attKnowsLit

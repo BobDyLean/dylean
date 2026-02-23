@@ -11,8 +11,8 @@ module
 public import DY.Bytes.Basic
 public import DY.Bytes.Invariants
 public import DY.Bytes.AttackerKnowledge
+import all DY.Bytes.AttackerKnowledge
 public import DY.Trace
-
 
 namespace DY
 
@@ -61,22 +61,23 @@ where
 end AttackerKnowledgeTheorem
 
 public
-axiom Bytes.MessageSent_implies_Publishable (b: Bytes) (tr: ProofTrace): tr.Invariant → tr.MessageSent b → b.Publishable tr
-
-public
 theorem Bytes.AttackerKnows_implies_Publishable
-  [AttackerKnowledge]
+  [BytesInvariantsProofs]
+  [AttackerKnowledge] [BaseAttackerKnowledge]
   [inst: AttackerKnowledgeTheorem]
+  [BaseAttackerKnowledgeTheorem]
   (b: Bytes) (tr: ProofTrace)
   : tr.Invariant →
-    Bytes.AttackerKnows b tr →
+    Bytes.AttackerKnows b tr.erase →
     b.Publishable tr
 := by
   intro h_tr
-  apply Bytes.AttackerKnows.is_least_fixpoint (·.Publishable tr) b tr
+  apply Bytes.AttackerKnows.is_least_fixpoint (·.Publishable tr) b tr.erase
   · intro b
     exact inst.inst.pf b tr h_tr
   · intro b
-    exact Bytes.MessageSent_implies_Publishable b tr h_tr
+    simp only [AttackerKnows.baseKnowledge, SubAttackerKnowledge.fromPred]
+    apply Trace.BaseAttackerKnows_implies_Publishable
+    assumption
 
 end DY

@@ -92,11 +92,12 @@ def attKnowsHash: SubAttackerKnowledge Hash where
 public
 abbrev attackerKnowledge := attKnowsHash
 
+variable [ExecTraceTypes] [BaseAttackerKnowledge]
 variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
 public
 theorem attacker_knows_hash
-  (inp: Bytes) (tr: Trace α)
+  (inp: Bytes) (tr: ExecTrace)
   : inp.AttackerKnows tr →
     (hash inp).AttackerKnows tr
 := by

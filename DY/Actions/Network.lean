@@ -2,7 +2,6 @@ module
 
 public import DY.Trace
 public import DY.Bytes
-public import DY.Trace.Manipulation
 import DY.Step.Init
 
 namespace DY.Network
@@ -19,7 +18,7 @@ def ExecEntryT: Type :=
   MsgSent
 
 public
-def attKnows [ExecTraceTypes]: ExecEntryAttackerKnowledge ExecEntryT where
+def baseAttackerKnowledge [ExecTraceTypes]: EntryBaseAttackerKnowledge ExecEntryT where
   attackerKnows _ entry msg := msg = entry.msg
 
 @[expose]
@@ -35,7 +34,11 @@ def Invariant [TraceTypes] [BytesInvariants]: TraceEntryInvariant ProofEntryFunc
   invariant tr entry :=
     entry.msg.Publishable tr
 
--- TODO attacker knowledge theorem
+public
+theorem baseAttackerKnowledgeTheorem [TraceInvariant] [BytesInvariants] [TraceInvariant.Has Invariant]: EntryBaseAttackerKnowledgeTheorem Invariant baseAttackerKnowledge where
+  pf trBefore entry b := by
+    simp [Invariant, baseAttackerKnowledge, ProofEntryFunc]
+    grind
 
 public
 def sendMessage [BytesFunctor] [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] (msg: Bytes): Traceful Nat :=

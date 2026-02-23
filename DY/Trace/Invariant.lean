@@ -179,6 +179,14 @@ class TraceInvariant.Has
   inv_commutes: ∀ trBefore entry, (proofInj entry).Invariant trBefore = inv.invariant trBefore entry
 
 public
+instance
+  [TraceInvariant]
+  (id: Fin ExecTraceTypes.n)
+  : TraceInvariant.Has (TraceInvariant.invs id)
+where
+  inv_commutes trBefore entry := by rfl
+
+public
 theorem Trace.invariant_append
   [TraceInvariant]
   {ExecEntryT ProofEntryT: Type}

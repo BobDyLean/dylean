@@ -906,6 +906,21 @@ instance: TraceInvariant where
   | 0 => Network.Invariant
   | 1 => Random.Invariant
 
+instance: TraceInvariant.Has Network.Invariant := inferInstanceAs (TraceInvariant.Has (TraceInvariant.invs 0))
+instance: TraceInvariant.Has Random.Invariant := inferInstanceAs (TraceInvariant.Has (TraceInvariant.invs 1))
+
+instance: BaseAttackerKnowledge where
+  attackerKnows
+  | 0 => Network.baseAttackerKnowledge
+  | 1 => Random.baseAttackerKnowledge
+
+-- Has trace attacker knowledge?
+
+instance: BaseAttackerKnowledgeTheorem where
+  pfs
+  | 0 => Network.baseAttackerKnowledgeTheorem
+  | 1 => Random.baseAttackerKnowledgeTheorem
+
 instance: (id: Fin 4) → SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)
   | 0 => inferInstanceAs (SubAttackerKnowledgeTheorem Hash.attackerKnowledge)
   | 1 => inferInstanceAs (SubAttackerKnowledgeTheorem Signature.attackerKnowledge)
@@ -919,7 +934,7 @@ instance: AttackerKnowledgeTheorem where
 
 theorem test (b: Bytes) (tr: ProofTrace) :
     tr.Invariant →
-    Bytes.AttackerKnows b tr →
+    Bytes.AttackerKnows b tr.erase →
     b.Publishable tr
   := by
     apply Bytes.AttackerKnows_implies_Publishable
@@ -930,7 +945,8 @@ info: 'test' depends on axioms: [propext,
  Quot.sound,
  Test.comparseExists,
  Test.event_logged_at,
- DY.Bytes.MessageSent_implies_Publishable]
+ Test.SigInput.isWellFormedLemma,
+ DY.Trace.MonotoneLemmas.event_logged_at_later]
 -/
 #guard_msgs in
 #print axioms test

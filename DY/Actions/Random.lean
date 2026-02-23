@@ -2,7 +2,6 @@ module
 
 public import DY.Trace
 public import DY.Bytes
-public import DY.Trace.Manipulation
 public import DY.Misc.Instances
 import DY.Step.Init
 
@@ -15,7 +14,7 @@ structure ExecEntryT where
   length: Nat
 
 public
-def attKnows [BytesFunctor] [ExecTraceTypes]: ExecEntryAttackerKnowledge ExecEntryT where
+def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes]: EntryBaseAttackerKnowledge ExecEntryT where
   attackerKnows _ _ _ := False
 
 public
@@ -32,7 +31,10 @@ public
 def Invariant [BytesFunctor] [TraceTypes]: TraceEntryInvariant ProofEntryFunc where
   invariant _ _ := True
 
--- TODO attacker knowledge theorem
+public
+theorem baseAttackerKnowledgeTheorem [BytesFunctor] [TraceInvariant] [BytesInvariants] [TraceInvariant.Has Invariant]: EntryBaseAttackerKnowledgeTheorem Invariant baseAttackerKnowledge where
+  pf trBefore entry b := by
+    simp [baseAttackerKnowledge]
 
 end Trace
 
