@@ -80,4 +80,6 @@ theorem Bytes.AttackerKnows_implies_Publishable
     apply Trace.BaseAttackerKnows_implies_Publishable
     assumption
 
+grind_pattern Bytes.AttackerKnows_implies_Publishable => Bytes.AttackerKnows b tr.erase
+
 end DY

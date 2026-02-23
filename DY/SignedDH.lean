@@ -633,10 +633,12 @@ end Specification
 section SecurityTheorems
 
 variable [TraceInvariant] [BytesInvariants] [BytesInvariantsProofs]
+variable [BaseAttackerKnowledge] [AttackerKnowledge] [BaseAttackerKnowledgeTheorem] [AttackerKnowledgeTheorem]
 
 theorem client_auth:
   event_logged_at client (.ClientFinishEvent server x_pk y_pk k) time tr →
-  tr.Invariant → (
+  tr.Invariant → -- reachable
+  (
     let tr_before := tr.prefix time
     event_logged server (.ServerFinishEvent x_pk y_pk k) tr_before  ∨
     (long_term_label server).isCorrupt tr_before.erase
@@ -648,9 +650,10 @@ theorem client_auth:
     grind
 
 theorem client_secrecy:
-  k.Publishable tr → -- attacker_knows
+  k.AttackerKnows tr.erase →
   event_logged_at client (.ClientFinishEvent server x_pk y_pk k) time tr →
-  tr.Invariant → (
+  tr.Invariant → -- reachable
+  (
     let tr_before := tr.prefix time
     (long_term_label server).isCorrupt tr_before.erase ∨
     (client_label client).isCorrupt tr.erase ∨
