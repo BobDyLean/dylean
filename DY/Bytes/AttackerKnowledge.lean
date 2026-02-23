@@ -158,7 +158,6 @@ where
 
 end AttackerKnowledge
 
-@[expose]
 public
 def Bytes.AttackerKnows.baseKnowledge [ExecTraceTypes] [BaseAttackerKnowledge] (tr: ExecTrace): SubAttackerKnowledge BytesF :=
   SubAttackerKnowledge.fromPred tr.BaseAttackerKnows
