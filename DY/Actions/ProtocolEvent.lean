@@ -3,9 +3,6 @@ module
 public import DY.Trace
 public import DY.Bytes
 import DY.Step.Init
-import all DY.Trace
-public import DY.Step.Init
-import all DY.Step.Init
 
 namespace DY.ProtocolEvent
 
