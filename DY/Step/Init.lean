@@ -118,6 +118,8 @@ def solvePrecondition
       let currentGoals ← getGoals
       setGoals [pre]
       evalTactic tac
+      unless (← getGoals).isEmpty do
+        throwError "unsolved goal in precondition proof"
       setGoals currentGoals
     | none =>
       let _ ← grind pre {} false #[] none
@@ -197,6 +199,21 @@ structure EvalStepConfig where
   nextPosition: Nat
   xName: Name
 
+public
+abbrev nonMono (α : Sort u) : Sort u := α
+
+public
+theorem makeNonMono {p: Prop} (h: p): Step.nonMono p := h
+
+syntax (name := make_non_monotone) "mark_non_monotone " ident : tactic
+
+macro_rules
+  | `(tactic| mark_non_monotone $t) =>
+    `(tactic|
+      replace $t := DY.Step.makeNonMono $t
+    )
+
+
 /--
   Massage the next goal:
   - introduce the ∀ and hypothesis in the context
@@ -273,10 +290,9 @@ def massageNextGoal
       let ty ← fvar.getType
       let ty ← ty.sanitize
       let (name, _) := ty.getAppFnArgs
-      -- hack: for typeclasses such as BytesCtors
-      let isTcInstance := (← fvar.getBinderInfo).isInstImplicit
+      let isImplicit := ¬ (← fvar.getBinderInfo).isExplicit
       pure (
-        isTcInstance ∨
+        isImplicit ∨
         name = ``DY.ProofTrace ∨
         name = ``DY.Trace.Invariant ∨
         name = ``LE.le
@@ -307,9 +323,16 @@ def massageNextGoal
       -- need goal.withContext here because of localDeclDependsOn
       let (newGoal, toClear) ← goal.withContext do
         trace[Step] "introduced: {← hypFv.getUserName}: {← hypFv.getType}"
+        let isNonMonotonic ← do
+          let ty ← hypFv.getType
+          let ty ← ty.sanitize
+          let (name, _) := ty.getAppFnArgs
+          pure (name = ``Step.nonMono: Bool)
         let dependsOnOldTrace: Bool ←
           localDeclDependsOn (← hypFv.getDecl) trOldFv
-        if dependsOnOldTrace then
+        if isNonMonotonic then
+          pure (goal, some hypFv)
+        else if dependsOnOldTrace then
           -- Some assumptions depend on the trace but shouldn't me monotonized
           -- e.g. trace invariant, etc
           -- However, note they were not reverted,

@@ -140,6 +140,7 @@ theorem Trace.at_le
 
 grind_pattern Trace.at_le => tr1 ≤ tr2, tr1.at i h_i
 
+@[expose]
 public
 def Trace.at_is
   {EntryT α: Type} [IntoTraceEntry EntryT α]
@@ -206,5 +207,17 @@ instance [ExecTraceTypes] (id: Fin ExecTraceTypes.n): ExecTraceTypes.Has (ExecTr
 public
 instance [ExecTraceTypes] (ExecEntryT: Type) [ExecTraceTypes.Has ExecEntryT]: IntoTraceEntry ExecEntryT ExecTrace.Entry where
   make entry := ExecTraceTypes.Has.inj entry
+
+@[grind inj]
+public
+theorem ExecTraceTypes.Has.inj_injective
+  [ExecTraceTypes] (ExecEntryT: Type) [ExecTraceTypes.Has ExecEntryT]
+  : Function.Injective (ExecTraceTypes.Has.inj (ExecEntryT := ExecEntryT))
+:= by
+  intro x1 x2
+  have := ExecTraceTypes.Has.inj_proj_eq (ExecTraceTypes.Has.inj x1) x1
+  have := ExecTraceTypes.Has.inj_proj_eq (ExecTraceTypes.Has.inj x2) x2
+  grind
+
 
 end DY

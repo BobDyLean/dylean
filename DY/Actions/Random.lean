@@ -32,7 +32,7 @@ def Invariant [BytesFunctor] [TraceTypes]: TraceEntryInvariant ProofEntryFunc wh
   invariant _ _ := True
 
 public
-theorem baseAttackerKnowledgeTheorem [BytesFunctor] [TraceInvariant] [BytesInvariants] [TraceInvariant.Has Invariant]: EntryBaseAttackerKnowledgeTheorem Invariant baseAttackerKnowledge where
+theorem baseAttackerKnowledgeTheorem [BytesFunctor] [TraceInvariant] [BytesInvariants] [TraceTypes.Has ProofEntryFunc] [TraceInvariant.Has Invariant]: EntryBaseAttackerKnowledgeTheorem Invariant baseAttackerKnowledge where
   pf trBefore entry b := by
     simp [baseAttackerKnowledge]
 
@@ -218,7 +218,7 @@ theorem genRand.spec
   [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
   [BytesFunctor.Has SubF]
-  [TraceInvariant.Has Invariant]
+  [TraceTypes.Has ProofEntryFunc] [TraceInvariant.Has Invariant]
   [BytesInvariants.Has invariants]
   (size: Nat)
   (label: Label) (usage: Usage)

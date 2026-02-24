@@ -10,6 +10,18 @@ structure ProofEntryFun (ExecEntryT ProofEntryT: Type) where
   erase: ProofEntryT → ExecEntryT
 
 public
+def ProofEntryFun.default (ExecEntryT: Type): ProofEntryFun ExecEntryT ExecEntryT where
+  erase x := x
+
+@[grind =, simp]
+public
+theorem ProofEntryFun.default.erase
+  {ExecEntryT: Type} (x: ExecEntryT)
+  : (ProofEntryFun.default ExecEntryT).erase x = x
+:= by
+  rfl
+
+public
 class TraceTypes extends ExecTraceTypes where
   proofEntries: Fin ExecTraceTypes.n → Type
   funs: ∀ id, ProofEntryFun (ExecTraceTypes.entries id) (proofEntries id)
@@ -66,6 +78,8 @@ theorem Trace.erase_length
   induction tr <;>
   simp_all [Trace.length, Trace.erase]
 
+grind_pattern Trace.erase_length => tr.erase.length
+
 public
 def Trace.erase_at
   [TraceTypes]
@@ -107,6 +121,44 @@ instance [TraceTypes] {ExecEntryT ProofEntryT: Type} (func: ProofEntryFun ExecEn
   make entry := TraceTypes.Has.proofInj entry
 
 public
+def ProofTrace.Entry.erase_eq_imp_exists
+  [TraceTypes]
+  {ExecEntryT ProofEntryT: Type}
+  {func: ProofEntryFun ExecEntryT ProofEntryT}
+  [TraceTypes.Has func]
+  {entry: ProofTrace.Entry}
+  {result: ExecEntryT}
+  : entry.erase = ExecTraceTypes.Has.inj result ↔ (
+      ∃ result': ProofEntryT,
+      entry = TraceTypes.Has.proofInj result' ∧
+      func.erase result' = result
+    )
+:= by
+  cases h: (TraceTypes.Has.proofProj entry: Option ProofEntryT)
+  · have := TraceTypes.Has.proofProj_none_eq_erase (func := func) entry
+    rewrite [← ExecTraceTypes.Has.inj_proj_eq]
+    simp_all only [reduceCtorEq, false_iff, not_exists]
+    intro x
+    have := TraceTypes.Has.proof_inj_proj_eq entry x
+    grind
+  · rename_i result'
+    rewrite [TraceTypes.Has.proof_inj_proj_eq] at h
+    grind [TraceTypes.Has.erase_commutes]
+
+@[simp]
+public
+def ProofTrace.Entry.default_erase_eq_imp
+  [TraceTypes]
+  {ExecEntryT: Type}
+  [TraceTypes.Has (ProofEntryFun.default ExecEntryT)]
+  {entry: ProofTrace.Entry}
+  {result: ExecEntryT}
+  : entry.erase = ExecTraceTypes.Has.inj result ↔
+    entry = TraceTypes.Has.proofInj result
+:= by
+  simp [ProofTrace.Entry.erase_eq_imp_exists, ProofEntryFun.default]
+
+public
 theorem Trace.append_erase
   [TraceTypes]
   {ExecEntryT ProofEntryT: Type}
@@ -132,6 +184,21 @@ theorem Trace.at_is_imp_proofProj_at
   intro ⟨ h1, h2 ⟩
   exists h1
   grind [TraceTypes.Has.proof_inj_proj_eq]
+
+public
+theorem Trace.at_is_erase
+  [TraceTypes]
+  {ExecEntryT ProofEntryT: Type}
+  {func: ProofEntryFun ExecEntryT ProofEntryT}
+  [TraceTypes.Has func]
+  (tr: ProofTrace) (i: Nat) (entry: ProofEntryT)
+  : tr.at_is i entry →
+    tr.erase.at_is i (func.erase entry)
+:= by
+  simp only [Trace.at_is, IntoTraceEntry.make]
+  intro ⟨ h1, h2 ⟩
+  simp_all [Trace.erase_at, TraceTypes.Has.erase_commutes]
+  grind
 
 -- Invariant
 
@@ -173,10 +240,10 @@ class TraceInvariant.Has
   [TraceInvariant]
   {ExecEntryT: Type} {ProofEntryT: Type}
   {func: ProofEntryFun ExecEntryT ProofEntryT}
+  [TraceTypes.Has func]
   (inv: outParam (TraceEntryInvariant func))
-  extends toTraceTypes: TraceTypes.Has func
   where
-  inv_commutes: ∀ trBefore entry, (proofInj entry).Invariant trBefore = inv.invariant trBefore entry
+  inv_commutes: ∀ trBefore entry, (TraceTypes.Has.proofInj entry).Invariant trBefore = inv.invariant trBefore entry
 
 public
 instance
@@ -191,6 +258,7 @@ theorem Trace.invariant_append
   [TraceInvariant]
   {ExecEntryT ProofEntryT: Type}
   {func: ProofEntryFun ExecEntryT ProofEntryT}
+  [TraceTypes.Has func]
   {inv: TraceEntryInvariant func}
   [TraceInvariant.Has inv]
   (tr: ProofTrace) (entry: ProofEntryT)

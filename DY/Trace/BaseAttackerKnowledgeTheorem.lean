@@ -17,7 +17,7 @@ structure EntryBaseAttackerKnowledgeTheorem
   {ExecEntryT: Type} {ProofEntryT: Type}
   {func: ProofEntryFun ExecEntryT ProofEntryT}
   (inv: TraceEntryInvariant func)
-  [TraceInvariant.Has inv]
+  [TraceTypes.Has func] [TraceInvariant.Has inv]
   (att: EntryBaseAttackerKnowledge ExecEntryT)
 where
   pf: ∀ trBefore entry (b: Bytes),

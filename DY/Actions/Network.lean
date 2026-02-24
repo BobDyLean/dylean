@@ -9,25 +9,18 @@ namespace DY.Network
 variable [BytesFunctor]
 
 public
-structure MsgSent where
+structure ExecEntryT where
   msg: Bytes
-
-@[expose]
-public
-def ExecEntryT: Type :=
-  MsgSent
 
 public
 def baseAttackerKnowledge [ExecTraceTypes]: EntryBaseAttackerKnowledge ExecEntryT where
   attackerKnows _ entry msg := msg = entry.msg
 
-@[expose]
 public
-def ProofEntryT: Type := MsgSent
+abbrev ProofEntryT := ExecEntryT
 
 public
-def ProofEntryFunc: ProofEntryFun ExecEntryT ProofEntryT where
-  erase x := x
+def ProofEntryFunc  := ProofEntryFun.default ExecEntryT
 
 public
 def Invariant [TraceTypes] [BytesInvariants]: TraceEntryInvariant ProofEntryFunc where
@@ -35,7 +28,7 @@ def Invariant [TraceTypes] [BytesInvariants]: TraceEntryInvariant ProofEntryFunc
     entry.msg.Publishable tr
 
 public
-theorem baseAttackerKnowledgeTheorem [TraceInvariant] [BytesInvariants] [TraceInvariant.Has Invariant]: EntryBaseAttackerKnowledgeTheorem Invariant baseAttackerKnowledge where
+theorem baseAttackerKnowledgeTheorem [TraceInvariant] [BytesInvariants] [TraceTypes.Has ProofEntryFunc] [TraceInvariant.Has Invariant]: EntryBaseAttackerKnowledgeTheorem Invariant baseAttackerKnowledge where
   pf trBefore entry b := by
     simp [Invariant, baseAttackerKnowledge, ProofEntryFunc]
     grind
@@ -43,7 +36,7 @@ theorem baseAttackerKnowledgeTheorem [TraceInvariant] [BytesInvariants] [TraceIn
 public
 def sendMessage [BytesFunctor] [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] (msg: Bytes): Traceful Nat :=
   do
-  let entry: ExecEntryT := MsgSent.mk msg
+  let entry: ExecEntryT := ExecEntryT.mk msg
   appendEntry entry
 
 @[instance]
@@ -51,7 +44,7 @@ public
 theorem sendMessage.spec
   [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
-  [TraceInvariant.Has Invariant]
+  [TraceTypes.Has ProofEntryFunc] [TraceInvariant.Has Invariant]
   (msg: Bytes)
   : HoareTriple
     (sendMessage msg)
@@ -61,7 +54,7 @@ theorem sendMessage.spec
   apply HoareTriple.mk
   unfold sendMessage
   dsimp only
-  step with ⟨ MsgSent.mk msg ⟩ by simp_all [ProofEntryFunc, Invariant]
+  step with ⟨ ExecEntryT.mk msg ⟩ by simp_all [ProofEntryFunc, Invariant]
   trivial
 
 public
@@ -75,7 +68,7 @@ public
 theorem receiveMessage.spec
   [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
-  [TraceInvariant.Has Invariant]
+  [TraceTypes.Has ProofEntryFunc] [TraceInvariant.Has Invariant]
   (timestamp: Nat)
   : HoareTriple
     (receiveMessage timestamp)
@@ -85,7 +78,7 @@ theorem receiveMessage.spec
   apply HoareTriple.mk
   unfold receiveMessage
   step
-  have: msg.msg.Publishable tr := by grind [Invariant, ProofEntryFunc]
+  have: msg.msg.Publishable tr := by simp_all [Invariant, ProofEntryFunc]; grind
   rename_i h_msg; clear h_msg
   step
   grind

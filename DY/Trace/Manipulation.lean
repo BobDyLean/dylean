@@ -397,7 +397,7 @@ theorem appendEntry.spec
   {ExecEntryT ProofEntryT: Type}
   {func: ProofEntryFun ExecEntryT ProofEntryT}
   {inv: TraceEntryInvariant func}
-  [TraceInvariant.Has inv]
+  [TraceTypes.Has func] [TraceInvariant.Has inv]
   (execEntry: ExecEntryT) (proofEntry: ProofEntryT)
   : HoareTripleGhost
     (appendEntry execEntry)
@@ -438,7 +438,7 @@ theorem getEntry.spec
   {ExecEntryT ProofEntryT: Type}
   {func: ProofEntryFun ExecEntryT ProofEntryT}
   {inv: TraceEntryInvariant func}
-  [TraceInvariant.Has inv]
+  [TraceTypes.Has func] [TraceInvariant.Has inv]
   (timestamp: Nat)
   : HoareTriple
     (getEntry timestamp: Traceful ExecEntryT)
@@ -466,9 +466,7 @@ theorem getEntry.spec
   simp only [TraceTypes.Has.proof_inj_proj_eq] at h
   simp only [ExecTraceTypes.Has.inj_proj_eq, Trace.erase_at, TraceTypes.Has.erase_commutes, h] at heq
   constructor
-  · have := ExecTraceTypes.Has.inj_proj_eq (ExecTraceTypes.Has.inj execEntry) execEntry
-    have := ExecTraceTypes.Has.inj_proj_eq (ExecTraceTypes.Has.inj (func.erase proofEntry)) (func.erase proofEntry)
-    grind [ExecTraceTypes.Has.inj_proj_eq]
+  · grind
   rewrite [← TraceInvariant.Has.inv_commutes, ← h]
   apply Trace.invariant_at
   assumption
