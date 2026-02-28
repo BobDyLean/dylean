@@ -54,7 +54,7 @@ theorem sendMessage.spec
   apply HoareTriple.mk
   unfold sendMessage
   dsimp only
-  step with ⟨ ExecEntryT.mk msg ⟩ by simp_all [ProofEntryFunc, Invariant]
+  step with ⟨ fun _ => ExecEntryT.mk msg ⟩ by simp_all [ProofEntryFunc, Invariant]
   trivial
 
 public

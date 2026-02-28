@@ -27,6 +27,11 @@ theorem canFlowPubEqIsCorrupt (l: Label) (tr: ExecTrace):
   -- open DY.Trace.MonotoneLemmas in
   grind [Label.canFlow, DY.Trace.MonotoneLemmas.isCorruptLater]
 
+@[grind]
+public
+theorem Label.pubCanFlow (l: Label) (tr: ExecTrace): Label.pub.canFlow l tr := by
+  grind [Label.pub, canFlow]
+
 public
 def Label.secret : Label := {
   isCorrupt tr := False

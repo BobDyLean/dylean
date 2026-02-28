@@ -22,7 +22,7 @@ def ProofEntryFunc (EventT: Type) := ProofEntryFun.default (ExecEntryT EventT)
 
 public
 class EventInv [TraceTypes] (EventT: Type) where
-  invariant: ProofTrace → EventT→ Prop
+  invariant: ProofTrace → EventT → Prop
 
 public
 def Invariant [TraceTypes] (EventT: Type) [EventInv EventT]: TraceEntryInvariant (ProofEntryFunc EventT) where
@@ -122,11 +122,31 @@ theorem logEvent.spec
   unfold hoareTriple
   intro tr h_pre h_inv
   mark_non_monotone h_pre
-  step with ⟨ ExecEntryT.mk ev ⟩ by simp_all [ProofEntryFunc, Invariant]
+  step with ⟨ fun _ => ExecEntryT.mk ev ⟩ by simp_all [ProofEntryFunc, Invariant]
   step
   simp only [Trace.EventLogged, Trace.EventLoggedAt]
   exists _i
   have := Trace.at_is_erase tr _i (ExecEntryT.mk ev)
   grind [ProofEntryFunc]
+
+public
+def label
+  {EventT: Type}
+  [ExecTraceTypes] [ExecTraceTypes.Has (ExecEntryT EventT)]
+  (ev: EventT)
+  : Label
+where
+  isCorrupt tr := tr.EventLogged ev
+
+public
+theorem label_isCorrupt
+  {EventT: Type}
+  [ExecTraceTypes] [ExecTraceTypes.Has (ExecEntryT EventT)]
+  (ev: EventT) (tr: ExecTrace)
+  : (label ev).isCorrupt tr = tr.EventLogged ev
+:= by
+  rfl
+
+grind_pattern label_isCorrupt => (label ev).isCorrupt tr
 
 end DY.ProtocolEvent

@@ -207,7 +207,7 @@ public
 instance
   [BytesFunctor] [BytesFunctor.Has SubF] [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT]
   (size: Nat)
-  : HasGhostArgumentType (genRand size) (Label × Usage)
+  : HasGhostArgumentType (genRand size) ((Bytes → Label) × Usage)
 where
   dummy := ()
 
@@ -221,7 +221,7 @@ theorem genRand.spec
   [TraceTypes.Has ProofEntryFunc] [TraceInvariant.Has Invariant]
   [BytesInvariants.Has invariants]
   (size: Nat)
-  (label: Label) (usage: Usage)
+  (label: Bytes → Label) (usage: Usage)
   : HoareTripleGhost
     (genRand size)
     (label, usage)
@@ -230,14 +230,14 @@ theorem genRand.spec
       -- length?
       -- last event in the trace? (for injectivity properties)
       res.Invariant tr ∧
-      res.label tr = label ∧
+      res.label tr = label res ∧
       res.HasUsage usage tr
     )
 := by
   apply HoareTripleGhost.mk
   unfold genRand
   dsimp only
-  step with ⟨ ProofEntryT.mk size label usage ⟩ by
+  step with ⟨ fun time => ProofEntryT.mk size (label (makeRand time size)) usage ⟩ by
     simp_all [ProofEntryFunc, Invariant]
   step
   grind [makeRand.Invariant]

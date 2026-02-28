@@ -513,6 +513,12 @@ def Bytes.Publishable [BytesInvariants] (b: Bytes) (tr: ProofTrace) :=
   b.Invariant tr ∧
   (b.label tr).canFlow Label.pub tr.erase
 
+@[expose, grind]
+public
+def Bytes.KnowableBy [BytesInvariants] (l: Label) (b: Bytes) (tr: ProofTrace) :=
+  b.Invariant tr ∧
+  (b.label tr).canFlow l tr.erase
+
 @[expose]
 public
 def Bytes.HasUsage [GetUsage] [GetLabel] (b: Bytes) (usg: Usage) (tr: ProofTrace) :=

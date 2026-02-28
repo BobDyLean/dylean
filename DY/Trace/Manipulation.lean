@@ -49,8 +49,8 @@ theorem Traceful.run_pure
   [ExecTraceTypes]
   (x: a) (tr: ExecTrace)
   : Traceful.run (pure x) tr = (some x, tr)
-  := by
-    rfl
+:= by
+  rfl
 
 theorem Traceful.run_bind
   [ExecTraceTypes]
@@ -61,11 +61,19 @@ theorem Traceful.run_bind
     | some x => (f x).run tr
     | none => (none, tr)
   )
-  := by
-    simp only [Traceful.run, OptionT.run_bind, StateT.run_bind, Id.run_bind]
-    split
-    · simp_all
-    · simp_all
+:= by
+  simp only [Traceful.run, OptionT.run_bind, StateT.run_bind, Id.run_bind]
+  split
+  · simp_all
+  · simp_all
+
+theorem Traceful.run_failure
+  [ExecTraceTypes]
+  (tr: ExecTrace)
+  : Traceful.run (failure: Traceful a) tr = (none, tr)
+:= by
+  rfl
+
 
 class WP [TraceTypes] (m: Type u → Type v) where
   wp: m a → (a → ProofTrace → Prop) → (ProofTrace → Prop)
@@ -339,11 +347,25 @@ where
     intro tr h_pre h_inv
     exists tr
     cases b
-    · simp [failure, Traceful.run, OptionT.fail, OptionT.mk, OptionT.run]
+    · simp [Traceful.run_failure]
       grind
-    · simp [pure, Traceful.run, OptionT.pure, OptionT.mk, OptionT.run]
-      unfold StateT.pure
-      simp [StateT.run]
+    · simp_all [Traceful.run_pure]
+      grind
+
+instance (priority := low) [TraceInvariant] (b: Prop) [Decidable b]:
+  HoareTriple
+    (guard b: Traceful Unit)
+    (fun _ => True)
+    (fun () _ => b)
+where
+  pf := by
+    simp only [hoareTriple, wp, guard]
+    intro tr h_pre h_inv
+    exists tr
+    by_cases b
+    · simp_all [Traceful.run_pure]
+      grind
+    · simp_all [Traceful.run_failure]
       grind
 
 instance
@@ -386,7 +408,7 @@ instance
   {func: ProofEntryFun ExecEntryT ProofEntryT}
   [TraceTypes.Has func]
   (entry: ExecEntryT)
-  : HasGhostArgumentType (appendEntry entry) (ProofEntryT)
+  : HasGhostArgumentType (appendEntry entry) (Nat → ProofEntryT)
 where
   dummy := ()
 
@@ -398,22 +420,23 @@ theorem appendEntry.spec
   {func: ProofEntryFun ExecEntryT ProofEntryT}
   {inv: TraceEntryInvariant func}
   [TraceTypes.Has func] [TraceInvariant.Has inv]
-  (execEntry: ExecEntryT) (proofEntry: ProofEntryT)
+  (execEntry: ExecEntryT) (mkProofEntry: Nat → ProofEntryT)
   : HoareTripleGhost
     (appendEntry execEntry)
-    (proofEntry)
+    (mkProofEntry)
     (fun tr =>
-      func.erase proofEntry = execEntry ∧
-      inv.invariant tr proofEntry
+      ∀ time,
+      func.erase (mkProofEntry time) = execEntry ∧
+      inv.invariant tr (mkProofEntry time)
     )
     (fun time tr =>
-      tr.at_is time proofEntry
+      tr.at_is time (mkProofEntry time)
     )
 := by
   apply HoareTripleGhost.mk
   simp only [hoareTriple, wp, appendEntry, Traceful.run_mk]
   intro trProof h_pre h_inv
-  exists trProof.append proofEntry
+  exists trProof.append (mkProofEntry trProof.length)
   simp_all [Trace.append_erase, Trace.append_le, Trace.invariant_append, Trace.at_is_append, Trace.erase_length]
 
 public
