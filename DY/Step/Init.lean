@@ -117,29 +117,6 @@ def solvePrecondition
       let _ ← grind pre {} false #[] none
       pure ()
 
-def monotonizeOneHypothesis
-  (goal: MVarId)
-  (hypFv: FVarId)
-  (oldTraceFv: FVarId)
-  (newTraceFv: FVarId)
-  : TacticM (Expr × Expr)
-  := goal.withContext do
-    let oldHypType ← hypFv.getType
-    let newHypType := oldHypType.replaceFVarId oldTraceFv (mkFVar newTraceFv)
-    let newHypExpr ← mkFreshExprMVar newHypType
-    let newHypMVarId := newHypExpr.mvarId!
-
-    -- prove with grind using (scoped) monotonicity theorems
-    withOpenIn `DY.Trace.MonotoneLemmas do
-      try
-        let _ ← grind newHypMVarId {} false #[] none
-      catch _ =>
-        throwError
-          "cannot monotonize `{oldHypType}`\n\
-          TODO give hints on how to solve the issue"
-
-    pure (newHypExpr, newHypType)
-
 def isAnd (e : Expr) : Bool :=
   let (name, args) := e.getAppFnArgs
   name = `And ∧ args.size = 2
@@ -175,6 +152,107 @@ def introAndMassagePostX
     -- TODO: run a pass of simplification on post_x (e.g. iota reduction etc)
     let goal ← splitAndAt goal postXFv (prepend "h_" xName)
     pure goal
+
+def monotonizeOneHypothesis
+  (goal: MVarId)
+  (hypFv: FVarId)
+  (oldTraceFv: FVarId)
+  (newTraceFv: FVarId)
+  : TacticM (Expr × Expr)
+  := goal.withContext do
+    let oldHypType ← hypFv.getType
+    let newHypType := oldHypType.replaceFVarId oldTraceFv (mkFVar newTraceFv)
+    let newHypExpr ← mkFreshExprMVar newHypType
+    let newHypMVarId := newHypExpr.mvarId!
+
+    -- prove with grind using (scoped) monotonicity theorems
+    withOpenIn `DY.Trace.MonotoneLemmas do
+      try
+        let _ ← grind newHypMVarId {} false #[] none
+      catch _ =>
+        throwError
+          "cannot monotonize `{oldHypType}`\n\
+          TODO give hints on how to solve the issue"
+
+    pure (newHypExpr, newHypType)
+
+/--
+  Apply monotonicity lemmas on the context,
+  while preserving the order assumptions appear in.
+  We could do this with Lean.MVarId.replace,
+  however this function may trash fvar ids
+  (because it reverts and re-introduces assumptions),
+  hence give a map from old to new fvar ids,
+  which is a bit cumbersome,
+  especially because we want to replace many of the assumptions.
+  Instead, we do something similar to Lean.MVarId.replace ourselves:
+  revert all assumptions (except the core ones about traces such as trace invariant etc)
+  and re-introduce them one by one, applying monotonicity lemmas if needed.
+-/
+
+def monotonizeContext
+  (trOldFv trMidFv: FVarId)
+  (goal: MVarId)
+  : TacticM (MVarId × Array FVarId)
+:= do
+  withTraceNode `Step (fun _ => pure m!"Monotonize the next goal") do
+
+  -- Revert all assumptions (except the core ones)
+  let goal ← goal.revertAllExcept (fun fvar => do
+    let ty ← fvar.getType
+    let ty ← ty.sanitize
+    let (name, _) := ty.getAppFnArgs
+    -- hack: for typeclasses such as BytesCtors
+    let isTcInstance := (← fvar.getBinderInfo).isInstImplicit
+    pure (
+      isTcInstance ∨
+      name = ``DY.ProofTrace ∨
+      name = ``DY.Trace.invariant ∨
+      name = ``LE.le
+    )
+  )
+  trace[Step] "reverted goal: {← goal.getType}"
+
+  -- Sanity check: we didn't trash the fvars we obtained earlier
+  trace[Step] "checking fvars are still in local context"
+  do
+    let lctx ← goal.withContext getLCtx
+    guard (lctx.contains trOldFv)
+    guard (lctx.contains trMidFv)
+
+  -- Introduce each assumption one by one,
+  -- and register old assumptions that were monotonized
+  -- to clear them afterward.
+  -- We don't clear them on the fly,
+  -- as a old assumption (e.g. bytes_invariant)
+  -- might be useful to monotonize other assumptions (e.g. involving get_label).
+  let mut goal := goal
+  let mut monotonizedFv := #[]
+  for _ in [0:(getIntrosSize (← goal.getType))] do
+    let (hypFv, newGoal) ← goal.intro1P
+    goal := newGoal
+    -- need goal.withContext here because of localDeclDependsOn
+    let (newGoal, toClear) ← goal.withContext do
+      trace[Step] "introduced: {← hypFv.getUserName}: {← hypFv.getType}"
+      let dependsOnOldTrace: Bool ←
+        localDeclDependsOn (← hypFv.getDecl) trOldFv
+      if dependsOnOldTrace then
+        -- Some assumptions depend on the trace but shouldn't me monotonized
+        -- e.g. trace invariant, etc
+        -- However, note they were not reverted,
+        -- hence everything we introduce needs monotonizing.
+        trace[Step] "depends on trace, monotonizing"
+        let (newHypProof, newHyp) ← monotonizeOneHypothesis goal hypFv trOldFv trMidFv
+        let goal ← goal.assert (← hypFv.getUserName) newHyp newHypProof
+        let (_, goal) ← goal.intro1P
+        pure (goal, some hypFv)
+      else
+        pure (goal, none)
+    goal := newGoal
+    if let some fv := toClear then
+      monotonizedFv := monotonizedFv.push fv
+
+  return (goal, monotonizedFv)
 
 structure EvalStepConfig where
   theoremName: Name
@@ -246,74 +324,8 @@ def massageNextGoal
         throwError "old trace invariant is not an fvar: {trInvExpr}"
       pure trInvExpr.fvarId!
 
-    -- Apply monotonicity lemmas on the context,
-    -- while preserving the order assumptions appear in.
-    -- We could do this with Lean.MVarId.replace,
-    -- however this function may trash fvar ids
-    -- (because it reverts and re-introduces assumptions),
-    -- hence give a map from old to new fvar ids,
-    -- which is a bit cumbersome,
-    -- especially because we want to replace many of the assumptions.
-    -- Instead, we do something similar to Lean.MVarId.replace ourselves:
-    -- revert all assumptions (except the core ones about traces such as trace invariant etc)
-    -- and re-introduce them one by one, applying monotonicity lemmas if needed.
-
-    -- Revert all assumptions (except the core ones)
-    let goal ← goal.revertAllExcept (fun fvar => do
-      let ty ← fvar.getType
-      let ty ← ty.sanitize
-      let (name, _) := ty.getAppFnArgs
-      -- hack: for typeclasses such as BytesCtors
-      let isTcInstance := (← fvar.getBinderInfo).isInstImplicit
-      pure (
-        isTcInstance ∨
-        name = ``DY.ProofTrace ∨
-        name = ``DY.Trace.invariant ∨
-        name = ``LE.le
-      )
-    )
-    trace[Step] "reverted goal: {← goal.getType}"
-
-    -- Sanity check: we didn't trash the fvars we obtained earlier
-    trace[Step] "checking fvars are still in local context"
-    do
-      let lctx ← goal.withContext getLCtx
-      guard (lctx.contains trOldFv)
-      guard (lctx.contains trMidFv)
-      guard (lctx.contains trInvOldFv)
-      guard (lctx.contains trGrowsFv)
-
-    -- Introduce each assumption one by one,
-    -- and register old assumptions that were monotonized
-    -- to clear them afterward.
-    -- We don't clear them on the fly,
-    -- as a old assumption (e.g. bytes_invariant)
-    -- might be useful to monotonize other assumptions (e.g. involving get_label).
-    let mut goal := goal
-    let mut monotonizedFv := #[]
-    for _ in [0:(getIntrosSize (← goal.getType))] do
-      let (hypFv, newGoal) ← goal.intro1P
-      goal := newGoal
-      -- need goal.withContext here because of localDeclDependsOn
-      let (newGoal, toClear) ← goal.withContext do
-        trace[Step] "introduced: {← hypFv.getUserName}: {← hypFv.getType}"
-        let dependsOnOldTrace: Bool ←
-          localDeclDependsOn (← hypFv.getDecl) trOldFv
-        if dependsOnOldTrace then
-          -- Some assumptions depend on the trace but shouldn't me monotonized
-          -- e.g. trace invariant, etc
-          -- However, note they were not reverted,
-          -- hence everything we introduce needs monotonizing.
-          trace[Step] "depends on trace, monotonizing"
-          let (newHypProof, newHyp) ← monotonizeOneHypothesis goal hypFv trOldFv trMidFv
-          let goal ← goal.assert (← hypFv.getUserName) newHyp newHypProof
-          let (_, goal) ← goal.intro1P
-          pure (goal, some hypFv)
-        else
-          pure (goal, none)
-      goal := newGoal
-      if let some fv := toClear then
-        monotonizedFv := monotonizedFv.push fv
+    -- monotonize context
+    let (goal, monotonizedFv) ← monotonizeContext trOldFv trMidFv goal
 
     -- Rename the new traces with the names of the old traces
     let trName ← trOldFv.getUserName
@@ -328,6 +340,7 @@ def massageNextGoal
     ]
 
     -- Clear assumptions that were monotonized + old trace assumptions
+    let mut goal := goal
     for fv in monotonizedFv ++ oldTraceFv do
       goal ← goal.clear fv
 
