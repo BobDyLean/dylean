@@ -243,5 +243,146 @@ HoareTriple
 
 end UnifyGhostArgumentType
 
+section IncrementalCleanup
+-- Test that we do not introduce useless hypotheses such as:
+-- - x: Unit
+-- - h: True
+
+def weirdUnitFunction: Traceful Unit := sorry
+
+instance:
+  HoareTriple
+    (weirdUnitFunction)
+    (fun _ => True)
+    (fun () _ => True)
+  where
+    pf := sorry
+
+def testIncrementalCleanup: Traceful Unit := do
+  let b ← receive_message 0
+  send_message b
+  send_message b
+  weirdUnitFunction
+  send_message b
+  send_message b
+
+/--
+trace: case pf_next
+inst : BytesFunctor
+inst_1 : BytesInvariants
+inst_2 : BytesInvariantsProofs
+tr : Trace Label
+h : tr.invariant
+b : Bytes
+h_b✝ : b.Publishable tr
+⊢ True
+-/
+#guard_msgs in
+example:
+HoareTriple
+  (testIncrementalCleanup)
+  (fun _ => True)
+  (fun _ _ => True)
+:= by
+  apply HoareTriple.mk
+  unfold testIncrementalCleanup
+  step
+  step
+  step
+  step
+  step
+  step
+  trace_state
+  trivial
+
+-- Test that we do not support post-conditions that actually reference the Unit value
+-- (we could add support, but why?)
+
+def weirderUnitFunction: Traceful Unit := sorry
+
+instance:
+  HoareTriple
+    (weirderUnitFunction)
+    (fun _ => True)
+    (fun res _ => res = ())
+  where
+    pf := sorry
+
+def testIncrementalCleanup': Traceful Unit := do
+  let b ← receive_message 0
+  send_message b
+  send_message b
+  weirderUnitFunction
+  send_message b
+  send_message b
+
+/-- error: could not clear useless () value, post-condition depends on it -/
+#guard_msgs in
+example:
+HoareTriple
+  (testIncrementalCleanup')
+  (fun _ => True)
+  (fun _ _ => True)
+:= by
+  apply HoareTriple.mk
+  unfold testIncrementalCleanup'
+  step
+  step
+  step
+  -- The following fails because
+  step
+  sorry
+
+end IncrementalCleanup
+
+section BrutalCleanup
+
+def testBrutalCleanup (n: Nat): Traceful Unit := do
+  let b ← receive_message n
+  send_message b
+  send_message b
+
+/--
+trace: case pf_next
+inst : BytesFunctor
+inst_1 : BytesInvariants
+inst_2 : BytesInvariantsProofs
+n : Nat
+tr : Trace Label
+h : tr.invariant
+a✝ : n + 0 = n
+b : Bytes
+h_b✝ : b.Publishable tr
+⊢ wp (send_message b) (fun x x_1 => True) tr
+---
+trace: case pf_next
+inst : BytesFunctor
+inst_1 : BytesInvariants
+inst_2 : BytesInvariantsProofs
+tr : Trace Label
+h : tr.invariant
+b : Bytes
+h_b✝ : b.Publishable tr
+⊢ wp (send_message b) (fun x x_1 => True) tr
+-/
+#guard_msgs in
+example (n: Nat):
+  HoareTriple
+  (testBrutalCleanup n)
+  (fun _ => n + 0 = n)
+  (fun _ _ => True)
+:= by
+  apply HoareTriple.mk
+  unfold testBrutalCleanup
+  step
+  step
+  trace_state
+  cleanup
+  trace_state
+  step
+  trivial
+
+end BrutalCleanup
+
 end StepTest
 

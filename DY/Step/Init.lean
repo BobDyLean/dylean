@@ -154,15 +154,36 @@ def splitAndAt (goal: MVarId) (fv: FVarId) (name: Name) (i: Nat := 0): TacticM (
     pure goal
 
 meta
+def clearFvIfTrue (goal: MVarId) (fv: FVarId): MetaM MVarId :=
+  goal.withContext do
+  if ← isDefEq (← fv.getType) (.const ``True []) then
+    goal.clear fv
+  else
+    pure goal
+
+meta
 def introAndMassagePostX
-  (xName: Name)
+  (xFv: FVarId)
   (goal: MVarId)
   : TacticM MVarId
-  := do
-    let (postXFv, goal) ← goal.intro1
-    -- TODO: run a pass of simplification on post_x (e.g. iota reduction etc)
-    let goal ← splitAndAt goal postXFv (prepend "h_" xName)
-    pure goal
+:= do
+  let (postXFv, goal) ← goal.intro1
+  goal.withContext do
+  -- TODO: run a pass of simplification on post_x (e.g. iota reduction etc)
+  let goal ← do
+    if ← isDefEq (.fvar xFv) (.const ``Unit.unit []) then
+      try
+        goal.clear xFv
+      catch _ =>
+        throwError "could not clear useless () value, post-condition depends on it"
+    else
+      pure goal
+  let goal ← do
+    if ← isDefEq (← postXFv.getType) (.const ``True []) then
+      goal.clear postXFv
+    else
+      splitAndAt goal postXFv (prepend "h_" (← xFv.getUserName))
+  pure goal
 
 -- Cannot mark it `reducible`
 -- because the monotonization pass using GrindM
@@ -416,10 +437,11 @@ def massageNextGoal
 
     -- Introduce variables and hypothesis
     let (_trMidFv, goal) ← goal.intro1
-    let (_xFv, goal) ← goal.intro conf.xName
+    let (xFv, goal) ← goal.intro conf.xName
     -- we will not rely on the fvar above because
     -- `introAndMassagePostX` might trash them
-    let goal ← introAndMassagePostX conf.xName goal
+    let goal ← introAndMassagePostX xFv goal
+
     let (trInvFv, goal) ← goal.intro1
     let (trGrowsFv, goal) ← goal.intro1
     goal.withContext do
@@ -478,11 +500,6 @@ def massageNextGoal
     let mut goal := goal
     for fv in monotonizedFv ++ oldTraceFv do
       goal ← goal.clear fv
-
-    -- Cleanup random garbage
-    -- e.g. True hypothesis, or useless x: Unit
-    -- TODO: it may be a bit brutal?
-    goal ← goal.cleanup
 
     pure goal
 
@@ -660,9 +677,6 @@ meta
 def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Unit :=
   goal.withContext do
   withTraceNode `Step (fun _ => pure m!"Apply let theorem") do
-    let letValue := (← letFv.getDecl).value
-    let letName := (← letFv.getDecl).userName
-
     -- applyTheoremExprForall = apply_hoare_triple_pure
     let applyTheoremExprForall ← Term.mkConst ``DY.apply_hoare_triple_pure
     -- applyTheoremTypeForall = ∀ ghost x ..., post x tr
@@ -694,7 +708,7 @@ def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Uni
     trace[Step] "using theorem {applyTheoremExpr} of type {applyTheoremType}"
 
     let goal ← goal.assert .anonymous applyTheoremType applyTheoremExpr
-    let goal ← introAndMassagePostX letName goal
+    let goal ← introAndMassagePostX letFv goal
 
     let goals ← getUnsolvedGoals
     setGoals ([goal] ++ goals)
@@ -728,7 +742,8 @@ def evalStep (args: StepArgs): TacticM Unit := do
     let goal ← getMainGoal
     let goal ← Lean.Meta.unfoldTarget goal ``DY.hoareTriple
     let (_trFv, goal) ← goal.intro1P
-    let (_preFv, goal) ← goal.intro1
+    let (preFv, goal) ← goal.intro1
+    let goal ← clearFvIfTrue goal preFv
     let (_trInvFv, goal) ← goal.intro1
     replaceMainGoal [goal]
     evalStep args
