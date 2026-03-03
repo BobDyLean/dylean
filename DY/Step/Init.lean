@@ -20,6 +20,8 @@ inductive StepSpecTheorem where
     (func: Expr)
     (pre: Expr)
     (post: Expr)
+  | hoareTripleTC
+  | hoareTripleGhostTC
 deriving Repr
 
 meta
@@ -44,6 +46,8 @@ def preservesInvariantTelescope
     else if fName = ``DY.wp then
       guard (args.size = 7)
       pure (xs_and_bi, StepSpecTheorem.wp args[4]! args[5]! args[6]!)
+    else if fName = ``DY.HoareTriple then
+      pure (xs_and_bi, StepSpecTheorem.hoareTripleTC)
     else
       throwError "not a constant"
 
@@ -745,6 +749,16 @@ def evalStep (args: StepArgs): TacticM Unit := do
     let (preFv, goal) ← goal.intro1
     let goal ← clearFvIfTrue goal preFv
     let (_trInvFv, goal) ← goal.intro1
+    replaceMainGoal [goal]
+    evalStep args
+  | (_, .hoareTripleTC) =>
+    let goal ← getMainGoal
+    let [goal] ← goal.apply (← Term.mkConst ``DY.HoareTriple.mk) {} | throwError "failed to apply DY.HoareTriple.mk"
+    replaceMainGoal [goal]
+    evalStep args
+  | (_, .hoareTripleGhostTC) =>
+    let goal ← getMainGoal
+    let [goal] ← goal.apply (← Term.mkConst ``DY.HoareTripleGhost.mk) {} | throwError "failed to apply DY.HoareTripleGhost.mk"
     replaceMainGoal [goal]
     evalStep args
 

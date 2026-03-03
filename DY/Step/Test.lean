@@ -88,27 +88,26 @@ def test (b:Bytes) (b2: Bytes): Traceful Bytes := do
   send_message b2
   pure msg1
 
-instance:
+example:
   HoareTriple
     (test b b2)
     (fun tr => b.Publishable tr)
     (fun res tr => res.Publishable tr)
-where
-  pf := by
-    unfold test
-    step
-    step with ⟨ Label.pub ⟩
-    step_intro -- will do proofs on hb later
-    hoist
-    step
-    step
-    step_let hb
-    step
-    step
-    step
-    step
-    step
-    grind
+:= by
+  unfold test
+  step
+  step with ⟨ Label.pub ⟩
+  step_intro -- will do proofs on hb later
+  hoist
+  step
+  step
+  step_let hb
+  step
+  step
+  step
+  step
+  step
+  grind
 
 set_option trace.Step false
 
@@ -167,10 +166,9 @@ HoareTriple
   (fun tr => nonMonotoneProperty tr)
   (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold testNonMono
   fail_if_success step
-  unfold hoareTriple; intro tr pre h_inv
+  apply HoareTriple.mk; intro tr pre h_inv
   fail_if_success step
   mark_non_monotone pre
   trace_state
@@ -197,7 +195,6 @@ HoareTriple
   (fun _ => True)
   (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold testUnprovenPrecondition
   step
   step
@@ -235,7 +232,6 @@ HoareTriple
   (fun _ => True)
   (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold testUnifyGhostType
   step with ⟨ fun _ => Label.pub, "" ⟩
   step
@@ -284,7 +280,6 @@ HoareTriple
   (fun _ => True)
   (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold testIncrementalCleanup
   step
   step
@@ -324,7 +319,6 @@ HoareTriple
   (fun _ => True)
   (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold testIncrementalCleanup'
   step
   step
@@ -372,7 +366,6 @@ example (n: Nat):
   (fun _ => n + 0 = n)
   (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold testBrutalCleanup
   step
   step
