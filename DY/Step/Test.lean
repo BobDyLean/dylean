@@ -110,4 +110,48 @@ where
     step
     grind
 
+set_option trace.Step false
+
+-- Test mark_non_monotone (hypothesis h_msg1 must be dropped)
+
+/--
+trace: case pf_next
+inst : BytesFunctor
+inst_1 : BytesInvariants
+inst_2 : BytesInvariantsProofs
+b b2 : Bytes
+tr : Trace Label
+h : tr.invariant
+a✝ : b.Publishable tr
+msg1 r : Bytes
+h_r✝ : r.Invariant tr ∧ (r.label tr).canFlow Label.pub tr
+⊢ wp
+    (have hb := hash b;
+    do
+    send_message (hash r)
+    send_message hb
+    send_message msg1
+    guard (test_publishable b2 = true)
+    send_message b2
+    pure msg1)
+    (fun res tr => res.Publishable tr) tr
+---
+warning: declaration uses `sorry`
+-/
+#guard_msgs in
+example:
+HoareTriple
+  (test b b2)
+  (fun tr => b.Publishable tr)
+  (fun res tr => res.Publishable tr)
+:= by
+  apply HoareTriple.mk
+  unfold test
+  step
+  rename_i h_msg1
+  mark_non_monotone h_msg1
+  step with ⟨ Label.pub ⟩
+  trace_state
+  sorry
+
 end StepTest

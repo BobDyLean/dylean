@@ -164,6 +164,24 @@ def introAndMassagePostX
     let goal ← splitAndAt goal postXFv (prepend "h_" xName)
     pure goal
 
+-- Cannot mark it `reducible`
+-- because the monotonization pass using GrindM
+-- unfolds every reducible definition.
+@[grind, simp]
+public
+def nonMono (α : Sort u) : Sort u := α
+
+public
+theorem makeNonMono {p: Prop} (h: p): Step.nonMono p := h
+
+syntax (name := make_non_monotone) "mark_non_monotone " ident : tactic
+
+macro_rules
+  | `(tactic| mark_non_monotone $t) =>
+    `(tactic|
+      replace $t := DY.Step.makeNonMono $t
+    )
+
 -- Revert every fvar starting from `fvFrom` except the one satisfying `p`
 -- (adapted from Lean.MVarId.revertAll)
 meta
@@ -324,12 +342,20 @@ def monotonizeContext
         | .stuck [newGoal] => pure newGoal
         | .stuck _ => throwError "internal error: more than one goal?"
 
+      let isNonMonotonic ← goal.withContext do
+        let ty ← hypFv.getType
+        let ty ← ty.sanitize
+        let (name, _) := ty.getAppFnArgs
+        pure (name = ``Step.nonMono: Bool)
+
       let dependsOnOldTrace: Bool ←
         goal.withContext do
         localDeclDependsOn (← hypFv.getDecl) trOldFv
 
       goal.withContext do trace[Step] "introduced: {hypUserName} of type {← hypFv.getType} (depends on old trace: {dependsOnOldTrace})"
-      if dependsOnOldTrace then
+      if isNonMonotonic then
+        monotonizedFv := monotonizedFv.push hypFv -- clear this hypothesis afterward
+      else if dependsOnOldTrace then
         -- Some assumptions depend on the trace but shouldn't me monotonized
         -- e.g. trace invariant, etc
         -- However, note they were not reverted,
