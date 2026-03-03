@@ -59,6 +59,7 @@ theorem _root_.DY.Trace.EventLoggedAt_le
   grind [Trace.EventLoggedAt]
 
 grind_pattern Trace.EventLoggedAt_le => tr1 ≤ tr2, tr1.EventLoggedAt ev time
+grind_pattern [grind_later] Trace.EventLoggedAt_le => tr1 ≤ tr2, tr1.EventLoggedAt ev time
 
 public
 abbrev _root_.DY.Trace.EventLogged
@@ -124,7 +125,7 @@ theorem logEvent.spec
   mark_non_monotone h_pre
   step with ⟨ fun _ => ExecEntryT.mk ev ⟩ by simp_all [ProofEntryFunc, Invariant]
   step
-  simp only [Trace.EventLogged, Trace.EventLoggedAt]
+  simp only [Trace.EventLoggedAt]
   exists _i
   have := Trace.at_is_erase tr _i (ExecEntryT.mk ev)
   grind [ProofEntryFunc]

@@ -1,6 +1,7 @@
 module
 
 public import DY.Trace.Basic
+meta import DY.Trace.Grind
 
 namespace DY
 
@@ -13,9 +14,9 @@ structure Label [ExecTraceTypes] where
     ∀ tr1 tr2, tr1 ≤ tr2 → isCorrupt tr1 → isCorrupt tr2
     := by grind
 
-@[scoped grind→]
+@[grind→, grind_later→]
 public
-theorem _root_.DY.Trace.MonotoneLemmas.isCorruptLater (l: Label) (tr1 tr2: ExecTrace):
+theorem Label.isCorruptLater_grind (l: Label) (tr1 tr2: ExecTrace):
   tr1 ≤ tr2 →
   l.isCorrupt tr1 →
   l.isCorrupt tr2
@@ -42,9 +43,9 @@ def Label.canFlow (l1: Label) (l2: Label) (tr: ExecTrace): Prop :=
     tr ≤ trLater →
     l2.isCorrupt trLater → l1.isCorrupt trLater
 
-@[scoped grind→]
+@[grind→, grind_later→]
 public
-theorem _root_.DY.Trace.MonotoneLemmas.canFlowLater (l1: Label) (l2: Label) (tr1 tr2: ExecTrace):
+theorem Label.canFlowLater (l1: Label) (l2: Label) (tr1 tr2: ExecTrace):
   tr1 ≤ tr2 →
   l1.canFlow l2 tr1 →
   l1.canFlow l2 tr2

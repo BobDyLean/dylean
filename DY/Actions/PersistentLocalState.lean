@@ -20,10 +20,10 @@ public
 abbrev ExecEntryT (StateT: Type) := PersistentGlobalState.ExecEntryT (LocalState StateT)
 
 public
-def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] (StateT: Type) := PersistentGlobalState.baseAttackerKnowledge (LocalState StateT)
+abbrev baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] (StateT: Type) := PersistentGlobalState.baseAttackerKnowledge (LocalState StateT)
 
 public
-def ProofEntryT (StateT: Type) := PersistentGlobalState.ProofEntryT (LocalState StateT)
+abbrev ProofEntryT (StateT: Type) := PersistentGlobalState.ProofEntryT (LocalState StateT)
 
 public
 abbrev ProofEntryFunc (StateT: Type) := PersistentGlobalState.ProofEntryFunc (LocalState StateT)
@@ -37,6 +37,7 @@ class LocalStateInv [TraceTypes] (StateT: Type) where
     invariant p st tr2
 
 grind_pattern LocalStateInv.invariant_later => tr1 ≤ tr2, LocalStateInv.invariant p st tr1
+grind_pattern [grind_later] LocalStateInv.invariant_later => tr1 ≤ tr2, LocalStateInv.invariant p st tr1
 
 public
 instance

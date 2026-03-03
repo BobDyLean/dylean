@@ -29,6 +29,7 @@ class GlobalStateInv [TraceTypes] (StateT: Type) where
     invariant st tr2
 
 grind_pattern GlobalStateInv.invariant_later => tr1 ≤ tr2, GlobalStateInv.invariant st tr1
+grind_pattern [grind_later] GlobalStateInv.invariant_later => tr1 ≤ tr2, GlobalStateInv.invariant st tr1
 
 public
 def Invariant [TraceTypes] (StateT: Type) [GlobalStateInv StateT]: TraceEntryInvariant (ProofEntryFunc StateT) where

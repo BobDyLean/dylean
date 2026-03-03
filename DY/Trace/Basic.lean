@@ -1,5 +1,7 @@
 module
 
+meta import DY.Trace.Grind
+
 namespace DY
 
 -- Generic trace definition
@@ -139,6 +141,7 @@ theorem Trace.at_le
   grind [Trace.at]
 
 grind_pattern Trace.at_le => tr1 ≤ tr2, tr1.at i h_i
+grind_pattern [grind_later] Trace.at_le => tr1 ≤ tr2, tr1.at i h_i
 
 @[expose]
 public
@@ -162,6 +165,7 @@ theorem Trace.at_is_le
   grind
 
 grind_pattern Trace.at_is_le => tr1 ≤ tr2, tr1.at_is i entry
+grind_pattern [grind_later] Trace.at_is_le => tr1 ≤ tr2, tr1.at_is i entry
 
 public
 theorem Trace.at_is_append

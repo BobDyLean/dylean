@@ -10,12 +10,14 @@ public section
   Variant of Batteries' Lean.MVarId.assignIfDefEq,
   using MVarId.checkedAssign (even safer).
 -/
+public
 def Lean.MVarId.safeAssign (mvarId : MVarId) (val : Expr) : MetaM Unit := do
   unless ← isDefEq (← mvarId.getType) (← inferType val) do
     throwError "safeAssign: cannot unify types `{← mvarId.getType}` and `{← inferType val}`"
   unless ← mvarId.checkedAssign val do
     throwError "safeAssign: checkedAssign failed?"
 
+public
 def Lean.MVarId.assignTypeclassInstance (mvarId : MVarId): MetaM Unit := do
   mvarId.safeAssign (← synthInstance (← mvarId.getType))
 
@@ -33,38 +35,11 @@ def Lean.MVarId.assignTypeclassInstance (mvarId : MVarId): MetaM Unit := do
   To avoid problems in the first place, one may use this function pervasively.
 -/
 
+public
 def Lean.Expr.sanitize (val : Expr) : MetaM Expr := do
   pure ((← instantiateMVars val).consumeMData)
 
--- Revert every fvar except the one satisfying `p`
--- (adapted from Lean.MVarId.revertAll)
-def Lean.MVarId.revertAllExcept (mvarId : MVarId) (p: FVarId → MetaM Bool): MetaM MVarId := mvarId.withContext do
-  mvarId.checkNotAssigned `revertAllThat
-  let mut toRevert := #[]
-  for fvarId in (← getLCtx).getFVarIds do
-    unless (← p fvarId) ∨ (← fvarId.getDecl).isAuxDecl do
-      toRevert := toRevert.push fvarId
-  mvarId.setKind .natural
-  let (_, mvarId) ← mvarId.revert toRevert
-    (preserveOrder := true)
-    (clearAuxDeclsInsteadOfRevert := true)
-  return mvarId
-
-/--
-  Opens a namespace (similarly to `open ... in` in tactics).
-  Useful to enable scoped lemmas (e.g. for `grind` or `simp`).
--/
-def withOpenIn
-  [Monad m] [MonadEnv m] [MonadLiftT (ST IO.RealWorld) m] [MonadFinally m]
-  (namespaceName : Name) (k : m α): m α
-  := do
-    try
-      pushScope
-      activateScoped namespaceName
-      k
-    finally
-      popScope
-
+public
 def prepend (s: String) (n: Name): Name :=
   let view := extractMacroScopes n
   ({ view with name := barePrepend s view.name }).review
@@ -80,13 +55,20 @@ where
 -- 0-element tuple: unit
 -- 1-element tuple: this element
 -- n-element tuple: actually make a tuple (i.e. nested pairs)
+public
 def makeTuple (arr: Array Expr): MetaM Expr := do
   match arr.size with
   | 0 => mkAppM ``Unit.unit #[]
   | 1 => pure arr[0]!
   | sz =>
     arr.foldrM (fun t acc => do
-      mkAppM ``Prod.mk #[t, acc]
+      let u1 ← mkFreshLevelMVar
+      let u2 ← mkFreshLevelMVar
+      let t1 ← inferType t
+      let t2 ← inferType acc
+      -- We use the `N` variant of mkApp, because the `M` variant does not allow t1 or t2 to contain metavariables
+      -- These metavariables can be instantiated by unification later.
+      pure (mkAppN (.const ``Prod.mk [u1, u2]) #[t1, t2, t, acc])
     ) (arr[sz-1]!) (start := sz-1)
 
 end

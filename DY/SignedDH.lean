@@ -1,19 +1,23 @@
-import DY.Trace
-import DY.Step
-import DY.Bytes
-import DY.EquationalTheory.Literal
-import DY.EquationalTheory.Concat
-import DY.EquationalTheory.Hash
-import DY.EquationalTheory.Sign
-import DY.EquationalTheory.DiffieHellman
-import DY.Actions.Network
-import DY.Actions.Random
-import DY.Actions.ProtocolEvent
-import DY.Actions.PersistentLocalState
-import DY.Comparse
+module
+
+public import DY.Trace
+public import DY.Step
+public import DY.Bytes
+public import DY.EquationalTheory.Literal
+public import DY.EquationalTheory.Concat
+public import DY.EquationalTheory.Hash
+public import DY.EquationalTheory.Sign
+public import DY.EquationalTheory.DiffieHellman
+public import DY.Actions.Network
+public import DY.Actions.Random
+public import DY.Actions.ProtocolEvent
+public import DY.Actions.PersistentLocalState
+public import DY.Comparse
 
 open DY
 open DY.Comparse -- TODO?
+
+@[expose] public section
 
 namespace Test
 
@@ -60,6 +64,10 @@ axiom ServerFinishState.isWellFormedLemma
 
 grind_pattern ServerFinishState.isWellFormedLemma => isWellFormed pre x tr
 
+-- TODO move
+grind_pattern [grind_later] serialize_formatRel => serialize x
+grind_pattern [grind_later] isWellFormedFormatRelBytesInvariant => formatRel buf x, buf.Invariant tr
+
 structure ClientMessage where
   xPk: Bytes
 
@@ -71,6 +79,7 @@ axiom ClientMessage.isWellFormedLemma
   isWellFormed pre x tr = pre x.xPk tr
 
 grind_pattern ClientMessage.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern [grind_later] ClientMessage.isWellFormedLemma => isWellFormed pre x tr
 
 structure ServerMessage where
   yPk: Bytes
@@ -87,6 +96,7 @@ axiom ServerMessage.isWellFormedLemma
   )
 
 grind_pattern ServerMessage.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern [grind_later] ServerMessage.isWellFormedLemma => isWellFormed pre x tr
 
 structure SigInput where
   xPk: Bytes
@@ -103,6 +113,7 @@ axiom SigInput.isWellFormedLemma
   )
 
 grind_pattern SigInput.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern [grind_later] SigInput.isWellFormedLemma => isWellFormed pre x tr
 
 inductive SignedDHEvent where
   | ClientInitiateEvent (client: Principal) (xPk: Bytes)
@@ -842,7 +853,9 @@ theorem client_finish.spec:
   step
   step
   split
-  case h_1 xSk h_xSk =>
+  case h_1 xPk xSk h_xSk =>
+    have: xPk.Invariant tr := by grind -- for monotonicity
+    have: xSk.Invariant tr := by grind -- for monotonicity
     step
     step
     hoist
@@ -1095,12 +1108,4 @@ theorem test (b: Bytes) (tr: ProofTrace) :
   := by
     apply Bytes.AttackerKnows_implies_Publishable
 
-/--
-info: 'test' depends on axioms: [propext,
- Classical.choice,
- Quot.sound,
- DY.Comparse.comparseMetaProgramExists,
- Test.SigInput.isWellFormedLemma]
--/
-#guard_msgs in
-#print axioms test
+end

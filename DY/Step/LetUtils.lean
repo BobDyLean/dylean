@@ -3,7 +3,6 @@ module
 public import Lean
 import DY.Trace
 public meta import DY.Step.Utils
-import DY.Step.Utils
 
 open Lean Elab Term Meta Tactic
 
@@ -50,7 +49,6 @@ def swapAppLet (e: Expr): TacticM Expr := do
   creates the goal
   ...; x := y |- wp z ...
 -/
-
 public meta
 def stepIntro (mvar: MVarId): TacticM (FVarId × MVarId) :=
   mvar.withContext do

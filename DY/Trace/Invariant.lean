@@ -2,6 +2,7 @@ module
 
 public import DY.Trace.Basic
 import all DY.Trace.Basic
+public meta import DY.Trace.Grind
 
 namespace DY
 
@@ -68,6 +69,7 @@ theorem Trace.erase_le
     assumption
 
 grind_pattern Trace.erase_le => tr1 ≤ tr2, tr1.erase
+grind_pattern [grind_later] Trace.erase_le => tr1 ≤ tr2, tr1.erase
 
 public
 theorem Trace.erase_length

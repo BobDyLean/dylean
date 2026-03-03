@@ -9,6 +9,7 @@ public import DY.Bytes.Basic
 public import DY.Trace.Basic
 public import DY.Trace.Invariant
 public import DY.Label
+public meta import DY.Trace.Grind
 
 namespace DY
 
@@ -614,5 +615,88 @@ theorem Bytes.XXXHasUsage_later
 := by
   simp [Bytes.XXXHasUsage]
   grind [ExtractPreservesWellFormed]
+
+/-
+  Fast grind pattern for later lemmas,
+  using Invariant instead of WellFormed
+-/
+
+public
+theorem Bytes.usage_later_fast
+  [BytesInvariants] [BytesInvariantsProofs]
+  (b: Bytes)
+  (tr1 tr2: ProofTrace)
+  :
+  tr1 ≤ tr2 →
+  Bytes.Invariant b tr1 →
+  Bytes.usage b tr1 = Bytes.usage b tr2
+:= by grind
+
+grind_pattern [grind_later] Bytes.usage_later_fast => Bytes.usage b tr1, tr1 ≤ tr2
+
+public
+theorem Bytes.label_later_fast
+  [BytesInvariants] [BytesInvariantsProofs]
+  (b: Bytes)
+  (tr1 tr2: ProofTrace)
+  :
+  tr1 ≤ tr2 →
+  Bytes.Invariant b tr1 →
+  Bytes.label b tr1 = Bytes.label b tr2
+:= by grind
+
+grind_pattern [grind_later] Bytes.label_later_fast => Bytes.label b tr1, tr1 ≤ tr2
+
+public
+theorem Bytes.Invariant.later_fast
+  [BytesInvariants] [BytesInvariantsProofs]
+  (b: Bytes)
+  (tr1 tr2: ProofTrace)
+  :
+  tr1 ≤ tr2 →
+  Bytes.Invariant b tr1 →
+  Bytes.Invariant b tr2
+:= by grind
+
+grind_pattern [grind_later] Bytes.Invariant.later_fast => Bytes.Invariant b tr1, tr1 ≤ tr2
+
+public
+theorem Bytes.Publishable_later_fast
+  [BytesInvariants] [BytesInvariantsProofs]
+  (b: Bytes)
+  (tr1 tr2: ProofTrace)
+  :
+  tr1 ≤ tr2 →
+  Bytes.Publishable b tr1 →
+  Bytes.Publishable b tr2
+:= by grind
+
+grind_pattern [grind_later] Bytes.Publishable_later_fast => Bytes.Publishable b tr1, tr1 ≤ tr2
+
+-- Or do we want to add grind_later attribute to Publishable?
+public
+theorem Bytes.Publishable_imp_Invariant_fast
+  [BytesInvariants] [BytesInvariantsProofs]
+  (b: Bytes)
+  (tr: ProofTrace)
+  :
+  Bytes.Publishable b tr →
+  Bytes.Invariant b tr
+:= by grind
+
+grind_pattern [grind_later] Bytes.Publishable_imp_Invariant_fast => Bytes.Publishable b tr
+
+public
+theorem Bytes.HasUsage_later_fast
+  [BytesInvariants] [BytesInvariantsProofs]
+  (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
+  : b.Invariant tr1 →
+    tr1 ≤ tr2 →
+    b.HasUsage usg tr1 →
+    b.HasUsage usg tr2
+:= by
+  grind [Bytes.HasUsage]
+
+grind_pattern [grind_later] Bytes.HasUsage_later_fast => b.HasUsage usg tr1, tr1 ≤ tr2
 
 end DY

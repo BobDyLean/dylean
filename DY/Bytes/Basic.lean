@@ -47,9 +47,17 @@ example [inst: BytesFunctor]: ALaCarte.RepresentableOrd BytesF := inferInstance
 
 variable [BytesFunctor]
 
-@[expose]
+-- We want to prevent DefEq abuse with Bytes,
+-- but on the other hand we cannot box it into a `structure`
+-- because we need defeq when dealing with `SubF Bytes`.
+-- As a middle ground, we mark it irreducible.
+@[irreducible, expose]
 public
 def Bytes := ALaCarte.ContainerFor BytesF
+
+-- In this file, we need to "defeq abuse" the definition of Bytes.
+-- However, outside this file, it should not be needed.
+unseal Bytes
 
 public
 noncomputable
