@@ -494,6 +494,8 @@ def assignGhostParameterAux
   := do
     let expectedGhostType ← ghostMVarId.getType
     let gotGhostType ← inferType args.xGhostTerm
+    -- In addition to provide a nice error message,
+    -- this check can also instantiate metavariables appearing in `gotGhostType`
     unless (← isDefEq expectedGhostType gotGhostType) do
       throwError "Ghost parameter has type {gotGhostType}, expected type {expectedGhostType}.\nHint: use `step ... with ⟨ ... ⟩`"
     ghostMVarId.safeAssign args.xGhostTerm

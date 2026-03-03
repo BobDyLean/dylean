@@ -60,6 +60,12 @@ def makeTuple (arr: Array Expr): MetaM Expr := do
   | 1 => pure arr[0]!
   | sz =>
     arr.foldrM (fun t acc => do
-      mkAppM ``Prod.mk #[t, acc]
+      let u1 ← mkFreshLevelMVar
+      let u2 ← mkFreshLevelMVar
+      let t1 ← inferType t
+      let t2 ← inferType acc
+      -- We use the `N` variant of mkApp, because the `M` variant does not allow t1 or t2 to contain metavariables
+      -- These metavariables can be instantiated by unification later.
+      pure (mkAppN (.const ``Prod.mk [u1, u2]) #[t1, t2, t, acc])
     ) (arr[sz-1]!) (start := sz-1)
 

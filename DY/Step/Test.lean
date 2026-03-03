@@ -209,5 +209,39 @@ HoareTriple
 
 end UnprovedPrecondition
 
+section UnifyGhostArgumentType
+
+def mk_rand_bis (len:Nat) : Traceful Bytes := sorry
+
+instance: HasGhostArgumentType (mk_rand_bis len) ((Bytes → Label) × String) where
+  dummy := ()
+
+instance (len: Nat) (lab: Bytes → Label) (usg: String):
+  HoareTripleGhost
+    (mk_rand_bis len)
+    (lab, usg)
+    (fun _ => True)
+    (fun b tr => is_knowable_by b (lab b) tr)
+  where
+    pf := sorry
+
+def testUnifyGhostType: Traceful Unit := do
+  let b ← mk_rand_bis 32
+  send_message b
+
+example:
+HoareTriple
+  (testUnifyGhostType)
+  (fun _ => True)
+  (fun _ _ => True)
+:= by
+  apply HoareTriple.mk
+  unfold testUnifyGhostType
+  step with ⟨ fun _ => Label.pub, "" ⟩
+  step
+  trivial
+
+end UnifyGhostArgumentType
+
 end StepTest
 
