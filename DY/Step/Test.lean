@@ -114,44 +114,100 @@ set_option trace.Step false
 
 -- Test mark_non_monotone (hypothesis h_msg1 must be dropped)
 
+section NonMonotoneHypothesis
+
+def testNonMonoPre: Traceful Unit := sorry
+
+def testNonMono: Traceful Unit := do
+  testNonMonoPre
+  let msg ← receive_message 0
+  send_message msg
+
+opaque nonMonotoneProperty (tr: ProofTrace): Prop
+
+instance:
+  HoareTriple
+    (testNonMonoPre)
+    (fun tr => nonMonotoneProperty tr)
+    (fun _ _ => True)
+  where
+    pf := sorry
+
 /--
+trace: case pf
+inst✝² : BytesFunctor
+inst✝¹ : BytesInvariants
+inst✝ : BytesInvariantsProofs
+tr : ProofTrace
+h_inv : Trace.invariant tr
+pre : Step.nonMono (nonMonotoneProperty tr)
+⊢ wp
+    (do
+      testNonMonoPre
+      let msg ← receive_message 0
+      send_message msg)
+    (fun x x_1 => True) tr
+---
 trace: case pf_next
 inst : BytesFunctor
 inst_1 : BytesInvariants
 inst_2 : BytesInvariantsProofs
-b b2 : Bytes
 tr : Trace Label
-h : tr.invariant
-a✝ : b.Publishable tr
-msg1 r : Bytes
-h_r✝ : r.Invariant tr ∧ (r.label tr).canFlow Label.pub tr
+h_inv : tr.invariant
 ⊢ wp
-    (have hb := hash b;
-    do
-    send_message (hash r)
-    send_message hb
-    send_message msg1
-    guard (test_publishable b2 = true)
-    send_message b2
-    pure msg1)
-    (fun res tr => res.Publishable tr) tr
----
-warning: declaration uses `sorry`
+    (do
+      let msg ← receive_message 0
+      send_message msg)
+    (fun x x_1 => True) tr
 -/
 #guard_msgs in
 example:
 HoareTriple
-  (test b b2)
-  (fun tr => b.Publishable tr)
-  (fun res tr => res.Publishable tr)
+  (testNonMono)
+  (fun tr => nonMonotoneProperty tr)
+  (fun _ _ => True)
 := by
   apply HoareTriple.mk
-  unfold test
-  step
-  rename_i h_msg1
-  mark_non_monotone h_msg1
-  step with ⟨ Label.pub ⟩
+  unfold testNonMono
+  fail_if_success step
+  unfold hoareTriple; intro tr pre h_inv
+  fail_if_success step
+  mark_non_monotone pre
   trace_state
-  sorry
+  step
+  trace_state
+  step
+  step
+  trivial
+
+end NonMonotoneHypothesis
+
+section UnprovedPrecondition
+
+def testUnprovenPrecondition: Traceful Unit := do
+  let msg ← receive_message 0
+  send_message msg
+  send_message msg
+
+/-- error: unsolved goal in precondition proof -/
+#guard_msgs in
+example:
+HoareTriple
+  (testUnprovenPrecondition)
+  (fun _ => True)
+  (fun _ _ => True)
+:= by
+  apply HoareTriple.mk
+  unfold testUnprovenPrecondition
+  step
+  step
+  step by
+    exfalso
+    simp_all [Bytes.Publishable]
+    -- proof is not finished
+  trivial
+
+end UnprovedPrecondition
 
 end StepTest
+
