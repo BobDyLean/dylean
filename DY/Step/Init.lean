@@ -1,10 +1,11 @@
+module
+
 import Lean
 import DY.Step.Trace
-import DY.Step.LetUtils
-import DY.Step.Utils
+public meta import DY.Step.LetUtils
 import DY.Trace
 import DY.Step.GrindAttribute
-import DY.Trace.Grind
+public meta import DY.Trace.Grind
 
 open Lean Elab Term Meta Tactic Sym Grind
 
@@ -21,6 +22,7 @@ inductive StepSpecTheorem where
     (post: Expr)
 deriving Repr
 
+meta
 def preservesInvariantTelescope
   (type: Expr)
   : MetaM ((Array (MVarId × BinderInfo)) × StepSpecTheorem)
@@ -50,6 +52,7 @@ inductive SpecType where
   | bind (x:Expr) (f:Expr) (xName:Name)
   | final (x:Expr)
 
+meta
 def specTypeTelescope
   (type: Expr)
   : MetaM SpecType
@@ -84,6 +87,7 @@ structure StepArgs where
   xGhostTermProvided: Bool
   preTactic: Option Syntax
 
+meta
 def parseStepArgs (args: TSyntax ``DY.Step.stepArgs): TacticM StepArgs
   :=
   withMainContext do
@@ -104,6 +108,7 @@ def parseStepArgs (args: TSyntax ``DY.Step.stepArgs): TacticM StepArgs
     }
   | _ => throwUnsupportedSyntax
 
+meta
 def solvePrecondition
   (args: StepArgs)
   (pre: MVarId)
@@ -119,11 +124,12 @@ def solvePrecondition
       let _ ← grind pre {} false #[] none
       pure ()
 
+meta
 def isAnd (e : Expr) : Bool :=
   let (name, args) := e.getAppFnArgs
   name = `And ∧ args.size = 2
 
-partial
+meta partial
 def splitAndAt (goal: MVarId) (fv: FVarId) (name: Name) (i: Nat := 0): TacticM (MVarId) :=
   goal.withContext do
   let fvTy ← (← fv.getType).sanitize
@@ -145,6 +151,7 @@ def splitAndAt (goal: MVarId) (fv: FVarId) (name: Name) (i: Nat := 0): TacticM (
     goal.modifyLCtx (fun lctx => lctx.setUserName fv hypName)
     pure goal
 
+meta
 def introAndMassagePostX
   (xName: Name)
   (goal: MVarId)
@@ -157,6 +164,7 @@ def introAndMassagePostX
 
 -- Revert every fvar starting from `fvFrom` except the one satisfying `p`
 -- (adapted from Lean.MVarId.revertAll)
+meta
 def revertAllStartingFromExcept (mvarId : MVarId) (fvFrom: FVarId) (p: FVarId → MetaM Bool): MetaM (MVarId × Nat) := mvarId.withContext do
   mvarId.checkNotAssigned `revertAllStartingFromExcept
   let mut toRevert := #[]
@@ -173,6 +181,7 @@ def revertAllStartingFromExcept (mvarId : MVarId) (fvFrom: FVarId) (p: FVarId �
   return (mvarId, toRevert.size)
 
 -- adapted from Lean.MVarId.assert
+meta
 def myAssert (goal: Goal) (name: Name) (type: Expr): SymM (Goal × Goal) := do
   let mvarId := goal.mvarId
   let (valMvarId, mvarId) ← mvarId.withContext do
@@ -186,6 +195,7 @@ def myAssert (goal: Goal) (name: Name) (type: Expr): SymM (Goal × Goal) := do
     return (valMVar.mvarId!, newMVar.mvarId!)
   pure ({ goal with mvarId := valMvarId }, { goal with mvarId })
 
+meta
 def getFirstBinderName (goal: Goal): SymM Name :=
   goal.withContext do
   let type := ← (← goal.mvarId.getType).sanitize
@@ -193,8 +203,6 @@ def getFirstBinderName (goal: Goal): SymM Name :=
   | .forallE name _ _ _ => pure name
   | .letE name _ _ _ _ => pure name
   | _ => throwError "cannot get name {type}"
-
-#check Lean.MVarId.intro1P
 
 /--
   Apply monotonicity lemmas on the context,
@@ -213,6 +221,7 @@ def getFirstBinderName (goal: Goal): SymM Name :=
   Because the context only grows, we use SymM,
   which allows to use incremental internalization and e-matching in grind.
 -/
+meta
 def monotonizeContext
   (trOldFv trMidFv trInvOldFv trInvFv trGrowsFv: FVarId)
   (goal: MVarId)
@@ -368,6 +377,7 @@ structure EvalStepConfig where
   - clear old traces and old hypotheses (trace invariant etc)
 -/
 
+meta
 def massageNextGoal
   (conf: EvalStepConfig)
   (goal: MVarId)
@@ -448,6 +458,7 @@ def massageNextGoal
 
     pure goal
 
+meta
 def assignGhostParameterAux
   (args: StepArgs)
   (ghostMVarId: MVarId)
@@ -464,6 +475,7 @@ def assignGhostParameterAux
   try to use a user-provided meta-program
   to obtain this ghost parameter
 -/
+meta
 def assignGhostParameter
   (args: StepArgs)
   (tcMVarId: MVarId) (ghostMVarId: MVarId)
@@ -515,6 +527,7 @@ def assignGhostParameter
   but works similarly for other similar theorems
   (as parametrized by `EvalStepConfig`)
 -/
+meta
 def evalStepAux
   (args: StepArgs)
   (conf: EvalStepConfig)
@@ -576,6 +589,7 @@ def evalStepAux
       let goals ← getUnsolvedGoals
       setGoals (bindTheoremGoals ++ goals)
 
+meta
 def evalStepBind
   (args: StepArgs)
   (xName: Name)
@@ -594,6 +608,7 @@ def evalStepBind
       xName
     }
 
+meta
 def evalStepFinal
   (args: StepArgs)
   : TacticM Unit
@@ -611,6 +626,7 @@ def evalStepFinal
       xName := `x
     }
 
+meta
 def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Unit :=
   goal.withContext do
   withTraceNode `Step (fun _ => pure m!"Apply let theorem") do
@@ -653,13 +669,14 @@ def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Uni
     let goals ← getUnsolvedGoals
     setGoals ([goal] ++ goals)
 
+meta
 def evalStepLet (args: StepArgs): TacticM Unit :=
   withTraceNode `Step (fun _ => pure m!"Apply step let") do
     let goal ← getMainGoal
     let (letFv, goal) ← stepIntro goal
     applyLetTheorem args goal letFv
 
-partial
+meta partial
 def evalStep (args: StepArgs): TacticM Unit := do
   withMainContext do -- useful to get the retrieve FVar names in the trace
   let goalType ← Tactic.getMainTarget

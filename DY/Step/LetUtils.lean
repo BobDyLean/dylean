@@ -1,11 +1,14 @@
-import Lean
+module
+
+public import Lean
 import DY.Trace
-import DY.Step.Utils
+public meta import DY.Step.Utils
 
 open Lean Elab Term Meta Tactic
 
 namespace DY.Step
 
+meta
 def swapAppLetAux (e: Expr): TacticM (Expr × Option (Name × Expr × Expr × Bool)) := do
   match e with
   | .app fn arg =>
@@ -32,6 +35,7 @@ def swapAppLetAux (e: Expr): TacticM (Expr × Option (Name × Expr × Expr × Bo
   The transformed expression is definitionally equal to the initial expression
   (via inlining of the let binding)
 -/
+meta
 def swapAppLet (e: Expr): TacticM Expr := do
   let (body, optLetBind) ← swapAppLetAux e
   let .some (declName, type, value, nondep) := optLetBind
@@ -45,7 +49,7 @@ def swapAppLet (e: Expr): TacticM Expr := do
   creates the goal
   ...; x := y |- wp z ...
 -/
-
+public meta
 def stepIntro (mvar: MVarId): TacticM (FVarId × MVarId) :=
   mvar.withContext do
   let goal ← mvar.getType
@@ -85,6 +89,7 @@ deriving Inhabited
   returns the name, type and binder info
   of its arguments
 -/
+meta
 def getArgsInfo
   (e: Expr)
   (args: Array Expr)
@@ -108,6 +113,7 @@ where
   by loose bvars,
   and return the expressions to introduce (e.g. via let or lambda)
 -/
+meta
 def hoistArgumentsAux
   (p: Expr → HoistInfo → Bool) (e: Expr)
   : MetaM (Expr × List (Expr × HoistInfo))
@@ -123,6 +129,7 @@ def hoistArgumentsAux
     ) (0, [], [])
     pure (args.foldl mkApp fn, hoistedArgs)
 
+meta
 def addLet
   (pre: String) (arg: (Expr × HoistInfo)) (e: Expr)
   : Expr
@@ -131,6 +138,7 @@ def addLet
     let name := prepend pre argInfo.name
     .letE name argInfo.type arg e true
 
+meta
 def addLets
   (pre: String) (args: List (Expr × HoistInfo)) (e: Expr)
   : Expr
@@ -145,6 +153,7 @@ def addLets
   hoist the `xi` that satisfy the predicate `p`
   into let-bindings
 -/
+meta
 def hoistArguments
   (p: Expr → HoistInfo → Bool) (e: Expr)
   : MetaM (Option Expr)
@@ -176,6 +185,7 @@ def hoistArguments
       pure (addLets pre hoisted (args.foldl mkApp fn))
     | _ => pure none
 
+meta
 def isExplicitComplexExpr
   (e: Expr) (info: HoistInfo)
   : Bool
@@ -190,6 +200,7 @@ def isExplicitComplexExpr
     ... |- wp x ...
   Apply `hoistArguments` inside `x`
 -/
+meta
 def hoistArgumentsInWpAux
   (e: Expr)
   : MetaM (Option Expr)
@@ -203,6 +214,7 @@ def hoistArgumentsInWpAux
       pure (some (mkAppN fn args))
     | .none => pure none
 
+meta
 def hoist (mvar: MVarId): TacticM MVarId :=
   mvar.withContext do
   let goal ← mvar.getType

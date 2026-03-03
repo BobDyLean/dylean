@@ -1,4 +1,6 @@
-import Lean
+module
+
+public import Lean
 
 open Lean Elab Term Meta Tactic
 
@@ -6,12 +8,14 @@ open Lean Elab Term Meta Tactic
   Variant of Batteries' Lean.MVarId.assignIfDefEq,
   using MVarId.checkedAssign (even safer).
 -/
+public
 def Lean.MVarId.safeAssign (mvarId : MVarId) (val : Expr) : MetaM Unit := do
   unless ← isDefEq (← mvarId.getType) (← inferType val) do
     throwError "safeAssign: cannot unify types `{← mvarId.getType}` and `{← inferType val}`"
   unless ← mvarId.checkedAssign val do
     throwError "safeAssign: checkedAssign failed?"
 
+public
 def Lean.MVarId.assignTypeclassInstance (mvarId : MVarId): MetaM Unit := do
   mvarId.safeAssign (← synthInstance (← mvarId.getType))
 
@@ -29,9 +33,11 @@ def Lean.MVarId.assignTypeclassInstance (mvarId : MVarId): MetaM Unit := do
   To avoid problems in the first place, one may use this function pervasively.
 -/
 
+public
 def Lean.Expr.sanitize (val : Expr) : MetaM Expr := do
   pure ((← instantiateMVars val).consumeMData)
 
+public
 def prepend (s: String) (n: Name): Name :=
   let view := extractMacroScopes n
   ({ view with name := barePrepend s view.name }).review
@@ -47,6 +53,7 @@ where
 -- 0-element tuple: unit
 -- 1-element tuple: this element
 -- n-element tuple: actually make a tuple (i.e. nested pairs)
+public
 def makeTuple (arr: Array Expr): MetaM Expr := do
   match arr.size with
   | 0 => mkAppM ``Unit.unit #[]
