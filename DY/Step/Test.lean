@@ -180,6 +180,27 @@ HoareTriple
 
 end NonMonotoneHypothesis
 
+
+section AdmitMono
+
+-- TODO: no warning about using `sorry`?
+/--  -/
+#guard_msgs in
+example:
+HoareTriple
+  (testNonMono)
+  (fun tr => nonMonotoneProperty tr)
+  (fun _ _ => True)
+:= by
+  set_option step.admitMono true in
+  unfold testNonMono
+  step
+  step
+  step
+  trivial
+
+end AdmitMono
+
 section UnprovedPrecondition
 
 def testUnprovenPrecondition: Traceful Unit := do

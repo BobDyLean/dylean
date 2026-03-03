@@ -2,6 +2,7 @@ module
 
 import Lean
 import DY.Step.Trace
+public meta import DY.Step.Options
 public meta import DY.Step.LetUtils
 import DY.Trace
 import DY.Step.GrindAttribute
@@ -303,6 +304,10 @@ def monotonizeContext
     guard (lctx.contains trInvFv)
     guard (lctx.contains trGrowsFv)
 
+  let admitProofs: Bool ← do
+    let opts ← getOptions
+    pure (opts.get step.admitMono.name step.admitMono.defValue)
+
   let config: Grind.Config := {
     -- Disable extensionality
     ext := false
@@ -356,16 +361,18 @@ def monotonizeContext
       let hypUserName ← getFirstBinderName goal
       let .goal #[hypFv] newGoal ← goal.introN 1 | failure
       goal := newGoal
-      goal ← goal.internalize 1
+      unless admitProofs do
+        goal ← goal.internalize 1
 
       -- incremental e-matching
-      goal ← do
-        let step := Lean.Meta.Grind.Action.instantiate
-        let action := Lean.Meta.Grind.Action.assertAll >> step.loop 10000
-        match ← action.run goal with
-        | .closed _ => throwError "internal error: closed goal??"
-        | .stuck [newGoal] => pure newGoal
-        | .stuck _ => throwError "internal error: more than one goal?"
+      unless admitProofs do
+        goal ← do
+          let step := Lean.Meta.Grind.Action.instantiate
+          let action := Lean.Meta.Grind.Action.assertAll >> step.loop 10000
+          match ← action.run goal with
+          | .closed _ => throwError "internal error: closed goal??"
+          | .stuck [newGoal] => pure newGoal
+          | .stuck _ => throwError "internal error: more than one goal?"
 
       let isNonMonotonic ← goal.withContext do
         let ty ← hypFv.getType
@@ -394,15 +401,19 @@ def monotonizeContext
         goal := newGoal
 
         trace[Step] "grinding"
-        match ← newHyp.grind with
-        | .closed => pure ()
-        | .failed newGoal =>
-          -- TODO: could open a new goal with it, to allow for easier debugging in interactive mode?
-          goal.withContext do throwError "cannot monotonize {← hypFv.getType}.\n grind failure: {← goalToMessageData newGoal config}"
+        if admitProofs then
+          newHyp.admit
+        else
+          match ← newHyp.grind with
+          | .closed => pure ()
+          | .failed newGoal =>
+            -- TODO: could open a new goal with it, to allow for easier debugging in interactive mode?
+            goal.withContext do throwError "cannot monotonize {← hypFv.getType}.\n grind failure: {← goalToMessageData newGoal config}"
         trace[Step] "intro new hypothesis"
         let .goal _ newGoal ← goal.introN 1 | failure
         goal := newGoal
-        goal ← goal.internalize 1
+        unless admitProofs do
+          goal ← goal.internalize 1
         monotonizedFv := monotonizedFv.push hypFv
       else
         fvRename := fvRename.push (hypFv, hypUserName)
