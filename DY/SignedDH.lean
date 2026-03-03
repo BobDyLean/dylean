@@ -78,6 +78,7 @@ theorem serialize_formatRel [ParseableSerializeable a] (x: a):
     simp [formatRel]
 
 grind_pattern serialize_formatRel => serialize x
+grind_pattern [grind_later] serialize_formatRel => serialize x
 
 @[grind! .]
 theorem parse_formatRel [ParseableSerializeable a] (b: Bytes):
@@ -111,6 +112,7 @@ theorem isWellFormedFormatRelBytesInvariant [BytesInvariant] [ParseableSerialize
   := isWellFormedFormatRel Bytes.Invariant
 
 grind_pattern isWellFormedFormatRelBytesInvariant => formatRel buf x, buf.Invariant tr
+grind_pattern [grind_later] isWellFormedFormatRelBytesInvariant => formatRel buf x, buf.Invariant tr
 
 theorem isWellFormedFormatRelIsPublishable [BytesInvariants] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
@@ -155,10 +157,12 @@ structure ClientMessage where
 
 instance : ParseableSerializeable ClientMessage := sorry
 
-@[grind]
 axiom ClientMessage.isWellFormedLemma
   (pre: Bytes → τ → Prop) [BytesCompatible pre] (x: ClientMessage) (tr: τ):
   isWellFormed pre x tr = pre x.x_pk tr
+
+grind_pattern ClientMessage.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern [grind_later] ClientMessage.isWellFormedLemma => isWellFormed pre x tr
 
 structure ServerMessage where
   y_pk: Bytes
@@ -166,13 +170,15 @@ structure ServerMessage where
 
 instance : ParseableSerializeable ServerMessage := sorry
 
-@[grind]
 axiom ServerMessage.isWellFormedLemma
   (pre: Bytes → τ → Prop) [BytesCompatible pre] (x: ServerMessage) (tr: τ):
   isWellFormed pre x tr = (
     pre x.y_pk tr ∧
     pre x.sig tr
   )
+
+grind_pattern ServerMessage.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern [grind_later] ServerMessage.isWellFormedLemma => isWellFormed pre x tr
 
 structure SigInput where
   x_pk: Bytes
@@ -181,13 +187,15 @@ structure SigInput where
 noncomputable
 instance: ParseableSerializeable SigInput := comparseExists
 
-@[grind]
 axiom SigInput.isWellFormedLemma
   (pre: Bytes → τ → Prop) [BytesCompatible pre] (x: SigInput) (tr: τ):
   isWellFormed pre x tr = (
     pre x.x_pk tr ∧
     pre x.y_pk tr
   )
+
+grind_pattern SigInput.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern [grind_later] SigInput.isWellFormedLemma => isWellFormed pre x tr
 
 inductive SignedDHEvent where
   | ClientInitiateEvent (x_pk: Bytes)
@@ -206,10 +214,8 @@ axiom event_logged_at (who: Principal) (ev: SignedDHEvent) (i: Nat) (tr: ProofTr
 abbrev event_logged (who: Principal) (ev: SignedDHEvent) (tr: ProofTrace) :=
   ∃ i, event_logged_at who ev i tr
 
-namespace DY -- ???
-@[grind→]
-axiom _root_.DY.Trace.MonotoneLemmas.event_logged_at_later (who: Principal) (ev: SignedDHEvent) (i: Nat) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → event_logged_at who ev i tr1 → event_logged_at who ev i tr2
-end DY
+@[grind→, grind_later→]
+axiom event_logged_at_later (who: Principal) (ev: SignedDHEvent) (i: Nat) (tr1 tr2: ProofTrace): tr1 ≤ tr2 → event_logged_at who ev i tr1 → event_logged_at who ev i tr2
 
 
 def gen_rand (len: Nat) : Traceful Bytes := sorry
@@ -291,17 +297,13 @@ def client_state_inv (me: Principal) (sid: Nat) (st: ClientState) (tr: ProofTrac
     k_c.Invariant tr ∧
     (k_c.label tr).canFlow (client_label me) tr
 
-namespace DY -- ???
--- scoped ??
-@[grind→]
-theorem _root_.DY.Trace.MonotoneLemmas.client_state_inv_later
+@[grind→, grind_later→]
+theorem client_state_inv_later
   (me: Principal) (sid: Nat) (st: ClientState) (tr1 tr2: ProofTrace):
   tr1 ≤ tr2 → client_state_inv me sid st tr1 → client_state_inv me sid st tr2
   := by
     unfold client_state_inv
     grind
-end DY
-
 
 def server_state_inv (me: Principal) (sid: Nat)(st: ServerState) (tr: ProofTrace) :=
   match st with
@@ -844,6 +846,7 @@ where
     step
     split
     case h_1 x_sk h_x_sk =>
+      have h_x_sk': x_sk.Invariant tr := by grind [client_state_inv] -- TODO: grind_later pattern?
       step
       step
       step

@@ -32,35 +32,6 @@ def Lean.MVarId.assignTypeclassInstance (mvarId : MVarId): MetaM Unit := do
 def Lean.Expr.sanitize (val : Expr) : MetaM Expr := do
   pure ((← instantiateMVars val).consumeMData)
 
--- Revert every fvar except the one satisfying `p`
--- (adapted from Lean.MVarId.revertAll)
-def Lean.MVarId.revertAllExcept (mvarId : MVarId) (p: FVarId → MetaM Bool): MetaM MVarId := mvarId.withContext do
-  mvarId.checkNotAssigned `revertAllThat
-  let mut toRevert := #[]
-  for fvarId in (← getLCtx).getFVarIds do
-    unless (← p fvarId) ∨ (← fvarId.getDecl).isAuxDecl do
-      toRevert := toRevert.push fvarId
-  mvarId.setKind .natural
-  let (_, mvarId) ← mvarId.revert toRevert
-    (preserveOrder := true)
-    (clearAuxDeclsInsteadOfRevert := true)
-  return mvarId
-
-/--
-  Opens a namespace (similarly to `open ... in` in tactics).
-  Useful to enable scoped lemmas (e.g. for `grind` or `simp`).
--/
-def withOpenIn
-  [Monad m] [MonadEnv m] [MonadLiftT (ST IO.RealWorld) m] [MonadFinally m]
-  (namespaceName : Name) (k : m α): m α
-  := do
-    try
-      pushScope
-      activateScoped namespaceName
-      k
-    finally
-      popScope
-
 def prepend (s: String) (n: Name): Name :=
   let view := extractMacroScopes n
   ({ view with name := barePrepend s view.name }).review

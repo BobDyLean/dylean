@@ -103,14 +103,16 @@ def Dh.length [BytesFunctor]: Bytes.PartialLength Dh :=
   fun _ _ =>
     32
 
+@[expose]
 public
-abbrev SubF.internal (id: Fin 2): Type → Type :=
+def SubF.internal (id: Fin 2): Type → Type :=
   match id with
   | 0 => DhPk
   | 1 => Dh
 
+@[expose]
 public
-abbrev SubF := BytesFunctor.combine SubF.internal
+def SubF := BytesFunctor.combine SubF.internal
 
 public
 instance: ∀ id, SubBytesFunctor (SubF.internal id)
@@ -120,8 +122,8 @@ instance: ∀ id, SubBytesFunctor (SubF.internal id)
 public
 instance: SubBytesFunctor SubF := inferInstanceAs (SubBytesFunctor (BytesFunctor.combine SubF.internal))
 
-public instance: BytesFunctor.HasStep DhPk SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) SubF)
-public instance: BytesFunctor.HasStep Dh SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 1) SubF)
+public instance: BytesFunctor.HasStep DhPk SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) (BytesFunctor.combine SubF.internal))
+public instance: BytesFunctor.HasStep Dh SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 1) (BytesFunctor.combine SubF.internal))
 
 public
 def SubF.length.internal [BytesFunctor]: ∀ id, Bytes.PartialLength (SubF.internal id)
@@ -129,11 +131,11 @@ def SubF.length.internal [BytesFunctor]: ∀ id, Bytes.PartialLength (SubF.inter
   | 1 => Dh.length
 
 public
-abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
+def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
   Bytes.PartialLength.combine SubF.length.internal
 
-public instance [BytesFunctor] [BytesLength]: BytesLength.HasStep DhPk.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 0) SubF.length)
-public instance [BytesFunctor] [BytesLength]: BytesLength.HasStep Dh.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 1) SubF.length)
+public instance [BytesFunctor] [BytesLength]: BytesLength.HasStep DhPk.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 0) (Bytes.PartialLength.combine SubF.length.internal))
+public instance [BytesFunctor] [BytesLength]: BytesLength.HasStep Dh.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 1) (Bytes.PartialLength.combine SubF.length.internal))
 
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
@@ -311,11 +313,11 @@ def invariants.internal: (id: Fin 2) → Bytes.PartialInvariants (SubF.internal 
   | 1 => Dh.invariants
 
 public
-abbrev invariants: Bytes.PartialInvariants SubF :=
+def invariants: Bytes.PartialInvariants SubF :=
   Bytes.PartialInvariants.combine invariants.internal
 
-public instance [BytesInvariants]: BytesInvariants.HasStep DhPk.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 0) invariants)
-public instance [BytesInvariants]: BytesInvariants.HasStep Dh.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 1) invariants)
+public instance [BytesInvariants]: BytesInvariants.HasStep DhPk.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 0) (Bytes.PartialInvariants.combine invariants.internal))
+public instance [BytesInvariants]: BytesInvariants.HasStep Dh.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 1) (Bytes.PartialInvariants.combine invariants.internal))
 
 def invariantsProofs.internal [BytesInvariants] [BytesInvariants.Has invariants]: (id: Fin 2) → Bytes.PartialInvariantsProofs (invariants.internal id)
   | 0 => DhPk.invariantsProofs
@@ -392,6 +394,19 @@ theorem Bytes.dhSkLabel_later
   apply Bytes.xxxLabel_later DiffieHellman.extractDhSk DiffieHellman.extractDhSk.preserves_WellFormed
 
 grind_pattern Bytes.dhSkLabel_later => tr1 ≤ tr2, b.dhSkLabel tr1
+
+public
+theorem Bytes.dhSkLabel_later_fast
+  [BytesInvariants] [BytesInvariantsProofs]
+  [BytesInvariants.Has DiffieHellman.invariants]
+  (b: Bytes) (tr1 tr2: ProofTrace)
+  :
+    b.Invariant tr1 →
+    tr1 ≤ tr2 →
+    b.dhSkLabel tr1 = b.dhSkLabel tr2
+:= by grind
+
+grind_pattern [grind_later] Bytes.dhSkLabel_later_fast => tr1 ≤ tr2, b.dhSkLabel tr1
 
 end ExtractDhSk
 

@@ -2,6 +2,7 @@ module
 
 public import DY.Label.Basic
 public import DY.Trace.Basic
+meta import DY.Trace.Grind
 
 namespace DY
 
@@ -35,9 +36,9 @@ public
 theorem Label.makeIsCorrupt (ctor: LabelCtor) (tr: Trace α): (Label.make ctor).isCorrupt tr = ctor.isCorrupt tr.erase := by
   simp [Label.make, isCorrupt]
 
-@[scoped grind→]
+@[grind→]
 public
-theorem _root_.DY.Trace.MonotoneLemmas.isCorrupt_Later (l: Label) (tr1 tr2: Trace Unit):
+theorem isCorrupt_Later (l: Label) (tr1 tr2: Trace Unit):
   tr1 ≤ tr2 →
   l.isCorrupt_ tr1 →
   l.isCorrupt_ tr2
@@ -50,16 +51,16 @@ theorem _root_.DY.Trace.MonotoneLemmas.isCorrupt_Later (l: Label) (tr1 tr2: Trac
       apply l.isCorruptSnoc_
       grind
 
-@[scoped grind→]
+@[grind→, grind_later→]
 public
-theorem _root_.DY.Trace.MonotoneLemmas.isCorruptLater (l: Label) (tr1 tr2: Trace α):
+theorem isCorruptLater (l: Label) (tr1 tr2: Trace α):
   tr1 ≤ tr2 →
   l.isCorrupt tr1 →
   l.isCorrupt tr2
   := by
     unfold Label.isCorrupt
     intro
-    apply _root_.DY.Trace.MonotoneLemmas.isCorrupt_Later
+    apply isCorrupt_Later
     apply Trace.erase_le
     assumption
 
@@ -85,9 +86,9 @@ def Label.canFlow (l1: Label) (l2: Label) (tr: Trace α): Prop :=
     tr ≤ trLater →
     l2.isCorrupt trLater → l1.isCorrupt trLater
 
-@[scoped grind→]
+@[grind→, grind_later→]
 public
-theorem _root_.DY.Trace.MonotoneLemmas.canFlowLater (l1: Label) (l2: Label) (tr1 tr2: Trace α):
+theorem canFlowLater (l1: Label) (l2: Label) (tr1 tr2: Trace α):
   tr1 ≤ tr2 →
   l1.canFlow l2 tr1 →
   l1.canFlow l2 tr2
@@ -129,9 +130,7 @@ public
 theorem canFlowPubEqIsCorrupt (l: Label) (tr: Trace α):
   l.isCorrupt tr = l.canFlow Label.pub tr
   := by
-  -- TODO: open doesn't work?
-  -- open DY.Trace.MonotoneLemmas in
-  grind [Label.canFlow, DY.Trace.MonotoneLemmas.isCorruptLater]
+  grind [Label.canFlow]
 
 public
 def Label.secret : Label := Label.make {

@@ -3,8 +3,10 @@ import DY.Step.Trace
 import DY.Step.LetUtils
 import DY.Step.Utils
 import DY.Trace
+import DY.Step.GrindAttribute
+import DY.Trace.Grind
 
-open Lean Elab Term Meta Tactic
+open Lean Elab Term Meta Tactic Sym Grind
 
 namespace DY.Step
 
@@ -153,28 +155,46 @@ def introAndMassagePostX
     let goal ← splitAndAt goal postXFv (prepend "h_" xName)
     pure goal
 
-def monotonizeOneHypothesis
-  (goal: MVarId)
-  (hypFv: FVarId)
-  (oldTraceFv: FVarId)
-  (newTraceFv: FVarId)
-  : TacticM (Expr × Expr)
-  := goal.withContext do
-    let oldHypType ← hypFv.getType
-    let newHypType := oldHypType.replaceFVarId oldTraceFv (mkFVar newTraceFv)
-    let newHypExpr ← mkFreshExprMVar newHypType
-    let newHypMVarId := newHypExpr.mvarId!
+-- Revert every fvar starting from `fvFrom` except the one satisfying `p`
+-- (adapted from Lean.MVarId.revertAll)
+def revertAllStartingFromExcept (mvarId : MVarId) (fvFrom: FVarId) (p: FVarId → MetaM Bool): MetaM (MVarId × Nat) := mvarId.withContext do
+  mvarId.checkNotAssigned `revertAllStartingFromExcept
+  let mut toRevert := #[]
+  let mut beforeRevert := true
+  for fvarId in (← getLCtx).getFVarIds do
+    unless beforeRevert ∨ (← p fvarId) ∨ (← fvarId.getDecl).isAuxDecl do
+      toRevert := toRevert.push fvarId
+    if fvarId == fvFrom then
+      beforeRevert := false
+  mvarId.setKind .natural
+  let (_, mvarId) ← mvarId.revert toRevert
+    (preserveOrder := true)
+    (clearAuxDeclsInsteadOfRevert := true)
+  return (mvarId, toRevert.size)
 
-    -- prove with grind using (scoped) monotonicity theorems
-    withOpenIn `DY.Trace.MonotoneLemmas do
-      try
-        let _ ← grind newHypMVarId {} false #[] none
-      catch _ =>
-        throwError
-          "cannot monotonize `{oldHypType}`\n\
-          TODO give hints on how to solve the issue"
+-- adapted from Lean.MVarId.assert
+def myAssert (goal: Goal) (name: Name) (type: Expr): SymM (Goal × Goal) := do
+  let mvarId := goal.mvarId
+  let (valMvarId, mvarId) ← mvarId.withContext do
+    mvarId.checkNotAssigned `myAssert
+    let tag    ← mvarId.getTag
+    let target ← mvarId.getType
+    let newType := Lean.mkForall name BinderInfo.default type target
+    let valMVar ← mkFreshExprSyntheticOpaqueMVar type
+    let newMVar ← mkFreshExprSyntheticOpaqueMVar newType tag
+    mvarId.assign (mkApp newMVar valMVar)
+    return (valMVar.mvarId!, newMVar.mvarId!)
+  pure ({ goal with mvarId := valMvarId }, { goal with mvarId })
 
-    pure (newHypExpr, newHypType)
+def getFirstBinderName (goal: Goal): SymM Name :=
+  goal.withContext do
+  let type := ← (← goal.mvarId.getType).sanitize
+  match type with
+  | .forallE name _ _ _ => pure name
+  | .letE name _ _ _ _ => pure name
+  | _ => throwError "cannot get name {type}"
+
+#check Lean.MVarId.intro1P
 
 /--
   Apply monotonicity lemmas on the context,
@@ -188,27 +208,33 @@ def monotonizeOneHypothesis
   Instead, we do something similar to Lean.MVarId.replace ourselves:
   revert all assumptions (except the core ones about traces such as trace invariant etc)
   and re-introduce them one by one, applying monotonicity lemmas if needed.
+  We prove the monotonized hypothesis using `grind`,
+  via the grind-set `grind_later`.
+  Because the context only grows, we use SymM,
+  which allows to use incremental internalization and e-matching in grind.
 -/
-
 def monotonizeContext
-  (trOldFv trMidFv: FVarId)
+  (trOldFv trMidFv trInvOldFv trInvFv trGrowsFv: FVarId)
   (goal: MVarId)
-  : TacticM (MVarId × Array FVarId)
+  : TacticM (MVarId × Array FVarId × Array (FVarId × Name))
 := do
   withTraceNode `Step (fun _ => pure m!"Monotonize the next goal") do
 
-  -- Revert all assumptions (except the core ones)
-  let goal ← goal.revertAllExcept (fun fvar => do
-    let ty ← fvar.getType
-    let ty ← ty.sanitize
-    let (name, _) := ty.getAppFnArgs
-    -- hack: for typeclasses such as BytesCtors
-    let isTcInstance := (← fvar.getBinderInfo).isInstImplicit
+  -- Revert all hypotheses in the context.
+  -- There are some hypotheses we don't want to revert,
+  -- such as implicit types or typeclass instances.
+  -- We use the following heuristic:
+  -- we assume these hypothesis we don't want to revert happen *before* the old trace.
+  -- Therefore, we revert every hypothesis happening *after* the old trace,
+  -- *except* for some specific hypothesis
+  -- (i.e. old/new trace, old/new trace invariant, relation between traces).
+  let (goal, nHyp) ← revertAllStartingFromExcept goal trOldFv (fun fvar => do
     pure (
-      isTcInstance ∨
-      name = ``DY.ProofTrace ∨
-      name = ``DY.Trace.invariant ∨
-      name = ``LE.le
+      fvar == trOldFv ∨
+      fvar == trMidFv ∨
+      fvar == trInvOldFv ∨
+      fvar == trInvFv ∨
+      fvar == trGrowsFv
     )
   )
   trace[Step] "reverted goal: {← goal.getType}"
@@ -219,6 +245,42 @@ def monotonizeContext
     let lctx ← goal.withContext getLCtx
     guard (lctx.contains trOldFv)
     guard (lctx.contains trMidFv)
+    guard (lctx.contains trInvOldFv)
+    guard (lctx.contains trInvFv)
+    guard (lctx.contains trGrowsFv)
+
+  let config: Grind.Config := {
+    -- Disable extensionality
+    ext := false
+    extAll := false
+    etaStruct := false
+    funext := false
+
+    -- Disable all solver modules
+    ring := false
+    linarith := false
+    lia := false
+    ac := false
+    order := false
+
+    matchEqs := false,
+    -- Splitting
+    splits := 1, -- useful to "case split" on ∃
+    splitMatch := false,
+    splitIte := false,
+    splitIndPred := false,
+    splitImp := false,
+
+    -- We need a high ematch number
+    -- because we run a round of ematching each time we introduce an hypothesis.
+    -- Roughly, the value we put in `ematch`
+    -- corresponds to the context size we can monotize.
+    ematch := 10000,
+    -- hot-take: low generation limit is for cowards who don't trust their grind patterns
+    gen := 1000,
+  }
+  -- params emulate: grind only [grind_later]
+  let params ← mkParams config #[DY.grindLaterExt.getState (← Lean.getEnv)]
 
   -- Introduce each assumption one by one,
   -- and register old assumptions that were monotonized
@@ -226,33 +288,64 @@ def monotonizeContext
   -- We don't clear them on the fly,
   -- as a old assumption (e.g. bytes_invariant)
   -- might be useful to monotonize other assumptions (e.g. involving get_label).
-  let mut goal := goal
-  let mut monotonizedFv := #[]
-  for _ in [0:(getIntrosSize (← goal.getType))] do
-    let (hypFv, newGoal) ← goal.intro1P
-    goal := newGoal
-    -- need goal.withContext here because of localDeclDependsOn
-    let (newGoal, toClear) ← goal.withContext do
-      trace[Step] "introduced: {← hypFv.getUserName}: {← hypFv.getType}"
+  -- We also store the old name of hypthoses to rename them later,
+  -- because GrindM does not offer a function similar to `Lean.MVarId.intro1P` to preserve the name.
+  GrindM.run (params := params) <| do
+    let mut goal ← mkGoal goal
+    goal ← goal.internalizeAll
+    let mut monotonizedFv := #[]
+    let mut fvRename := #[]
+    trace[Step] "now processing {nHyp} hypothesis"
+    for _ in [0:nHyp] do
+      trace[Step] "intro hypothesis"
+      -- user name is hygienized by goal.introN, store it for future renaming
+      let hypUserName ← getFirstBinderName goal
+      let .goal #[hypFv] newGoal ← goal.introN 1 | failure
+      goal := newGoal
+      goal ← goal.internalize 1
+
+      -- incremental e-matching
+      goal ← do
+        let step := Lean.Meta.Grind.Action.instantiate
+        let action := Lean.Meta.Grind.Action.assertAll >> step.loop 10000
+        match ← action.run goal with
+        | .closed _ => throwError "internal error: closed goal??"
+        | .stuck [newGoal] => pure newGoal
+        | .stuck _ => throwError "internal error: more than one goal?"
+
       let dependsOnOldTrace: Bool ←
+        goal.withContext do
         localDeclDependsOn (← hypFv.getDecl) trOldFv
+
+      goal.withContext do trace[Step] "introduced: {hypUserName} of type {← hypFv.getType} (depends on old trace: {dependsOnOldTrace})"
       if dependsOnOldTrace then
         -- Some assumptions depend on the trace but shouldn't me monotonized
         -- e.g. trace invariant, etc
         -- However, note they were not reverted,
         -- hence everything we introduce needs monotonizing.
         trace[Step] "depends on trace, monotonizing"
-        let (newHypProof, newHyp) ← monotonizeOneHypothesis goal hypFv trOldFv trMidFv
-        let goal ← goal.assert (← hypFv.getUserName) newHyp newHypProof
-        let (_, goal) ← goal.intro1P
-        pure (goal, some hypFv)
-      else
-        pure (goal, none)
-    goal := newGoal
-    if let some fv := toClear then
-      monotonizedFv := monotonizedFv.push fv
+        let (newHyp, newGoal) ← goal.withContext do
+          let oldHypType ← hypFv.getType
+          let newHypType := oldHypType.replaceFVarId trOldFv (mkFVar trMidFv)
+          trace[Step] "new hypothesis {oldHypType} to {newHypType}"
+          myAssert goal hypUserName newHypType
+        goal := newGoal
 
-  return (goal, monotonizedFv)
+        trace[Step] "grinding"
+        match ← newHyp.grind with
+        | .closed => pure ()
+        | .failed newGoal =>
+          -- TODO: could open a new goal with it, to allow for easier debugging in interactive mode?
+          goal.withContext do throwError "cannot monotonize {← hypFv.getType}.\n grind failure: {← goalToMessageData newGoal config}"
+        trace[Step] "intro new hypothesis"
+        let .goal _ newGoal ← goal.introN 1 | failure
+        goal := newGoal
+        goal ← goal.internalize 1
+        monotonizedFv := monotonizedFv.push hypFv
+      else
+        fvRename := fvRename.push (hypFv, hypUserName)
+
+    return (goal.mvarId, monotonizedFv, fvRename)
 
 structure EvalStepConfig where
   theoremName: Name
@@ -289,7 +382,7 @@ def massageNextGoal
     -- we will not rely on the fvar above because
     -- `introAndMassagePostX` might trash them
     let goal ← introAndMassagePostX conf.xName goal
-    let (_trInvFv, goal) ← goal.intro1
+    let (trInvFv, goal) ← goal.intro1
     let (trGrowsFv, goal) ← goal.intro1
     goal.withContext do
 
@@ -325,12 +418,16 @@ def massageNextGoal
       pure trInvExpr.fvarId!
 
     -- monotonize context
-    let (goal, monotonizedFv) ← monotonizeContext trOldFv trMidFv goal
+    let (goal, monotonizedFv, fvRename) ← monotonizeContext trOldFv trMidFv trInvOldFv trInvFv trGrowsFv goal
 
     -- Rename the new traces with the names of the old traces
-    let trName ← trOldFv.getUserName
+    goal.withContext do
+    let fvRename := fvRename.push (trMidFv, ← trOldFv.getUserName)
+    let fvRename := fvRename.push (trInvFv, ← trInvOldFv.getUserName)
     goal.modifyLCtx (fun lctx =>
-      lctx.setUserName trMidFv trName
+      fvRename.foldl (fun lctx (fv, name) =>
+        lctx.setUserName fv name
+      ) lctx
     )
 
     let oldTraceFv := #[

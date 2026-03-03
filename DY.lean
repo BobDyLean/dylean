@@ -2,4 +2,5 @@
 -- Import modules here that should be built as part of the library.
 import DY.Trace
 import DY.Step.Test
+import DY.Step.Benchmark
 import DY.SignedDH
