@@ -119,6 +119,8 @@ def solvePrecondition
       let currentGoals ← getGoals
       setGoals [pre]
       evalTactic tac
+      unless (← getGoals).isEmpty do
+        throwError "unsolved goal in precondition proof"
       setGoals currentGoals
     | none =>
       let _ ← grind pre {} false #[] none
