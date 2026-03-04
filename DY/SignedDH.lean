@@ -280,6 +280,22 @@ where
     True -- usage
   invariant_later := by grind
 
+-- for monotonicity
+theorem ClientInitiateStateInv_imp_Invariant
+  [BytesFunctor.Has DiffieHellman.SubF]
+  [ExecTraceTypes.Has (ProtocolEvent.ExecEntryT (Compromise.CompromiseEvent (PersistentLocalState.LocalState ClientInitiateState)))] -- ugh
+  [ExecTraceTypes.Has (ProtocolEvent.ExecEntryT (Compromise.CompromiseEvent (PersistentLocalState.LocalState ClientFinishState)))] -- ugh
+  (participant: PersistentLocalState.Participant) (st: ClientInitiateState)
+  : PersistentLocalState.LocalStateInv.invariant participant st tr → (
+      st.xSk.Invariant tr ∧
+      st.xPk.Invariant tr
+    )
+:= by
+  simp [PersistentLocalState.LocalStateInv.invariant]
+  grind
+
+grind_pattern [grind_later] ClientInitiateStateInv_imp_Invariant => PersistentLocalState.LocalStateInv.invariant participant st tr
+
 instance
   [BytesFunctor.Has DiffieHellman.SubF]
   [ExecTraceTypes.Has (ProtocolEvent.ExecEntryT (Compromise.CompromiseEvent (PersistentLocalState.LocalState ClientInitiateState)))] -- ugh
@@ -825,18 +841,16 @@ theorem server_receive.spec:
   hoist
   step
   step
-  step with ⟨ fun _: Bytes => Label.secret, Usage.nothing ⟩
+  step with ⟨ fun _ => Label.secret, Usage.nothing ⟩
   hoist
   step_intro
-  -- for monotonicity TODO: how to infer Publishable automatically?
-  have h_sig_msg: sig_msg.Publishable tr := by grind
-  -- interesting stuff: we will prove things on `sig` later on,
-  -- because we need to log the event before
-  step_intro
+  step_intro -- interesting stuff: we will prove things on `sig` later on, because we need to log the event before
   step
   step_let sig
   step
-  step
+  step by
+    have: sig_msg.Publishable tr := by grind -- TODO how to infer this automatically?
+    grind
   step
   grind
 
@@ -853,19 +867,16 @@ theorem client_finish.spec:
   step
   step
   split
-  case h_1 xPk xSk h_xSk =>
-    have: xPk.Invariant tr := by grind -- for monotonicity
-    have: xSk.Invariant tr := by grind -- for monotonicity
-    step
-    step
-    hoist
-    step
-    step
-    step
-    step
-    step_intro
-    step
-    grind
+  step
+  step
+  hoist
+  step
+  step
+  step
+  step
+  step_intro
+  step
+  grind
 
 end TestGrindAnnot
 

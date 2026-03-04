@@ -8,7 +8,7 @@ namespace DY.Hash
 
 public
 class CanHash (Bytes: Type u) where
-  hash: Bytes → Bytes
+  hash: (msg: Bytes) → Bytes
 
 export CanHash (hash)
 
