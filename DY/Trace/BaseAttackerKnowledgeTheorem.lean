@@ -11,18 +11,18 @@ import all DY.Trace.BaseAttackerKnowledge
 namespace DY
 
 public
-structure EntryBaseAttackerKnowledgeTheorem
+class SubBaseAttackerKnowledgeTheorem
   [TraceInvariant]
   [BytesFunctor] [BytesInvariants]
   {ExecEntryT: Type} {ProofEntryT: Type}
-  {func: ProofEntryFun ExecEntryT ProofEntryT}
-  (inv: TraceEntryInvariant func)
-  [TraceTypes.Has func] [TraceInvariant.Has inv]
-  (att: EntryBaseAttackerKnowledge ExecEntryT)
+  [ErasableProofEntry ExecEntryT ProofEntryT]
+  (inv: TraceEntryInvariant ProofEntryT)
+  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has inv]
+  (att: SubBaseAttackerKnowledge ExecEntryT)
 where
   pf: ∀ trBefore entry (b: Bytes),
     inv.invariant trBefore entry →
-    att.attackerKnows trBefore.erase (func.erase entry) b →
+    att.attackerKnows trBefore.erase (ErasableProofEntry.erase entry) b →
     b.Publishable trBefore -- could also be `b.Publishable (trBefore.append entry)` if needed
 
 public
@@ -31,7 +31,23 @@ class BaseAttackerKnowledgeTheorem
   [BytesFunctor] [BytesInvariants]
   [BaseAttackerKnowledge]
 where
-  pfs: ∀ id, EntryBaseAttackerKnowledgeTheorem (TraceInvariant.invs id) (BaseAttackerKnowledge.attackerKnows id)
+  pf: SubBaseAttackerKnowledgeTheorem TraceInvariant.invariant BaseAttackerKnowledge.attackerKnows
+
+public
+instance instSubBaseAttackerKnowledgeTheoremCombine
+  [TraceInvariant]
+  [BytesFunctor] [BytesInvariants]
+  {n: Nat}
+  {ExecTypes: Fin n → Type} {ProofTypes: Fin n → Type}
+  [∀ id, ErasableProofEntry (ExecTypes id) (ProofTypes id)]
+  (invs: (id: Fin n) → TraceEntryInvariant (ProofTypes id))
+  [TraceTypes.Has (TraceTypes.combine ProofTypes)] [TraceInvariant.Has (TraceInvariant.combine invs)]
+  (atts: (id: Fin n) → SubBaseAttackerKnowledge (ExecTypes id))
+  (attThms: (id: Fin n) → SubBaseAttackerKnowledgeTheorem (invs id) (atts id))
+  : SubBaseAttackerKnowledgeTheorem (TraceInvariant.combine invs) (SubBaseAttackerKnowledge.combine atts)
+where
+  pf := fun trBefore { id, entry } b =>
+    (attThms id).pf trBefore entry b
 
 public
 theorem Trace.BaseAttackerKnows_implies_Publishable
@@ -50,7 +66,7 @@ theorem Trace.BaseAttackerKnows_implies_Publishable
   simp only [Trace.Invariant, Trace.BaseAttackerKnows, Trace.erase]
   intro h_inv h_att
   cases h_att
-  · have := (BaseAttackerKnowledgeTheorem.pfs entry.id).pf trBefore entry.entry b (by grind [ProofTrace.Entry.Invariant]) (by grind [ProofTrace.Entry.erase])
+  · have := BaseAttackerKnowledgeTheorem.pf.pf trBefore entry b (by grind [ProofTrace.Entry.Invariant]) (by grind [ProofTrace.Entry.erase])
     grind
   · grind
 

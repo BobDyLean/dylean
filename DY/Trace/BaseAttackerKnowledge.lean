@@ -7,12 +7,88 @@ import all DY.Trace.Basic
 namespace DY
 
 public
-structure EntryBaseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] (ExecEntryT: Type) where
+structure SubBaseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] (ExecEntryT: Type) where
   attackerKnows: ExecTrace → ExecEntryT → Bytes → Prop
 
 public
 class BaseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] where
-  attackerKnows: ∀ id, EntryBaseAttackerKnowledge (ExecTraceTypes.entries id)
+  attackerKnows: SubBaseAttackerKnowledge ExecTrace.Entry
+
+public
+class BaseAttackerKnowledge.Has
+  [BytesFunctor] [ExecTraceTypes]
+  [BaseAttackerKnowledge]
+  {ExecEntryT: Type}
+  [ExecTraceTypes.Has ExecEntryT]
+  (sub: SubBaseAttackerKnowledge ExecEntryT)
+where
+  pf: ∀ tr entry b,
+    sub.attackerKnows tr entry b →
+    BaseAttackerKnowledge.attackerKnows.attackerKnows tr (ExecTraceTypes.Has.inj entry) b
+
+public
+class BaseAttackerKnowledge.HasStep
+  [BytesFunctor] [ExecTraceTypes]
+  [BaseAttackerKnowledge]
+  {ExecEntryT1: Type} {ExecEntryT2: semiOutParam Type}
+  [ExecTraceTypes.HasStep ExecEntryT1 ExecEntryT2]
+  (sub1: SubBaseAttackerKnowledge ExecEntryT1)
+  (sub2: semiOutParam (SubBaseAttackerKnowledge ExecEntryT2))
+where
+  pf: ∀ tr entry b,
+    sub1.attackerKnows tr entry b →
+    sub2.attackerKnows tr (ExecTraceTypes.HasStep.inj entry) b
+
+public
+instance instBaseAttackerKnowledgeHasItself
+  [BytesFunctor] [ExecTraceTypes]
+  [BaseAttackerKnowledge]
+  : BaseAttackerKnowledge.Has (BaseAttackerKnowledge.attackerKnows)
+where
+  pf := by simp [ExecTraceTypes.Has.inj]
+
+public
+instance instBaseAttackerKnowledgeHasStep
+  [BytesFunctor] [ExecTraceTypes]
+  [BaseAttackerKnowledge]
+  {ExecEntryT1 ExecEntryT2: Type}
+  [ExecTraceTypes.HasStep ExecEntryT1 ExecEntryT2]
+  [ExecTraceTypes.Has ExecEntryT2]
+  (sub1: SubBaseAttackerKnowledge ExecEntryT1)
+  (sub2: SubBaseAttackerKnowledge ExecEntryT2)
+  [BaseAttackerKnowledge.HasStep sub1 sub2]
+  [BaseAttackerKnowledge.Has sub2]
+  : BaseAttackerKnowledge.Has sub1
+where
+  pf := by
+    have := BaseAttackerKnowledge.HasStep.pf (sub1 := sub1) (sub2 := sub2)
+    have := BaseAttackerKnowledge.Has.pf (sub := sub2)
+    simp [ExecTraceTypes.Has.inj]
+    grind
+
+public
+def SubBaseAttackerKnowledge.combine
+  [BytesFunctor] [ExecTraceTypes]
+  {n: Nat}
+  {Types: Fin n → Type}
+  (subs: (id: Fin n) → SubBaseAttackerKnowledge (Types id))
+  : SubBaseAttackerKnowledge (ExecTraceTypes.combine Types)
+where
+  attackerKnows := fun tr {id, entry} b =>
+    (subs id).attackerKnows tr entry b
+
+public
+instance instBaseAttackerKnowledgeCombineHasStep
+  [BytesFunctor] [ExecTraceTypes]
+  [BaseAttackerKnowledge]
+  {n: Nat}
+  {Types: Fin n → Type}
+  (subs: (id: Fin n) → SubBaseAttackerKnowledge (Types id))
+  (id: Fin n)
+  : BaseAttackerKnowledge.HasStep (subs id) (SubBaseAttackerKnowledge.combine subs)
+where
+  pf := by
+    simp [ExecTraceTypes.HasStep.inj, SubBaseAttackerKnowledge.combine]
 
 public
 def Trace.BaseAttackerKnows
@@ -23,20 +99,27 @@ def Trace.BaseAttackerKnows
   match tr with
   | .nil => False
   | .snoc trBefore entry =>
-    (BaseAttackerKnowledge.attackerKnows entry.id).attackerKnows trBefore entry.entry b ∨
+    BaseAttackerKnowledge.attackerKnows.attackerKnows trBefore entry b ∨
     Trace.BaseAttackerKnows trBefore b
 
 public
 def Trace.prove_BaseAttackerKnows
   [BytesFunctor] [ExecTraceTypes] [BaseAttackerKnowledge]
-  (tr: ExecTrace) (b: Bytes)
-  (time: Nat) (h_time: time < tr.length)
-  : (BaseAttackerKnowledge.attackerKnows (tr.at time h_time).id).attackerKnows (tr.prefix time) (tr.at time h_time).entry b
-    → Trace.BaseAttackerKnows tr b
+  {ExecEntryT: Type}
+  [ExecTraceTypes.Has ExecEntryT]
+  (sub: SubBaseAttackerKnowledge ExecEntryT)
+  [BaseAttackerKnowledge.Has sub]
+  (tr: ExecTrace) (entry: ExecEntryT) (b: Bytes)
+  (time: Nat)
+  : tr.at_is time entry →
+    sub.attackerKnows (tr.prefix time) entry b →
+    Trace.BaseAttackerKnows tr b
 := by
   induction tr
-  · grind [Trace.length]
-  simp_all only [Trace.at, Trace.prefix, Trace.length, Trace.BaseAttackerKnows]
+  · grind [Trace.at_is, Trace.length]
+  rename_i tr entry' ih
+  have := BaseAttackerKnowledge.Has.pf (sub := sub) tr entry b
+  simp_all [Trace.prefix, Trace.length, Trace.at_is, Trace.at, IntoTraceEntry.make, Trace.BaseAttackerKnows]
   grind
 
 end DY

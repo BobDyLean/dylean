@@ -179,13 +179,10 @@ theorem Trace.at_is_append
 
 public
 class ExecTraceTypes where
-  n: Nat
-  entries: Fin n → Type
+  ExecT: Type
 
 public
-structure ExecTrace.Entry [ExecTraceTypes] where
-  id: Fin ExecTraceTypes.n
-  entry: (ExecTraceTypes.entries id)
+def ExecTrace.Entry [ExecTraceTypes] := ExecTraceTypes.ExecT
 
 public
 abbrev ExecTrace [ExecTraceTypes] := Trace ExecTrace.Entry
@@ -197,15 +194,33 @@ class ExecTraceTypes.Has [ExecTraceTypes] (ExecEntryT: Type) where
   inj_proj_eq: ∀ x y, (proj x = some y) = (x = inj y)
 
 public
-instance [ExecTraceTypes] (id: Fin ExecTraceTypes.n): ExecTraceTypes.Has (ExecTraceTypes.entries id) where
-  inj entry := { id, entry }
-  proj entry :=
-    if h: entry.id = id then
-      some (h ▸ entry.entry)
-    else
-      none
+class ExecTraceTypes.HasStep (ExecEntryT1: Type) (ExecEntryT2: semiOutParam Type) where
+  inj: ExecEntryT1 → ExecEntryT2
+  proj: ExecEntryT2 → Option ExecEntryT1
+  inj_proj_eq: ∀ x y, (proj x = some y) = (x = inj y)
+
+public
+instance instExecTraceTypesHasItself [ExecTraceTypes]: ExecTraceTypes.Has ExecTrace.Entry where
+  inj x := x
+  proj x := some x
+  inj_proj_eq := by grind
+
+public
+instance instExecTraceTypesHasStep
+  [ExecTraceTypes]
+  (ExecEntryT1 ExecEntryT2: Type)
+  [ExecTraceTypes.HasStep ExecEntryT1 ExecEntryT2]
+  [ExecTraceTypes.Has ExecEntryT2]
+  : ExecTraceTypes.Has ExecEntryT1
+where
+  inj x := ExecTraceTypes.Has.inj (ExecTraceTypes.HasStep.inj (ExecEntryT2 := ExecEntryT2) x)
+  proj x :=
+    match ExecTraceTypes.Has.proj (ExecEntryT := ExecEntryT2) x with
+    | none => none
+    | some y => ExecTraceTypes.HasStep.proj y
   inj_proj_eq x y := by
-    cases x
+    have := ExecTraceTypes.Has.inj_proj_eq (ExecEntryT := ExecEntryT2) x
+    have := ExecTraceTypes.HasStep.inj_proj_eq (ExecEntryT1 := ExecEntryT1) (ExecEntryT2 := ExecEntryT2)
     grind
 
 public
@@ -223,5 +238,25 @@ theorem ExecTraceTypes.Has.inj_injective
   have := ExecTraceTypes.Has.inj_proj_eq (ExecTraceTypes.Has.inj x2) x2
   grind
 
+public
+structure ExecTraceTypes.combine {n: Nat} (ExecTypes: Fin n → Type): Type where
+  id: Fin n
+  entry: ExecTypes id
+
+public
+instance instExecTraceTypesCombineHasStep
+  {n: Nat}
+  (Types: Fin n → Type)
+  (id: Fin n)
+  : ExecTraceTypes.HasStep (Types id) (ExecTraceTypes.combine Types) where
+  inj entry := { id, entry }
+  proj entry :=
+    if h: entry.id = id then
+      some (h ▸ entry.entry)
+    else
+      none
+  inj_proj_eq x y := by
+    cases x
+    grind
 
 end DY
