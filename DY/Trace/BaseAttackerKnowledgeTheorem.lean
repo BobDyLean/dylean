@@ -14,14 +14,15 @@ public
 class SubBaseAttackerKnowledgeTheorem
   [TraceInvariant]
   [BytesFunctor] [BytesInvariants]
-  {ExecEntryT: Type} {ProofEntryT: Type}
+  {ExecEntryT: Type}
+  (ProofEntryT: Type)
   [ErasableProofEntry ExecEntryT ProofEntryT]
-  (inv: TraceEntryInvariant ProofEntryT)
-  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has inv]
+  [ProofEntryInvariant ProofEntryT]
+  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
   (att: SubBaseAttackerKnowledge ExecEntryT)
 where
-  pf: ∀ trBefore entry (b: Bytes),
-    inv.invariant trBefore entry →
+  pf: ∀ trBefore (entry: ProofEntryT) (b: Bytes),
+    ProofEntryInvariant.invariant trBefore entry →
     att.attackerKnows trBefore.erase (ErasableProofEntry.erase entry) b →
     b.Publishable trBefore -- could also be `b.Publishable (trBefore.append entry)` if needed
 
@@ -31,7 +32,7 @@ class BaseAttackerKnowledgeTheorem
   [BytesFunctor] [BytesInvariants]
   [BaseAttackerKnowledge]
 where
-  pf: SubBaseAttackerKnowledgeTheorem TraceInvariant.invariant BaseAttackerKnowledge.attackerKnows
+  pf: SubBaseAttackerKnowledgeTheorem ProofTrace.Entry BaseAttackerKnowledge.attackerKnows
 
 public
 instance instSubBaseAttackerKnowledgeTheoremCombine
@@ -40,11 +41,11 @@ instance instSubBaseAttackerKnowledgeTheoremCombine
   {n: Nat}
   {ExecTypes: Fin n → Type} {ProofTypes: Fin n → Type}
   [∀ id, ErasableProofEntry (ExecTypes id) (ProofTypes id)]
-  (invs: (id: Fin n) → TraceEntryInvariant (ProofTypes id))
-  [TraceTypes.Has (TraceTypes.combine ProofTypes)] [TraceInvariant.Has (TraceInvariant.combine invs)]
+  [∀ id, ProofEntryInvariant (ProofTypes id)]
+  [TraceTypes.Has (TraceTypes.combine ProofTypes)] [TraceInvariant.Has (TraceTypes.combine ProofTypes)]
   (atts: (id: Fin n) → SubBaseAttackerKnowledge (ExecTypes id))
-  (attThms: (id: Fin n) → SubBaseAttackerKnowledgeTheorem (invs id) (atts id))
-  : SubBaseAttackerKnowledgeTheorem (TraceInvariant.combine invs) (SubBaseAttackerKnowledge.combine atts)
+  [attThms: (id: Fin n) → SubBaseAttackerKnowledgeTheorem (ProofTypes id) (atts id)]
+  : SubBaseAttackerKnowledgeTheorem (TraceTypes.combine ProofTypes) (SubBaseAttackerKnowledge.combine atts)
 where
   pf := fun trBefore { id, entry } b =>
     (attThms id).pf trBefore entry b

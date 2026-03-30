@@ -19,15 +19,13 @@ class TraceTypes extends ExecTraceTypes where
   ProofT: Type
   tc: ErasableProofEntry ExecT ProofT
 
+@[expose]
 public
 def ProofTrace.Entry [TraceTypes] := TraceTypes.ProofT
 
-public def _globalEraseFunction [TraceTypes] (entry: ProofTrace.Entry): ExecTrace.Entry :=
-  TraceTypes.tc.erase entry
-
 public
 instance [TraceTypes]: ErasableProofEntry ExecTrace.Entry ProofTrace.Entry where
-  erase entry := _globalEraseFunction entry
+  erase entry := TraceTypes.tc.erase entry
 
 public
 abbrev ProofTrace [TraceTypes] := Trace ProofTrace.Entry
@@ -110,7 +108,6 @@ where
 
 public
 class TraceTypes.HasStep
-  [TraceTypes]
   {ExecEntryT1 ExecEntryT2: outParam Type}
   (ProofEntryT1: Type) (ProofEntryT2: semiOutParam Type)
   [ErasableProofEntry ExecEntryT1 ProofEntryT1]
@@ -191,7 +188,6 @@ where
 
 public
 instance instTraceTypesCombineHasStep
-  [TraceTypes]
   {n: Nat}
   (ExecTypes: Fin n → Type)
   (ProofTypes: Fin n → Type)
@@ -297,12 +293,16 @@ theorem Trace.at_is_erase
 
 -- TODO: turn this into a typeclass, with invariant an outParam?
 public
-structure TraceEntryInvariant [TraceTypes] {ExecEntryT: Type} (ProofEntryT: Type) [ErasableProofEntry ExecEntryT ProofEntryT] where
+class ProofEntryInvariant [TraceTypes] {ExecEntryT: outParam Type} (ProofEntryT: Type) [ErasableProofEntry ExecEntryT ProofEntryT] where
   invariant: ProofTrace → ProofEntryT → Prop
 
 public
 class TraceInvariant extends TraceTypes where
-  invariant: TraceEntryInvariant ProofTrace.Entry
+  tc_inv: ProofEntryInvariant ProofTrace.Entry
+
+public
+instance [TraceInvariant]: ProofEntryInvariant ProofTrace.Entry where
+  invariant := TraceInvariant.tc_inv.invariant
 
 public
 def ProofTrace.Entry.Invariant
@@ -311,7 +311,7 @@ def ProofTrace.Entry.Invariant
   (entry: ProofTrace.Entry)
   : Prop
 :=
-  TraceInvariant.invariant.invariant trBefore entry
+  ProofEntryInvariant.invariant trBefore entry
 
 public
 def Trace.Invariant
@@ -328,31 +328,31 @@ def Trace.Invariant
 public
 class TraceInvariant.Has
   [TraceInvariant]
-  {ExecEntryT ProofEntryT: Type}
+  {ExecEntryT: outParam Type}
+  (ProofEntryT: Type)
   [ErasableProofEntry ExecEntryT ProofEntryT]
   [TraceTypes.Has ProofEntryT]
-  (inv: TraceEntryInvariant ProofEntryT)
+  [ProofEntryInvariant ProofEntryT]
 where
-  inv_commutes: ∀ trBefore entry, (TraceTypes.Has.proofInj entry).Invariant trBefore = inv.invariant trBefore entry
-
+  inv_commutes: ∀ trBefore: ProofTrace, ∀ entry: ProofEntryT, (TraceTypes.Has.proofInj entry).Invariant trBefore = ProofEntryInvariant.invariant trBefore entry
 
 public
 class TraceInvariant.HasStep
   [TraceTypes]
-  {ExecEntryT1 ProofEntryT1: Type}
-  {ExecEntryT2 ProofEntryT2: Type}
+  {ExecEntryT1 ExecEntryT2: outParam Type}
+  (ProofEntryT1 ProofEntryT2: Type)
   [ErasableProofEntry ExecEntryT1 ProofEntryT1]
   [ErasableProofEntry ExecEntryT2 ProofEntryT2]
   [TraceTypes.HasStep ProofEntryT1 ProofEntryT2]
-  (inv1: TraceEntryInvariant ProofEntryT1)
-  (inv2: semiOutParam (TraceEntryInvariant ProofEntryT2))
+  [ProofEntryInvariant ProofEntryT1]
+  [ProofEntryInvariant ProofEntryT2]
 where
-  inv_commutes: ∀ trBefore entry, inv2.invariant trBefore (TraceTypes.HasStep.proofInj entry) = inv1.invariant trBefore entry
+  inv_commutes: ∀ trBefore: ProofTrace, ∀ entry: ProofEntryT1, ProofEntryInvariant.invariant trBefore (TraceTypes.HasStep.proofInj entry: ProofEntryT2) = ProofEntryInvariant.invariant trBefore entry
 
 public
 instance instTraceInvariantHasItself
   [TraceInvariant]
-  : TraceInvariant.Has TraceInvariant.invariant
+  : TraceInvariant.Has ProofTrace.Entry
 where
   inv_commutes := by simp [TraceTypes.Has.proofInj, ProofTrace.Entry.Invariant]
 
@@ -365,29 +365,29 @@ instance instTraceInvariantHasStep
   [ErasableProofEntry ExecEntryT2 ProofEntryT2]
   [TraceTypes.HasStep ProofEntryT1 ProofEntryT2]
   [TraceTypes.Has ProofEntryT2]
-  (inv1: TraceEntryInvariant ProofEntryT1)
-  (inv2: TraceEntryInvariant ProofEntryT2)
-  [TraceInvariant.HasStep inv1 inv2]
-  [TraceInvariant.Has inv2]
-  : TraceInvariant.Has inv1
+  [ProofEntryInvariant ProofEntryT1]
+  [ProofEntryInvariant ProofEntryT2]
+  [TraceInvariant.HasStep ProofEntryT1 ProofEntryT2]
+  [TraceInvariant.Has ProofEntryT2]
+  : TraceInvariant.Has ProofEntryT1
 where
   inv_commutes := by
-    have := TraceInvariant.HasStep.inv_commutes (inv1 := inv1) (inv2 := inv2)
-    have := TraceInvariant.Has.inv_commutes (inv := inv2)
+    have := TraceInvariant.HasStep.inv_commutes (ProofEntryT1 := ProofEntryT1) (ProofEntryT2 := ProofEntryT2)
+    have := TraceInvariant.Has.inv_commutes (ProofEntryT := ProofEntryT2)
     simp_all [TraceTypes.Has.proofInj]
 
 public
-def TraceInvariant.combine
+instance ProofEntryInvariant.combine
   [TraceTypes]
   {n: Nat}
   {ExecTypes: Fin n → Type}
   {ProofTypes: Fin n → Type}
   [∀ id, ErasableProofEntry (ExecTypes id) (ProofTypes id)]
-  (invs: (id: Fin n) → TraceEntryInvariant (ProofTypes id))
-  : TraceEntryInvariant (TraceTypes.combine ProofTypes)
+  [∀ id, ProofEntryInvariant (ProofTypes id)]
+  : ProofEntryInvariant (TraceTypes.combine ProofTypes)
 where
-  invariant := fun trBefore { id, entry } =>
-    (invs id).invariant trBefore entry
+  invariant := fun trBefore { id := _, entry } =>
+    ProofEntryInvariant.invariant trBefore entry
 
 public
 instance instTraceInvariantCombineHasStep
@@ -396,9 +396,9 @@ instance instTraceInvariantCombineHasStep
   {ExecTypes: Fin n → Type}
   (ProofTypes: Fin n → Type)
   [∀ id, ErasableProofEntry (ExecTypes id) (ProofTypes id)]
-  (invs: (id: Fin n) → TraceEntryInvariant (ProofTypes id))
+  [∀ id, ProofEntryInvariant (ProofTypes id)]
   (id: Fin n)
-  : TraceInvariant.HasStep (invs id) (TraceInvariant.combine invs)
+  : TraceInvariant.HasStep (ProofTypes id) (TraceTypes.combine ProofTypes)
 where
   inv_commutes trBefore entry := by rfl
 
@@ -408,12 +408,12 @@ theorem Trace.invariant_append
   {ExecEntryT ProofEntryT: Type}
   [ErasableProofEntry ExecEntryT ProofEntryT]
   [TraceTypes.Has ProofEntryT]
-  {inv: TraceEntryInvariant ProofEntryT}
-  [TraceInvariant.Has inv]
+  [ProofEntryInvariant ProofEntryT]
+  [TraceInvariant.Has ProofEntryT]
   (tr: ProofTrace) (entry: ProofEntryT)
-  : (tr.append entry).Invariant = (tr.Invariant ∧ inv.invariant tr entry)
+  : (tr.append entry).Invariant = (tr.Invariant ∧ ProofEntryInvariant.invariant tr entry)
 := by
-  have := TraceInvariant.Has.inv_commutes (inv := inv)
+  have := TraceInvariant.Has.inv_commutes (ProofEntryT := ProofEntryT)
   simp_all [Trace.Invariant, Trace.append, IntoTraceEntry.make]
 
 public

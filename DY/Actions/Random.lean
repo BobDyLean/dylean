@@ -14,7 +14,7 @@ structure ExecEntryT where
   length: Nat
 
 public
-def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes]: EntryBaseAttackerKnowledge ExecEntryT where
+def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes]: SubBaseAttackerKnowledge ExecEntryT where
   attackerKnows _ _ _ := False
 
 public
@@ -24,15 +24,19 @@ structure ProofEntryT [BytesFunctor] [ExecTraceTypes] where
   usage: Usage
 
 public
-def ProofEntryFunc [BytesFunctor] [ExecTraceTypes]: ProofEntryFun ExecEntryT ProofEntryT where
+instance [BytesFunctor] [ExecTraceTypes]: ErasableProofEntry ExecEntryT ProofEntryT where
   erase | {length, label := _, usage := _} => { length }
 
 public
-def Invariant [BytesFunctor] [TraceTypes]: TraceEntryInvariant ProofEntryFunc where
+instance [BytesFunctor] [TraceTypes]: ProofEntryInvariant ProofEntryT where
   invariant _ _ := True
 
 public
-theorem baseAttackerKnowledgeTheorem [BytesFunctor] [TraceInvariant] [BytesInvariants] [TraceTypes.Has ProofEntryFunc] [TraceInvariant.Has Invariant]: EntryBaseAttackerKnowledgeTheorem Invariant baseAttackerKnowledge where
+instance baseAttackerKnowledgeTheorem
+  [BytesFunctor] [TraceInvariant] [BytesInvariants]
+  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
+  : SubBaseAttackerKnowledgeTheorem ProofEntryT baseAttackerKnowledge
+where
   pf trBefore entry b := by
     simp [baseAttackerKnowledge]
 
@@ -112,7 +116,7 @@ section Invariants
 
 variable [TraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
-variable [TraceTypes.Has ProofEntryFunc]
+variable [TraceTypes.Has ProofEntryT]
 
 public
 def Random.invariants: Bytes.PartialInvariants Random where
@@ -183,7 +187,7 @@ section AttackerKnowledgeTheorem
 variable [TraceInvariant]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
-variable [TraceTypes.Has ProofEntryFunc]
+variable [TraceTypes.Has ProofEntryT]
 variable [BytesInvariants.Has invariants]
 
 public
@@ -218,7 +222,7 @@ theorem genRand.spec
   [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
   [BytesFunctor.Has SubF]
-  [TraceTypes.Has ProofEntryFunc] [TraceInvariant.Has Invariant]
+  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
   [BytesInvariants.Has invariants]
   (size: Nat)
   (label: Bytes → Label) (usage: Usage)
@@ -238,7 +242,7 @@ theorem genRand.spec
   unfold genRand
   dsimp only
   step with ⟨ fun time => ProofEntryT.mk size (label (makeRand time size)) usage ⟩ by
-    simp_all [ProofEntryFunc, Invariant]
+    simp_all [ErasableProofEntry.erase, ProofEntryInvariant.invariant]
   step
   grind [makeRand.Invariant]
 

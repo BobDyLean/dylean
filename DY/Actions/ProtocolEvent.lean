@@ -11,26 +11,36 @@ structure ExecEntryT (EventT: Type) where
   ev: EventT
 
 public
-def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] (EventT: Type): EntryBaseAttackerKnowledge (ExecEntryT EventT) where
+def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] (EventT: Type): SubBaseAttackerKnowledge (ExecEntryT EventT) where
   attackerKnows _ _ _ := False
 
 public
 abbrev ProofEntryT (EventT: Type) := ExecEntryT EventT
 
 public
-def ProofEntryFunc (EventT: Type) := ProofEntryFun.default (ExecEntryT EventT)
+instance (EventT: Type): ErasableProofEntry (ExecEntryT EventT) (ProofEntryT EventT) := ErasableProofEntry.default (ExecEntryT EventT)
 
 public
 class EventInv [TraceTypes] (EventT: Type) where
   invariant: ProofTrace → EventT → Prop
 
 public
-def Invariant [TraceTypes] (EventT: Type) [EventInv EventT]: TraceEntryInvariant (ProofEntryFunc EventT) where
+instance
+  [TraceTypes] (EventT: Type) [EventInv EventT]
+  : ProofEntryInvariant (ProofEntryT EventT)
+where
   invariant tr entry :=
     EventInv.invariant tr entry.ev
 
 public
-theorem baseAttackerKnowledgeTheorem [TraceInvariant] [BytesFunctor] [BytesInvariants] (EventT: Type) [TraceTypes.Has (ProofEntryFunc EventT)] [EventInv EventT] [TraceInvariant.Has (Invariant EventT)]: EntryBaseAttackerKnowledgeTheorem (Invariant EventT) (baseAttackerKnowledge EventT) where
+instance baseAttackerKnowledgeTheorem
+  [TraceInvariant] [BytesFunctor] [BytesInvariants]
+  (EventT: Type)
+  [TraceTypes.Has (ProofEntryT EventT)]
+  [EventInv EventT]
+  [TraceInvariant.Has (ProofEntryT EventT)]
+  : SubBaseAttackerKnowledgeTheorem (ProofEntryT EventT) (baseAttackerKnowledge EventT)
+where
   pf trBefore entry b := by
     simp [baseAttackerKnowledge]
 
@@ -77,7 +87,7 @@ theorem _root_.DY.Trace.EventLoggedAt_imp_EventInv
   {EventT: Type}
   [TraceInvariant]
   [EventInv EventT]
-  [TraceTypes.Has (ProofEntryFunc EventT)] [TraceInvariant.Has (Invariant EventT)]
+  [TraceTypes.Has (ProofEntryT EventT)] [TraceInvariant.Has (ProofEntryT EventT)]
   (ev: EventT)
   (i: Nat)
   (tr: ProofTrace)
@@ -87,10 +97,10 @@ theorem _root_.DY.Trace.EventLoggedAt_imp_EventInv
 := by
   intro h_inv h_ev
   have := Trace.invariant_at tr i (by grind [Trace.EventLoggedAt, Trace.at_is]) h_inv
-  suffices (Invariant EventT).invariant (tr.prefix i) (ExecEntryT.mk ev) by
-    simp_all [Invariant]
+  suffices ProofEntryInvariant.invariant (tr.prefix i) (ExecEntryT.mk ev) by
+    simp_all [ProofEntryInvariant.invariant]
   rewrite [← TraceInvariant.Has.inv_commutes]
-  simp [Trace.EventLoggedAt, Trace.at_is, IntoTraceEntry.make, Trace.erase_at] at h_ev
+  simp [Trace.EventLoggedAt, Trace.at_is, IntoTraceEntry.make, Trace.erase_at, ProofTrace.Entry.erase_eq_imp_exists, ErasableProofEntry.erase] at h_ev
   grind
 
 public
@@ -110,7 +120,7 @@ theorem logEvent.spec
   {EventT: Type}
   [TraceInvariant]
   [EventInv EventT]
-  [TraceTypes.Has (ProofEntryFunc EventT)] [TraceInvariant.Has (Invariant EventT)]
+  [TraceTypes.Has (ProofEntryT EventT)] [TraceInvariant.Has (ProofEntryT EventT)]
   (ev: EventT)
   : HoareTriple
     (logEvent ev)
@@ -123,12 +133,12 @@ theorem logEvent.spec
   unfold hoareTriple
   intro tr h_pre h_inv
   mark_non_monotone h_pre
-  step with ⟨ fun _ => ExecEntryT.mk ev ⟩ by simp_all [ProofEntryFunc, Invariant]
+  step with ⟨ fun _ => ExecEntryT.mk ev ⟩ by simp_all [ErasableProofEntry.erase, ProofEntryInvariant.invariant]
   step
   simp only [Trace.EventLoggedAt]
   exists _i
   have := Trace.at_is_erase tr _i (ExecEntryT.mk ev)
-  grind [ProofEntryFunc]
+  simp_all [ErasableProofEntry.erase]
 
 public
 def label

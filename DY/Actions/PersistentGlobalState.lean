@@ -6,19 +6,45 @@ import DY.Step.Init
 
 namespace DY.PersistentGlobalState
 
+section Execution
+
 public
 structure ExecEntryT (StateT: Type) where
   st: StateT
 
 public
-def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] (StateT: Type): EntryBaseAttackerKnowledge (ExecEntryT StateT) where
+def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] (StateT: Type): SubBaseAttackerKnowledge (ExecEntryT StateT) where
   attackerKnows _ _ _ := False
+
+public
+def storeGlobalState
+  {StateT: Type}
+  [ExecTraceTypes] [ExecTraceTypes.Has (ExecEntryT StateT)]
+  (st: StateT)
+  : Traceful Nat
+:= do
+  let entry: ExecEntryT StateT := { st }
+  appendEntry entry
+
+public
+def getGlobalState
+  {StateT: Type}
+  [ExecTraceTypes] [ExecTraceTypes.Has (ExecEntryT StateT)]
+  (i: Nat)
+  : Traceful StateT
+:= do
+  let e: ExecEntryT StateT ← getEntry i
+  return e.st
+
+end Execution
+
+section Proof
 
 public
 abbrev ProofEntryT (StateT: Type) := ExecEntryT StateT
 
 public
-def ProofEntryFunc (StateT: Type) := ProofEntryFun.default (ExecEntryT StateT)
+instance (StateT: Type): ErasableProofEntry (ExecEntryT StateT) (ProofEntryT StateT) := ErasableProofEntry.default (ExecEntryT StateT)
 
 public
 class GlobalStateInv [TraceTypes] (StateT: Type) where
@@ -32,24 +58,26 @@ grind_pattern GlobalStateInv.invariant_later => tr1 ≤ tr2, GlobalStateInv.inva
 grind_pattern [grind_later] GlobalStateInv.invariant_later => tr1 ≤ tr2, GlobalStateInv.invariant st tr1
 
 public
-def Invariant [TraceTypes] (StateT: Type) [GlobalStateInv StateT]: TraceEntryInvariant (ProofEntryFunc StateT) where
+instance
+  [TraceTypes]
+  (StateT: Type)
+  [GlobalStateInv StateT]
+  : ProofEntryInvariant (ProofEntryT StateT)
+where
   invariant tr entry :=
     GlobalStateInv.invariant entry.st tr
 
 public
-theorem baseAttackerKnowledgeTheorem [TraceInvariant] [BytesFunctor] [BytesInvariants] (StateT: Type) [TraceTypes.Has (ProofEntryFunc StateT)] [GlobalStateInv StateT] [TraceInvariant.Has (Invariant StateT)]: EntryBaseAttackerKnowledgeTheorem (Invariant StateT) (baseAttackerKnowledge StateT) where
+instance baseAttackerKnowledgeTheorem
+  [TraceInvariant] [BytesFunctor] [BytesInvariants]
+  (StateT: Type)
+  [TraceTypes.Has (ProofEntryT StateT)]
+  [GlobalStateInv StateT]
+  [TraceInvariant.Has (ProofEntryT StateT)]
+  : SubBaseAttackerKnowledgeTheorem (ProofEntryT StateT) (baseAttackerKnowledge StateT)
+where
   pf trBefore entry b := by
     simp [baseAttackerKnowledge]
-
-public
-def storeGlobalState
-  {StateT: Type}
-  [ExecTraceTypes] [ExecTraceTypes.Has (ExecEntryT StateT)]
-  (st: StateT)
-  : Traceful Nat
-:= do
-  let entry: ExecEntryT StateT := { st }
-  appendEntry entry
 
 @[instance]
 public
@@ -57,7 +85,7 @@ theorem storeGlobalState.spec
   {StateT: Type}
   [TraceInvariant]
   [GlobalStateInv StateT]
-  [TraceTypes.Has (ProofEntryFunc StateT)] [TraceInvariant.Has (Invariant StateT)]
+  [TraceTypes.Has (ProofEntryT StateT)] [TraceInvariant.Has (ProofEntryT StateT)]
   (st: StateT)
   : HoareTriple
     (storeGlobalState st)
@@ -67,18 +95,8 @@ theorem storeGlobalState.spec
   apply HoareTriple.mk
   unfold storeGlobalState
   dsimp only
-  step with ⟨ fun _ => ExecEntryT.mk st ⟩ by simp_all [ProofEntryFunc, Invariant]
+  step with ⟨ fun _ => ExecEntryT.mk st ⟩ by simp_all [ErasableProofEntry.erase, ProofEntryInvariant.invariant]
   trivial
-
-public
-def getGlobalState
-  {StateT: Type}
-  [ExecTraceTypes] [ExecTraceTypes.Has (ExecEntryT StateT)]
-  (i: Nat)
-  : Traceful StateT
-:= do
-  let e: ExecEntryT StateT ← getEntry i
-  return e.st
 
 @[instance]
 public
@@ -86,7 +104,7 @@ theorem getGlobalState.spec
   {StateT: Type}
   [TraceInvariant]
   [GlobalStateInv StateT]
-  [TraceTypes.Has (ProofEntryFunc StateT)] [TraceInvariant.Has (Invariant StateT)]
+  [TraceTypes.Has (ProofEntryT StateT)] [TraceInvariant.Has (ProofEntryT StateT)]
   (i: Nat)
   : HoareTriple
     (getGlobalState i: Traceful StateT)
@@ -96,9 +114,11 @@ theorem getGlobalState.spec
   apply HoareTriple.mk
   unfold getGlobalState
   step
-  have: GlobalStateInv.invariant e.st tr := by simp_all [ProofEntryFunc, Invariant]; grind
+  have: GlobalStateInv.invariant e.st tr := by simp_all [ErasableProofEntry.erase, ProofEntryInvariant.invariant]; grind
   rename_i h; clear h
   step
   grind
+
+end Proof
 
 end DY.PersistentGlobalState

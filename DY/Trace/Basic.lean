@@ -181,6 +181,7 @@ public
 class ExecTraceTypes where
   ExecT: Type
 
+@[expose]
 public
 def ExecTrace.Entry [ExecTraceTypes] := ExecTraceTypes.ExecT
 

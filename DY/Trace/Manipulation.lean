@@ -418,8 +418,8 @@ theorem appendEntry.spec
   [TraceInvariant]
   {ExecEntryT ProofEntryT: Type}
   [ErasableProofEntry ExecEntryT ProofEntryT]
-  {inv: TraceEntryInvariant ProofEntryT}
-  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has inv]
+  [ProofEntryInvariant ProofEntryT]
+  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
   (execEntry: ExecEntryT) (mkProofEntry: Nat → ProofEntryT)
   : HoareTripleGhost
     (appendEntry execEntry)
@@ -427,7 +427,7 @@ theorem appendEntry.spec
     (fun tr =>
       ∀ time,
       ErasableProofEntry.erase (mkProofEntry time) = execEntry ∧
-      inv.invariant tr (mkProofEntry time)
+      ProofEntryInvariant.invariant tr (mkProofEntry time)
     )
     (fun time tr =>
       tr.at_is time (mkProofEntry time)
@@ -438,10 +438,6 @@ theorem appendEntry.spec
   intro trProof h_pre h_inv
   exists trProof.append (mkProofEntry trProof.length)
   simp_all [Trace.append_erase, Trace.append_le, Trace.invariant_append, Trace.at_is_append, Trace.erase_length]
-  have := Trace.invariant_append (inv := inv) trProof (mkProofEntry (Trace.length trProof))
-  simp [this]
-  simp_all
-
 
 public
 def getEntry
@@ -463,17 +459,17 @@ public
 theorem getEntry.spec
   [TraceInvariant]
   {ExecEntryT ProofEntryT: Type}
-  {func: ErasableProofEntry ExecEntryT ProofEntryT}
-  {inv: TraceEntryInvariant func}
-  [TraceTypes.Has func] [TraceInvariant.Has inv]
+  [ErasableProofEntry ExecEntryT ProofEntryT]
+  [ProofEntryInvariant ProofEntryT]
+  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
   (timestamp: Nat)
   : HoareTriple
     (getEntry timestamp: Traceful ExecEntryT)
     (fun _ => True)
     (fun entry tr =>
       exists proofEntry: ProofEntryT,
-      entry = func.erase proofEntry ∧
-      inv.invariant (tr.prefix timestamp) proofEntry
+      entry = ErasableProofEntry.erase proofEntry ∧
+      ProofEntryInvariant.invariant (tr.prefix timestamp) proofEntry
     )
 := by
   apply HoareTriple.mk
