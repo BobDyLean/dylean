@@ -85,6 +85,7 @@ def specTypeTelescope
     | _ =>
       pure (.final type)
 
+public
 syntax stepArgs := ("with" " ⟨ " term,* " ⟩")? ("by" tacticSeq)?
 
 structure StepArgs where

@@ -627,6 +627,7 @@ def client_initiate (me: Principal): Traceful (Nat × Nat) := do
   let msg_ts ← send_message (serialize ({ x_pk } : ClientMessage))
   pure (sid, msg_ts)
 
+noncomputable
 def server_receive (me: Principal) (msg_ts: Nat) : Traceful (Nat × Nat) := do
   let msg_bytes ← receive_message msg_ts
   let msg: ClientMessage ← parse msg_bytes
@@ -988,8 +989,8 @@ info: 'test' depends on axioms: [propext,
  Quot.sound,
  Test.comparseExists,
  Test.event_logged_at,
- DY.Bytes.MessageSent_implies_Publishable,
- DY.Trace.invariant]
+ Bytes.MessageSent_implies_Publishable,
+ Trace.invariant]
 -/
 #guard_msgs in
 #print axioms test
