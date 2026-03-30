@@ -96,9 +96,8 @@ instance (StateT: Type): ∀ id, ErasableProofEntry (ExecEntryT.internal StateT 
   | 0 => by dsimp only [ExecEntryT.internal, ProofEntryT.internal]; infer_instance
 
 public
-instance (StateT: Type): ErasableProofEntry (ExecEntryT StateT) (ProofEntryT StateT) := by
-  dsimp only [ExecEntryT, ProofEntryT]
-  infer_instance
+instance (StateT: Type): ErasableProofEntry (ExecEntryT StateT) (ProofEntryT StateT) :=
+  (inferInstance: ErasableProofEntry (ExecTraceTypes.combine (ExecEntryT.internal StateT)) (TraceTypes.combine (ProofEntryT.internal StateT)))
 
 public
 instance (StateT: Type): TraceTypes.HasStep (ProtocolEvent.ProofEntryT (CompromiseEvent StateT)) (ProofEntryT StateT) :=
@@ -117,7 +116,8 @@ instance [TraceTypes] (StateT: Type): ∀ id, ProofEntryInvariant (ProofEntryT.i
   | 0 => by dsimp only [ProofEntryT.internal]; infer_instance
 
 public
-instance [TraceTypes] (StateT: Type): ProofEntryInvariant (ProofEntryT StateT) := by dsimp only [ProofEntryT]; infer_instance
+instance [TraceTypes] (StateT: Type): ProofEntryInvariant (ProofEntryT StateT) :=
+  (inferInstance: ProofEntryInvariant (TraceTypes.combine (ProofEntryT.internal StateT)))
 
 public
 instance [TraceTypes] (StateT: Type): TraceInvariant.HasStep (ProtocolEvent.ProofEntryT (CompromiseEvent StateT)) (ProofEntryT StateT) :=

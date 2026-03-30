@@ -493,29 +493,36 @@ public
 class RepresentableOrd (f: Type → Type) [FunctorSizeOf f] [Representable f] where
   ctoridOrd: Ord (Representable.CtorId f) := by
     simp only [ALaCarte.Representable.CtorId]
-    exact inferInstance
+    infer_instance
   ctoridOrd_lawfulEq: Std.LawfulEqOrd (Representable.CtorId f) := by
     simp only [ALaCarte.Representable.CtorId]
-    exact inferInstance
+    dsimp +instances
+    infer_instance
   ctoridOrd_trans: Std.TransOrd (Representable.CtorId f) := by
     simp only [ALaCarte.Representable.CtorId]
-    exact inferInstance
+    dsimp +instances
+    infer_instance
 
   ctorDataOrd: ∀ id, Ord (Representable.ctors (f := f) id).Data := by
     intro id
     simp only [ALaCarte.Representable.ctors]
-    cases id <;>
-    exact inferInstance
+    cases id
+    all_goals
+      infer_instance
   ctorDataOrd_lawfulEq: ∀ id, Std.LawfulEqOrd (Representable.ctors (f := f) id).Data := by
     intro id
     simp only [ALaCarte.Representable.ctors]
-    cases id <;>
-    exact inferInstance
+    cases id
+    all_goals
+      dsimp +instances
+      infer_instance
   ctorDataOrd_trans: ∀ id, Std.TransOrd (Representable.ctors (f := f) id).Data := by
     intro id
     simp only [ALaCarte.Representable.ctors]
-    cases id <;>
-    exact inferInstance
+    cases id
+    all_goals
+      dsimp +instances
+      infer_instance
 
 section FunctorUnionOrd
 

@@ -6,19 +6,19 @@ instance: Ord Unit where
 
 public
 instance: Std.ReflOrd Unit where
-  compare_self := by grind
+  compare_self := by simp [compare]
 
 public
 instance: Std.LawfulEqOrd Unit where
-  eq_of_compare := by grind
+  eq_of_compare := by simp [compare]
 
 public
 instance: Std.OrientedOrd Unit where
-  eq_swap := by grind [Ordering.swap]
+  eq_swap := by simp [compare]
 
 public
 instance: Std.TransOrd Unit where
-  isLE_trans := by grind
+  isLE_trans := by simp [compare]
 
 public
 def ByteArray.compare (x y: ByteArray): Ordering :=

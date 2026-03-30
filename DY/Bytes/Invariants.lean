@@ -20,7 +20,7 @@ variable [TraceTypes]
 
 @[expose]
 public
-def BytesWellFormedT := ProofTrace → Prop
+abbrev BytesWellFormedT := ProofTrace → Prop
 
 public
 class BytesWellFormed where
@@ -93,7 +93,7 @@ def Usage.nothing: Usage where
 
 @[expose]
 public
-def GetUsageT := ProofTrace → Usage
+abbrev GetUsageT := ProofTrace → Usage
 
 public
 class GetUsage where
@@ -154,7 +154,7 @@ grind_pattern Bytes.usage_later => Bytes.usage b tr1, tr1 ≤ tr2
 
 @[expose]
 public
-def GetLabelT := ProofTrace → Label
+abbrev GetLabelT := ProofTrace → Label
 
 public
 class GetLabel where
@@ -215,7 +215,7 @@ grind_pattern Bytes.label_later => Bytes.label b tr1, tr1 ≤ tr2
 
 @[expose]
 public
-def BytesInvariantT := ProofTrace → Prop
+abbrev BytesInvariantT := ProofTrace → Prop
 
 public
 class BytesInvariant where

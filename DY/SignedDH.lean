@@ -1047,9 +1047,8 @@ instance: ∀ id, ErasableProofEntry (ExecEntryT.internal id) (ProofEntryT.inter
   | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 => by dsimp only [ExecEntryT.internal, ProofEntryT.internal]; infer_instance
 
 public
-instance: ErasableProofEntry ExecEntryT ProofEntryT := by
-  dsimp only [ExecEntryT, ProofEntryT]
-  infer_instance
+instance: ErasableProofEntry ExecEntryT ProofEntryT :=
+  (inferInstance: ErasableProofEntry (ExecTraceTypes.combine ExecEntryT.internal) (TraceTypes.combine ProofEntryT.internal))
 
 instance: TraceTypes.HasStep Network.ProofEntryT ProofEntryT := inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal 0) (TraceTypes.combine ProofEntryT.internal))
 instance: TraceTypes.HasStep Random.ProofEntryT ProofEntryT := inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal 1) (TraceTypes.combine ProofEntryT.internal))
@@ -1118,7 +1117,8 @@ instance: ∀ id, ProofEntryInvariant (ProofEntryT.internal id)
   | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 => by dsimp only [ProofEntryT.internal]; infer_instance
 
 public
-instance: ProofEntryInvariant ProofEntryT := by dsimp only [ProofEntryT]; infer_instance
+instance: ProofEntryInvariant ProofEntryT :=
+  (inferInstance: ProofEntryInvariant (TraceTypes.combine ProofEntryT.internal))
 
 instance: TraceInvariant where
   tc_inv := by dsimp only [ProofTrace.Entry, TraceTypes.ProofT]; infer_instance
@@ -1185,5 +1185,3 @@ theorem test (b: Bytes) (tr: ProofTrace) :
     b.Publishable tr
   := by
     apply Bytes.AttackerKnows_implies_Publishable
-
-end

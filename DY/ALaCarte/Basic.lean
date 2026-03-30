@@ -287,12 +287,8 @@ decreasing_by
 -/
 @[expose]
 public
-def Container {CtorId} (ctors: Ctors CtorId): Type :=
+abbrev Container {CtorId} (ctors: Ctors CtorId): Type :=
   Subtype (BareContainer.wf (ctors := ctors))
-
-public
-noncomputable
-instance {CtorId: Type} (ctors: Ctors CtorId) [SizeOf CtorId]: SizeOf (Container ctors) := inferInstanceAs (SizeOf (Subtype (BareContainer.wf (ctors := ctors))))
 
 /--
   When a functor is `Representable`, we can use `ContainerFor` as a shorthand for `Container`.

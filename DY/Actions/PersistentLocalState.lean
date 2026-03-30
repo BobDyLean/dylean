@@ -78,9 +78,8 @@ instance (StateT: Type): ∀ id, ErasableProofEntry (ExecEntryT.internal StateT 
   | 0 => by dsimp only [ExecEntryT.internal, ProofEntryT.internal]; infer_instance
 
 public
-instance (StateT: Type): ErasableProofEntry (ExecEntryT StateT) (ProofEntryT StateT) := by
-  dsimp only [ExecEntryT, ProofEntryT]
-  infer_instance
+instance (StateT: Type): ErasableProofEntry (ExecEntryT StateT) (ProofEntryT StateT) :=
+  (inferInstance: ErasableProofEntry (ExecTraceTypes.combine (ExecEntryT.internal StateT)) (TraceTypes.combine (ProofEntryT.internal StateT)))
 
 public
 instance (StateT: Type): TraceTypes.HasStep (PersistentGlobalState.ProofEntryT (LocalState StateT)) (ProofEntryT StateT) :=
@@ -111,7 +110,8 @@ instance [TraceTypes] (StateT: Type) [LocalStateInv StateT]: ∀ id, ProofEntryI
   | 0 => by dsimp only [ProofEntryT.internal]; infer_instance
 
 public
-instance [TraceTypes] (StateT: Type) [LocalStateInv StateT]: ProofEntryInvariant (ProofEntryT StateT) := by dsimp only [ProofEntryT]; infer_instance
+instance [TraceTypes] (StateT: Type) [LocalStateInv StateT]: ProofEntryInvariant (ProofEntryT StateT) :=
+  (inferInstance: ProofEntryInvariant (TraceTypes.combine (ProofEntryT.internal StateT)))
 
 public
 instance [TraceTypes] (StateT: Type) [LocalStateInv StateT]: TraceInvariant.HasStep (PersistentGlobalState.ProofEntryT (LocalState StateT)) (ProofEntryT StateT) :=
