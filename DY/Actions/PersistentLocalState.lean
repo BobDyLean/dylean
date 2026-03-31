@@ -3,10 +3,11 @@ module
 public import DY.Trace
 public import DY.Bytes
 public import DY.Actions.PersistentGlobalState
-public import DY.Actions.Compromise
 import DY.Step.Init
 
 namespace DY.PersistentLocalState
+
+section State
 
 section Execution
 
@@ -18,32 +19,42 @@ structure LocalState (StateT: Type) where
   participant: Participant
   state: StateT
 
+noncomputable
+instance
+  [BytesFunctor]
+  (StateT: Type)
+  [Comparse.ParseableSerializeable StateT]: Comparse.ParseableSerializeable (LocalState StateT) := Comparse.comparseMetaProgramExists
+
+namespace State
 
 @[expose]
 public
 def ExecEntryT.internal (StateT: Type): Fin 1 → Type
-  | 0 => PersistentGlobalState.ExecEntryT (LocalState StateT)
+  | 0 => PersistentGlobalState.State.ExecEntryT (LocalState StateT)
 
+@[expose, implicit_reducible]
 public
-abbrev ExecEntryT (StateT: Type): Type :=
+def ExecEntryT (StateT: Type): Type :=
   ExecTraceTypes.combine (ExecEntryT.internal StateT)
 
 public
-instance (StateT: Type): ExecTraceTypes.HasStep (PersistentGlobalState.ExecEntryT (LocalState StateT)) (ExecEntryT StateT) :=
+instance (StateT: Type): ExecTraceTypes.HasStep (PersistentGlobalState.State.ExecEntryT (LocalState StateT)) (ExecEntryT StateT) :=
   inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal StateT 0) (ExecTraceTypes.combine (ExecEntryT.internal StateT)))
 
 public
 def baseAttackerKnowledge.internal [BytesFunctor] [ExecTraceTypes] (StateT: Type): (id: Fin 1) → SubBaseAttackerKnowledge (ExecEntryT.internal StateT id)
-  | 0 => PersistentGlobalState.baseAttackerKnowledge (LocalState StateT)
+  | 0 => PersistentGlobalState.State.baseAttackerKnowledge (LocalState StateT)
 
 public
 def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] (StateT: Type): SubBaseAttackerKnowledge (ExecEntryT StateT) :=
   SubBaseAttackerKnowledge.combine (baseAttackerKnowledge.internal StateT)
 
+end State
+
 public
 def storeLocalState
   {StateT: Type}
-  [ExecTraceTypes] [ExecTraceTypes.Has (ExecEntryT StateT)]
+  [ExecTraceTypes] [ExecTraceTypes.Has (State.ExecEntryT StateT)]
   (participant: Participant) (state: StateT)
   : Traceful Nat
 := do
@@ -52,7 +63,7 @@ def storeLocalState
 public
 def getLocalState
   {StateT: Type}
-  [ExecTraceTypes] [ExecTraceTypes.Has (ExecEntryT StateT)]
+  [ExecTraceTypes] [ExecTraceTypes.Has (State.ExecEntryT StateT)]
   (participant: Participant) (i: Nat)
   : Traceful StateT
 := do
@@ -64,10 +75,23 @@ end Execution
 
 section Proof
 
+public
+class LocalStateInv [TraceTypes] (StateT: Type) where
+  invariant: Participant → StateT → ProofTrace → Prop
+  invariant_later: ∀ p st tr1 tr2,
+    tr1 ≤ tr2 →
+    invariant p st tr1 →
+    invariant p st tr2
+
+grind_pattern LocalStateInv.invariant_later => tr1 ≤ tr2, LocalStateInv.invariant p st tr1
+grind_pattern [grind_later] LocalStateInv.invariant_later => tr1 ≤ tr2, LocalStateInv.invariant p st tr1
+
+namespace State
+
 @[expose]
 public
 def ProofEntryT.internal (StateT: Type): Fin 1 → Type
-  | 0 => PersistentGlobalState.ProofEntryT (LocalState StateT)
+  | 0 => PersistentGlobalState.State.ProofEntryT (LocalState StateT)
 
 public
 abbrev ProofEntryT (StateT: Type): Type :=
@@ -82,19 +106,8 @@ instance (StateT: Type): ErasableProofEntry (ExecEntryT StateT) (ProofEntryT Sta
   (inferInstance: ErasableProofEntry (ExecTraceTypes.combine (ExecEntryT.internal StateT)) (TraceTypes.combine (ProofEntryT.internal StateT)))
 
 public
-instance (StateT: Type): TraceTypes.HasStep (PersistentGlobalState.ProofEntryT (LocalState StateT)) (ProofEntryT StateT) :=
+instance (StateT: Type): TraceTypes.HasStep (PersistentGlobalState.State.ProofEntryT (LocalState StateT)) (ProofEntryT StateT) :=
   inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal StateT 0) (TraceTypes.combine (ProofEntryT.internal StateT)))
-
-public
-class LocalStateInv [TraceTypes] (StateT: Type) where
-  invariant: Participant → StateT → ProofTrace → Prop
-  invariant_later: ∀ p st tr1 tr2,
-    tr1 ≤ tr2 →
-    invariant p st tr1 →
-    invariant p st tr2
-
-grind_pattern LocalStateInv.invariant_later => tr1 ≤ tr2, LocalStateInv.invariant p st tr1
-grind_pattern [grind_later] LocalStateInv.invariant_later => tr1 ≤ tr2, LocalStateInv.invariant p st tr1
 
 public
 instance
@@ -114,7 +127,7 @@ instance [TraceTypes] (StateT: Type) [LocalStateInv StateT]: ProofEntryInvariant
   (inferInstance: ProofEntryInvariant (TraceTypes.combine (ProofEntryT.internal StateT)))
 
 public
-instance [TraceTypes] (StateT: Type) [LocalStateInv StateT]: TraceInvariant.HasStep (PersistentGlobalState.ProofEntryT (LocalState StateT)) (ProofEntryT StateT) :=
+instance [TraceTypes] (StateT: Type) [LocalStateInv StateT]: TraceInvariant.HasStep (PersistentGlobalState.State.ProofEntryT (LocalState StateT)) (ProofEntryT StateT) :=
   inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal StateT 0) (TraceTypes.combine (ProofEntryT.internal StateT)))
 
 public
@@ -126,7 +139,7 @@ instance
   [TraceInvariant.Has (ProofEntryT StateT)]
   : ∀ id, SubBaseAttackerKnowledgeTheorem (ProofEntryT.internal StateT id) (baseAttackerKnowledge.internal StateT id)
   -- TODO: investigate why infer_instance doesn't work
-  | 0 => by dsimp only [ProofEntryT.internal, baseAttackerKnowledge.internal]; apply PersistentGlobalState.baseAttackerKnowledgeTheorem
+  | 0 => by dsimp only [ProofEntryT.internal, baseAttackerKnowledge.internal]; apply PersistentGlobalState.State.baseAttackerKnowledgeTheorem
 
 public
 instance baseAttackerKnowledgeTheorem
@@ -138,7 +151,9 @@ instance baseAttackerKnowledgeTheorem
   : SubBaseAttackerKnowledgeTheorem (ProofEntryT StateT) (baseAttackerKnowledge StateT)
 := by
   dsimp only [ProofEntryT, baseAttackerKnowledge]
-  infer_instance
+  apply instSubBaseAttackerKnowledgeTheoremCombine
+
+end State
 
 @[instance]
 public
@@ -146,7 +161,7 @@ theorem storeLocalState.spec
   {StateT: Type}
   [TraceInvariant]
   [LocalStateInv StateT]
-  [TraceTypes.Has (ProofEntryT StateT)] [TraceInvariant.Has (ProofEntryT StateT)]
+  [TraceTypes.Has (State.ProofEntryT StateT)] [TraceInvariant.Has (State.ProofEntryT StateT)]
   (participant: Participant) (state: StateT)
   : HoareTriple
     (storeLocalState participant state)
@@ -164,7 +179,7 @@ theorem getLocalState.spec
   {StateT: Type}
   [TraceInvariant]
   [LocalStateInv StateT]
-  [TraceTypes.Has (ProofEntryT StateT)] [TraceInvariant.Has (ProofEntryT StateT)]
+  [TraceTypes.Has (State.ProofEntryT StateT)] [TraceInvariant.Has (State.ProofEntryT StateT)]
   (participant: Participant) (i: Nat)
   : HoareTriple
     (getLocalState participant i: Traceful StateT)
@@ -178,20 +193,69 @@ theorem getLocalState.spec
   step
   simp_all [PersistentGlobalState.GlobalStateInv.invariant]
 
+end Proof
+
+end State
+
+section Compromise
+
+section Execution
+
+namespace Compromise
+
+@[expose]
+public
+def ExecEntryT.internal (StateT: Type): Fin 1 → Type
+  | 0 => PersistentGlobalState.Compromise.ExecEntryT (LocalState StateT)
+
+@[expose, implicit_reducible]
+public
+def ExecEntryT (StateT: Type): Type :=
+  ExecTraceTypes.combine (ExecEntryT.internal StateT)
+
+public
+instance (StateT: Type): ExecTraceTypes.HasStep (PersistentGlobalState.Compromise.ExecEntryT (LocalState StateT)) (ExecEntryT StateT) :=
+  inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal StateT 0) (ExecTraceTypes.combine (ExecEntryT.internal StateT)))
+
+public
+def baseAttackerKnowledge.internal [BytesFunctor] [ExecTraceTypes] (StateT: Type): (id: Fin 1) → SubBaseAttackerKnowledge (ExecEntryT.internal StateT id)
+  | 0 => PersistentGlobalState.Compromise.baseAttackerKnowledge (LocalState StateT)
+
+public
+def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] (StateT: Type): SubBaseAttackerKnowledge (ExecEntryT StateT) :=
+  SubBaseAttackerKnowledge.combine (baseAttackerKnowledge.internal StateT)
+
+end Compromise
+
+public
+noncomputable
+def compromise
+  (StateT: Type)
+  [BytesFunctor]
+  [Comparse.ParseableSerializeable StateT]
+  [ExecTraceTypes]
+  [ExecTraceTypes.Has Network.ExecEntryT]
+  [ExecTraceTypes.Has (State.ExecEntryT StateT)]
+  [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
+  (i: Nat)
+  : Traceful Nat
+:= do
+  PersistentGlobalState.compromise (LocalState StateT) i
+
 public
 def LocalStateCompromised
   {StateT: Type}
-  [ExecTraceTypes] [ExecTraceTypes.Has (Compromise.ExecEntryT (LocalState StateT))] -- ugh
+  [ExecTraceTypes] [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
   (participant: Participant) (state: StateT)
   (tr: ExecTrace)
   : Prop
 :=
-  Compromise.GlobalStateCompromised ({ participant, state }: LocalState StateT) tr
+  PersistentGlobalState.GlobalStateCompromised ({ participant, state }: LocalState StateT) tr
 
 public
 theorem LocalStateCompromised_le
   {StateT: Type}
-  [ExecTraceTypes] [ExecTraceTypes.Has (Compromise.ExecEntryT (LocalState StateT))] -- ugh
+  [ExecTraceTypes] [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
   (participant: Participant) (state: StateT)
   (tr1 tr2: ExecTrace)
   : tr1 ≤ tr2 →
@@ -203,18 +267,81 @@ theorem LocalStateCompromised_le
 
 grind_pattern LocalStateCompromised_le => tr1 ≤ tr2, LocalStateCompromised participant state tr1
 
+end Execution
+
+section Proof
+
+namespace Compromise
+
+@[expose]
+public
+def ProofEntryT.internal (StateT: Type): Fin 1 → Type
+  | 0 => PersistentGlobalState.Compromise.ProofEntryT (LocalState StateT)
+
+@[expose, implicit_reducible]
+public
+def ProofEntryT (StateT: Type): Type :=
+  TraceTypes.combine (ProofEntryT.internal StateT)
+
+public
+instance (StateT: Type): ∀ id, ErasableProofEntry (ExecEntryT.internal StateT id) (ProofEntryT.internal StateT id)
+  | 0 => by dsimp only [ExecEntryT.internal, ProofEntryT.internal]; infer_instance
+
+public
+instance (StateT: Type): ErasableProofEntry (ExecEntryT StateT) (ProofEntryT StateT) :=
+  (inferInstance: ErasableProofEntry (ExecTraceTypes.combine (ExecEntryT.internal StateT)) (TraceTypes.combine (ProofEntryT.internal StateT)))
+
+public
+instance (StateT: Type): TraceTypes.HasStep (PersistentGlobalState.Compromise.ProofEntryT (LocalState StateT)) (ProofEntryT StateT) :=
+  inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal StateT 0) (TraceTypes.combine (ProofEntryT.internal StateT)))
+
+public
+instance [TraceTypes] (StateT: Type): ∀ id, ProofEntryInvariant (ProofEntryT.internal StateT id)
+  | 0 => by dsimp only [ProofEntryT.internal]; infer_instance
+
+public
+instance [TraceTypes] (StateT: Type): ProofEntryInvariant (ProofEntryT StateT) :=
+  (inferInstance: ProofEntryInvariant (TraceTypes.combine (ProofEntryT.internal StateT)))
+
+public
+instance [TraceTypes] (StateT: Type): TraceInvariant.HasStep (PersistentGlobalState.Compromise.ProofEntryT (LocalState StateT)) (ProofEntryT StateT) :=
+  inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal StateT 0) (TraceTypes.combine (ProofEntryT.internal StateT)))
+
+public
+instance
+  [TraceInvariant] [BytesFunctor] [BytesInvariants]
+  (StateT: Type)
+  [TraceTypes.Has (ProofEntryT StateT)]
+  [TraceInvariant.Has (ProofEntryT StateT)]
+  : ∀ id, SubBaseAttackerKnowledgeTheorem (ProofEntryT.internal StateT id) (baseAttackerKnowledge.internal StateT id)
+  -- TODO: investigate why infer_instance doesn't work
+  | 0 => by dsimp only [ProofEntryT.internal, baseAttackerKnowledge.internal]; apply PersistentGlobalState.Compromise.baseAttackerKnowledgeTheorem
+
+public
+instance baseAttackerKnowledgeTheorem
+  [TraceInvariant] [BytesFunctor] [BytesInvariants]
+  (StateT: Type)
+  [TraceTypes.Has (ProofEntryT StateT)]
+  [TraceInvariant.Has (ProofEntryT StateT)]
+  : SubBaseAttackerKnowledgeTheorem (ProofEntryT StateT) (baseAttackerKnowledge StateT)
+:= by
+  dsimp only [ProofEntryT, baseAttackerKnowledge]
+  apply instSubBaseAttackerKnowledgeTheoremCombine
+
+end Compromise
+
 public
 def label
   {StateT: Type}
-  [ExecTraceTypes] [ExecTraceTypes.Has (Compromise.ExecEntryT (LocalState StateT))] -- ugh
+  [ExecTraceTypes] [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
   (participant: Participant) (state: StateT)
 :=
-  Compromise.label ({ participant, state }: LocalState StateT)
+  PersistentGlobalState.label ({ participant, state }: LocalState StateT)
 
 public
 theorem label_isCorrupt
   {StateT: Type}
-  [ExecTraceTypes] [ExecTraceTypes.Has (Compromise.ExecEntryT (LocalState StateT))] -- ugh
+  [ExecTraceTypes] [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
   (participant: Participant) (state: StateT)
   (tr: ExecTrace)
   : (label participant state).isCorrupt tr = LocalStateCompromised participant state tr
@@ -224,24 +351,19 @@ theorem label_isCorrupt
 grind_pattern label_isCorrupt => (label participant state).isCorrupt tr
 
 public
-class CompromisableStateInv
+class CompromisableLocalStateInv
   (StateT: Type)
   [TraceTypes]
   [BytesFunctor] [BytesInvariants]
   [Comparse.ParseableSerializeable StateT]
-  [LocalStateInv StateT]
-  [ExecTraceTypes.Has (Compromise.ExecEntryT (LocalState StateT))] -- ugh
+  [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
+extends
+  LocalStateInv StateT
 where
   invariant_implies_KnowableBy:
     ∀ (participant: Participant) (state: StateT) tr,
       LocalStateInv.invariant participant state tr →
       Comparse.isWellFormed (Bytes.KnowableBy (label participant state)) state tr
-
-noncomputable
-instance
-  [BytesFunctor]
-  (StateT: Type)
-  [Comparse.ParseableSerializeable StateT]: Comparse.ParseableSerializeable (LocalState StateT) := Comparse.comparseMetaProgramExists
 
 axiom LocalState.isWellFormedLemma
   [BytesFunctor]
@@ -256,17 +378,167 @@ instance
   [TraceTypes] [BytesFunctor] [BytesInvariants]
   (StateT: Type)
   [Comparse.ParseableSerializeable StateT]
-  [LocalStateInv StateT]
-  [ExecTraceTypes.Has (Compromise.ExecEntryT (LocalState StateT))] -- ugh
-  [CompromisableStateInv StateT]
-  : Compromise.CompromisableStateInv (LocalState StateT)
+  [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
+  [CompromisableLocalStateInv StateT]
+  : PersistentGlobalState.CompromisableGlobalStateInv (LocalState StateT)
 where
   invariant_implies_KnowableBy := by
     intro { participant, state } tr
-    have := CompromisableStateInv.invariant_implies_KnowableBy participant state tr
+    have := CompromisableLocalStateInv.invariant_implies_KnowableBy participant state tr
     simp [PersistentGlobalState.GlobalStateInv.invariant]
     grind
 
+@[instance]
+public
+theorem compromise.spec
+  {StateT: Type}
+  [BytesFunctor]
+  [Comparse.ParseableSerializeable StateT]
+  [TraceInvariant]
+  [TraceTypes.Has Network.ProofEntryT]
+  [TraceTypes.Has (State.ProofEntryT StateT)]
+  [TraceTypes.Has (Compromise.ProofEntryT StateT)]
+  [BytesInvariants] [BytesInvariantsProofs]
+  [Comparse.ParseableSerializeable StateT]
+  [CompromisableLocalStateInv StateT]
+  [TraceInvariant.Has Network.ProofEntryT]
+  [TraceInvariant.Has (State.ProofEntryT StateT)]
+  [TraceInvariant.Has (Compromise.ProofEntryT StateT)]
+  (i: Nat)
+  : HoareTriple
+    (compromise StateT i)
+    (fun _ => True)
+    (fun _ _ => True)
+:= by
+  apply HoareTriple.mk
+  unfold compromise
+  step
+  trivial
+
 end Proof
+
+end Compromise
+
+section CompromisableState
+
+namespace CompromisableState
+
+@[expose]
+public
+def ExecEntryT.internal (StateT: Type): Fin 2 → Type
+  | 0 => State.ExecEntryT StateT
+  | 1 => Compromise.ExecEntryT StateT
+
+@[expose, implicit_reducible]
+public
+def ExecEntryT (StateT: Type): Type :=
+  ExecTraceTypes.combine (ExecEntryT.internal StateT)
+
+public
+instance (StateT: Type): ExecTraceTypes.HasStep (State.ExecEntryT StateT) (ExecEntryT StateT) :=
+  inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal StateT 0) (ExecTraceTypes.combine (ExecEntryT.internal StateT)))
+
+public
+instance (StateT: Type): ExecTraceTypes.HasStep (Compromise.ExecEntryT StateT) (ExecEntryT StateT) :=
+  inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal StateT 1) (ExecTraceTypes.combine (ExecEntryT.internal StateT)))
+
+public
+def baseAttackerKnowledge.internal [BytesFunctor] [ExecTraceTypes] (StateT: Type): (id: Fin 2) → SubBaseAttackerKnowledge (ExecEntryT.internal StateT id)
+  | 0 => State.baseAttackerKnowledge StateT
+  | 1 => Compromise.baseAttackerKnowledge StateT
+
+public
+def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] (StateT: Type): SubBaseAttackerKnowledge (ExecEntryT StateT) :=
+  SubBaseAttackerKnowledge.combine (baseAttackerKnowledge.internal StateT)
+
+@[expose]
+public
+def ProofEntryT.internal (StateT: Type): Fin 2 → Type
+  | 0 => State.ProofEntryT StateT
+  | 1 => Compromise.ProofEntryT StateT
+
+@[expose, implicit_reducible]
+public
+def ProofEntryT (StateT: Type): Type :=
+  TraceTypes.combine (ProofEntryT.internal StateT)
+
+public
+instance (StateT: Type): ∀ id, ErasableProofEntry (ExecEntryT.internal StateT id) (ProofEntryT.internal StateT id)
+  | 0 | 1 => by dsimp only [ExecEntryT.internal, ProofEntryT.internal]; infer_instance
+
+public
+instance (StateT: Type): ErasableProofEntry (ExecEntryT StateT) (ProofEntryT StateT) :=
+  (inferInstance: ErasableProofEntry (ExecTraceTypes.combine (ExecEntryT.internal StateT)) (TraceTypes.combine (ProofEntryT.internal StateT)))
+
+public
+instance (StateT: Type): TraceTypes.HasStep (State.ProofEntryT StateT) (ProofEntryT StateT) :=
+  inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal StateT 0) (TraceTypes.combine (ProofEntryT.internal StateT)))
+
+public
+instance (StateT: Type): TraceTypes.HasStep (Compromise.ProofEntryT StateT) (ProofEntryT StateT) :=
+  inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal StateT 1) (TraceTypes.combine (ProofEntryT.internal StateT)))
+
+public
+instance
+  [TraceTypes] [BytesFunctor] [BytesInvariants]
+  (StateT: Type) [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
+  [CompromisableLocalStateInv StateT]
+  : ∀ id, ProofEntryInvariant (ProofEntryT.internal StateT id)
+  | 0 | 1 => by dsimp only [ProofEntryT.internal]; infer_instance
+
+public
+instance
+  [TraceTypes] [BytesFunctor] [BytesInvariants]
+  (StateT: Type) [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
+  [CompromisableLocalStateInv StateT]
+  : ProofEntryInvariant (ProofEntryT StateT)
+:=
+  (inferInstance: ProofEntryInvariant (TraceTypes.combine (ProofEntryT.internal StateT)))
+
+public
+instance
+  [TraceTypes] [BytesFunctor] [BytesInvariants]
+  (StateT: Type) [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
+  [CompromisableLocalStateInv StateT]
+  : TraceInvariant.HasStep (State.ProofEntryT StateT) (ProofEntryT StateT)
+:=
+  inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal StateT 0) (TraceTypes.combine (ProofEntryT.internal StateT)))
+
+public
+instance
+  [TraceTypes] [BytesFunctor] [BytesInvariants]
+  (StateT: Type) [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
+  [CompromisableLocalStateInv StateT]
+  : TraceInvariant.HasStep (Compromise.ProofEntryT StateT) (ProofEntryT StateT)
+:=
+  inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal StateT 1) (TraceTypes.combine (ProofEntryT.internal StateT)))
+
+public
+instance
+  [TraceInvariant] [BytesFunctor] [BytesInvariants]
+  (StateT: Type) [Comparse.ParseableSerializeable StateT]
+  [TraceTypes.Has (ProofEntryT StateT)]
+  [CompromisableLocalStateInv StateT]
+  [TraceInvariant.Has (ProofEntryT StateT)]
+  : ∀ id, SubBaseAttackerKnowledgeTheorem (ProofEntryT.internal StateT id) (baseAttackerKnowledge.internal StateT id)
+  -- TODO: investigate why infer_instance doesn't work
+  | 0 => by dsimp only [ProofEntryT.internal, baseAttackerKnowledge.internal]; apply State.baseAttackerKnowledgeTheorem
+  | 1 => by dsimp only [ProofEntryT.internal, baseAttackerKnowledge.internal]; apply Compromise.baseAttackerKnowledgeTheorem
+
+public
+instance baseAttackerKnowledgeTheorem
+  [TraceInvariant] [BytesFunctor] [BytesInvariants]
+  (StateT: Type) [Comparse.ParseableSerializeable StateT]
+  [TraceTypes.Has (ProofEntryT StateT)]
+  [CompromisableLocalStateInv StateT]
+  [TraceInvariant.Has (ProofEntryT StateT)]
+  : SubBaseAttackerKnowledgeTheorem (ProofEntryT StateT) (baseAttackerKnowledge StateT)
+:= by
+  dsimp only [ProofEntryT, baseAttackerKnowledge]
+  apply instSubBaseAttackerKnowledgeTheoremCombine -- infer_instance?
+
+end CompromisableState
+
+end CompromisableState
 
 end DY.PersistentLocalState
