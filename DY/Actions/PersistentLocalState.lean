@@ -5,14 +5,16 @@ public import DY.Bytes
 public import DY.Actions.PersistentGlobalState
 import DY.Step.Init
 
-namespace DY.PersistentLocalState
+namespace DY
+
+public
+abbrev Participant := String
+
+namespace PersistentLocalState
 
 section State
 
 section Execution
-
-public
-abbrev Participant := String
 
 public
 structure LocalState (StateT: Type) where
@@ -266,6 +268,7 @@ theorem LocalStateCompromised_le
   grind
 
 grind_pattern LocalStateCompromised_le => tr1 ≤ tr2, LocalStateCompromised participant state tr1
+grind_pattern [grind_later] LocalStateCompromised_le => tr1 ≤ tr2, LocalStateCompromised participant state tr1
 
 end Execution
 

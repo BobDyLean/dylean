@@ -210,6 +210,7 @@ theorem GlobalStateCompromised_le
   grind
 
 grind_pattern GlobalStateCompromised_le => tr1 ≤ tr2, GlobalStateCompromised state tr1
+grind_pattern [grind_later] GlobalStateCompromised_le => tr1 ≤ tr2, GlobalStateCompromised state tr1
 
 end Execution
 
