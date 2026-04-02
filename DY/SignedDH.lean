@@ -261,8 +261,7 @@ where
     xPk = DiffieHellman.dh_pk xSk ∧
     xPk.Publishable tr ∧
     xSk.Invariant tr ∧
-    xSk.label tr = client_label me xPk ∧
-    True -- usage
+    xSk.label tr = client_label me xPk
   invariant_later := by grind
   invariant_implies_KnowableBy participant state tr := by
     have: (client_label participant state.xPk).canFlow (PersistentLocalState.label participant state) tr.erase := by
@@ -762,6 +761,7 @@ attribute [grind] ServerFinishStateInv
 attribute [grind] Signature.SignPred.pred
 attribute [grind] SignedDHSignPred
 attribute [grind] PersistentLocalState.LocalStateInv.invariant
+attribute [grind] PersistentLocalState.CompromisableLocalStateInv.toLocalStateInv
 attribute [grind] LongTermKeys.IsLongTermPublicKey
 attribute [grind] LongTermKeys.IsLongTermSecretKey
 
@@ -777,7 +777,9 @@ theorem client_initiate.spec:
   step with ⟨ fun xSk => client_label me (DiffieHellman.dh_pk xSk), Usage.nothing ⟩
   step
   step
-  step
+  step by
+    simp only [PersistentLocalState.LocalStateInv.invariant]
+    grind
   step
   step
   grind
@@ -806,7 +808,9 @@ theorem server_receive.spec:
   step_intro -- interesting stuff: we will prove things on `sig` later on, because we need to log the event before
   step
   step_let sig with ⟨ mk_long_term_usage me ⟩
-  step
+  step by
+    simp only [PersistentLocalState.LocalStateInv.invariant]
+    grind
   step by
     have: sig_msg.Publishable tr := by grind -- TODO how to infer this automatically?
     grind
@@ -827,12 +831,20 @@ theorem client_finish.spec:
   step
   split
   step
-  step with ⟨ mk_long_term_usage server ⟩
+  step with ⟨ mk_long_term_usage server ⟩ by
+    simp_all only [PersistentLocalState.LocalStateInv.invariant]
+    grind
   hoist
+  step by
+    simp_all only [PersistentLocalState.LocalStateInv.invariant]
+    grind
   step
-  step
-  step
-  step
+  step by
+    simp_all only [PersistentLocalState.LocalStateInv.invariant]
+    grind
+  step by
+    simp_all only [PersistentLocalState.LocalStateInv.invariant]
+    grind
   step_intro
   step
   grind

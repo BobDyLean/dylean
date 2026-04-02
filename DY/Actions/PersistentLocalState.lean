@@ -388,6 +388,7 @@ where
   invariant_implies_KnowableBy := by
     intro { participant, state } tr
     have := CompromisableLocalStateInv.invariant_implies_KnowableBy participant state tr
+    simp [label] at this
     simp [PersistentGlobalState.GlobalStateInv.invariant]
     grind
 
