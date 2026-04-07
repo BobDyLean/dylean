@@ -73,7 +73,7 @@ instance
   [TraceTypes]
   (StateT: Type)
   [GlobalStateInv StateT]
-  : ProofEntryInvariant (ProofEntryT StateT)
+  : SubTraceInvariant (ProofEntryT StateT)
 where
   invariant tr entry :=
     GlobalStateInv.invariant entry.st tr
@@ -108,7 +108,7 @@ theorem storeGlobalState.spec
   apply HoareTriple.mk
   unfold storeGlobalState
   dsimp only
-  step with ⟨ fun _ => State.ExecEntryT.mk st ⟩ by simp_all [ErasableProofEntry.erase, ProofEntryInvariant.invariant]
+  step with ⟨ fun _ => State.ExecEntryT.mk st ⟩ by simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]
   trivial
 
 @[instance]
@@ -127,7 +127,7 @@ theorem getGlobalState.spec
   apply HoareTriple.mk
   unfold getGlobalState
   step
-  have: GlobalStateInv.invariant e.st tr := by simp_all [ErasableProofEntry.erase, ProofEntryInvariant.invariant]; grind
+  have: GlobalStateInv.invariant e.st tr := by simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]; grind
   rename_i h; clear h
   step
   grind
@@ -249,12 +249,12 @@ where
   invariant _ _ := True
 
 public
-instance [TraceTypes] (StateT: Type): ∀ id, ProofEntryInvariant (ProofEntryT.internal StateT id)
+instance [TraceTypes] (StateT: Type): ∀ id, SubTraceInvariant (ProofEntryT.internal StateT id)
   | 0 => by dsimp only [ProofEntryT.internal]; infer_instance
 
 public
-instance [TraceTypes] (StateT: Type): ProofEntryInvariant (ProofEntryT StateT) :=
-  (inferInstance: ProofEntryInvariant (TraceTypes.combine (ProofEntryT.internal StateT)))
+instance [TraceTypes] (StateT: Type): SubTraceInvariant (ProofEntryT StateT) :=
+  (inferInstance: SubTraceInvariant (TraceTypes.combine (ProofEntryT.internal StateT)))
 
 public
 instance [TraceTypes] (StateT: Type): TraceInvariant.HasStep (ProtocolEvent.ProofEntryT (CompromiseEvent StateT)) (ProofEntryT StateT) :=
@@ -418,7 +418,7 @@ instance
   [TraceTypes] [BytesFunctor] [BytesInvariants]
   (StateT: Type) [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
   [CompromisableGlobalStateInv StateT]
-  : ∀ id, ProofEntryInvariant (ProofEntryT.internal StateT id)
+  : ∀ id, SubTraceInvariant (ProofEntryT.internal StateT id)
   | 0 | 1 => by dsimp only [ProofEntryT.internal]; infer_instance
 
 public
@@ -426,9 +426,9 @@ instance
   [TraceTypes] [BytesFunctor] [BytesInvariants]
   (StateT: Type) [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
   [CompromisableGlobalStateInv StateT]
-  : ProofEntryInvariant (ProofEntryT StateT)
+  : SubTraceInvariant (ProofEntryT StateT)
 :=
-  (inferInstance: ProofEntryInvariant (TraceTypes.combine (ProofEntryT.internal StateT)))
+  (inferInstance: SubTraceInvariant (TraceTypes.combine (ProofEntryT.internal StateT)))
 
 public
 instance

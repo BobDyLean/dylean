@@ -43,7 +43,7 @@ instance: ErasableProofEntry ExecEntryT ProofEntryT := ErasableProofEntry.defaul
 public
 instance
   [TraceTypes] [BytesInvariants]
-  : ProofEntryInvariant ProofEntryT
+  : SubTraceInvariant ProofEntryT
 where
   invariant tr entry :=
     entry.msg.Publishable tr
@@ -56,7 +56,7 @@ instance baseAttackerKnowledgeTheorem
   SubBaseAttackerKnowledgeTheorem ProofEntryT baseAttackerKnowledge
 where
   pf trBefore entry b := by
-    simp [ProofEntryInvariant.invariant, baseAttackerKnowledge, ErasableProofEntry.erase]
+    simp [SubTraceInvariant.invariant, baseAttackerKnowledge, ErasableProofEntry.erase]
     grind
 
 @[instance]
@@ -74,7 +74,7 @@ theorem sendMessage.spec
   apply HoareTriple.mk
   unfold sendMessage
   dsimp only
-  step with ⟨ fun _ => ExecEntryT.mk msg ⟩ by simp_all [ErasableProofEntry.erase, ProofEntryInvariant.invariant]
+  step with ⟨ fun _ => ExecEntryT.mk msg ⟩ by simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]
   trivial
 
 @[instance]
@@ -92,7 +92,7 @@ theorem receiveMessage.spec
   apply HoareTriple.mk
   unfold receiveMessage
   step
-  have: msg.msg.Publishable tr := by simp_all [ErasableProofEntry.erase, ProofEntryInvariant.invariant]; grind
+  have: msg.msg.Publishable tr := by simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]; grind
   rename_i h_msg; clear h_msg
   step
   grind

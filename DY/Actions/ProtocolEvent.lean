@@ -27,7 +27,7 @@ class EventInv [TraceTypes] (EventT: Type) where
 public
 instance
   [TraceTypes] (EventT: Type) [EventInv EventT]
-  : ProofEntryInvariant (ProofEntryT EventT)
+  : SubTraceInvariant (ProofEntryT EventT)
 where
   invariant tr entry :=
     EventInv.invariant tr entry.ev
@@ -97,8 +97,8 @@ theorem _root_.DY.Trace.EventLoggedAt_imp_EventInv
 := by
   intro h_inv h_ev
   have := Trace.invariant_at tr i (by grind [Trace.EventLoggedAt, Trace.at_is]) h_inv
-  suffices ProofEntryInvariant.invariant (tr.prefix i) (ExecEntryT.mk ev) by
-    simp_all [ProofEntryInvariant.invariant]
+  suffices SubTraceInvariant.invariant (tr.prefix i) (ExecEntryT.mk ev) by
+    simp_all [SubTraceInvariant.invariant]
   rewrite [← TraceInvariant.Has.inv_commutes]
   simp [Trace.EventLoggedAt, Trace.at_is, IntoTraceEntry.make, Trace.erase_at, ProofTrace.Entry.erase_eq_imp_exists, ErasableProofEntry.erase] at h_ev
   grind
@@ -133,7 +133,7 @@ theorem logEvent.spec
   unfold hoareTriple
   intro tr h_pre h_inv
   mark_non_monotone h_pre
-  step with ⟨ fun _ => ExecEntryT.mk ev ⟩ by simp_all [ErasableProofEntry.erase, ProofEntryInvariant.invariant]
+  step with ⟨ fun _ => ExecEntryT.mk ev ⟩ by simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]
   step
   simp only [Trace.EventLoggedAt]
   exists _i

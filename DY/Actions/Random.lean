@@ -28,7 +28,7 @@ instance [BytesFunctor] [ExecTraceTypes]: ErasableProofEntry ExecEntryT ProofEnt
   erase | {length, label := _, usage := _} => { length }
 
 public
-instance [BytesFunctor] [TraceTypes]: ProofEntryInvariant ProofEntryT where
+instance [BytesFunctor] [TraceTypes]: SubTraceInvariant ProofEntryT where
   invariant _ _ := True
 
 public
@@ -242,7 +242,7 @@ theorem genRand.spec
   unfold genRand
   dsimp only
   step with ⟨ fun time => ProofEntryT.mk size (label (makeRand time size)) usage ⟩ by
-    simp_all [ErasableProofEntry.erase, ProofEntryInvariant.invariant]
+    simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]
   step
   grind [makeRand.Invariant]
 

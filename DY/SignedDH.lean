@@ -1071,13 +1071,13 @@ instance: BytesInvariantsProofs where
 
 public
 noncomputable
-instance: ∀ id, ProofEntryInvariant (ProofEntryT.internal id)
+instance: ∀ id, SubTraceInvariant (ProofEntryT.internal id)
   | 0 | 1 | 2 | 3 | 4 | 5 | 6 => by dsimp only [ProofEntryT.internal]; infer_instance
 
 public
 noncomputable
-instance: ProofEntryInvariant ProofEntryT :=
-  (inferInstance: ProofEntryInvariant (TraceTypes.combine ProofEntryT.internal))
+instance: SubTraceInvariant ProofEntryT :=
+  (inferInstance: SubTraceInvariant (TraceTypes.combine ProofEntryT.internal))
 
 noncomputable
 instance : TraceInvariant where

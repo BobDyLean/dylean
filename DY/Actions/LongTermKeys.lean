@@ -299,15 +299,15 @@ instance: TraceTypes.HasStep (PersistentGlobalState.CompromisableState.ProofEntr
 public
 noncomputable
 instance
-  : ∀ id, ProofEntryInvariant (ProofEntryT.internal name id)
+  : ∀ id, SubTraceInvariant (ProofEntryT.internal name id)
   | 0 | 1 => by dsimp only [ProofEntryT.internal]; infer_instance
 
 public
 noncomputable
 instance
-  : ProofEntryInvariant (ProofEntryT name)
+  : SubTraceInvariant (ProofEntryT name)
 :=
-  (inferInstance: ProofEntryInvariant (TraceTypes.combine (ProofEntryT.internal name)))
+  (inferInstance: SubTraceInvariant (TraceTypes.combine (ProofEntryT.internal name)))
 
 public
 instance

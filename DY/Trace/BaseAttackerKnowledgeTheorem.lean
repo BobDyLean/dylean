@@ -17,12 +17,12 @@ class SubBaseAttackerKnowledgeTheorem
   {ExecEntryT: Type}
   (ProofEntryT: Type)
   [ErasableProofEntry ExecEntryT ProofEntryT]
-  [ProofEntryInvariant ProofEntryT]
+  [SubTraceInvariant ProofEntryT]
   [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
   (att: SubBaseAttackerKnowledge ExecEntryT)
 where
   pf: ∀ trBefore (entry: ProofEntryT) (b: Bytes),
-    ProofEntryInvariant.invariant trBefore entry →
+    SubTraceInvariant.invariant trBefore entry →
     att.attackerKnows trBefore.erase (ErasableProofEntry.erase entry) b →
     b.Publishable trBefore -- could also be `b.Publishable (trBefore.append entry)` if needed
 
@@ -41,7 +41,7 @@ instance instSubBaseAttackerKnowledgeTheoremCombine
   {n: Nat}
   {ExecTypes: Fin n → Type} {ProofTypes: Fin n → Type}
   [∀ id, ErasableProofEntry (ExecTypes id) (ProofTypes id)]
-  [∀ id, ProofEntryInvariant (ProofTypes id)]
+  [∀ id, SubTraceInvariant (ProofTypes id)]
   [TraceTypes.Has (TraceTypes.combine ProofTypes)] [TraceInvariant.Has (TraceTypes.combine ProofTypes)]
   (atts: (id: Fin n) → SubBaseAttackerKnowledge (ExecTypes id))
   [attThms: (id: Fin n) → SubBaseAttackerKnowledgeTheorem (ProofTypes id) (atts id)]

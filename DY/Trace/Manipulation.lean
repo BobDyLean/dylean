@@ -418,7 +418,7 @@ theorem appendEntry.spec
   [TraceInvariant]
   {ExecEntryT ProofEntryT: Type}
   [ErasableProofEntry ExecEntryT ProofEntryT]
-  [ProofEntryInvariant ProofEntryT]
+  [SubTraceInvariant ProofEntryT]
   [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
   (execEntry: ExecEntryT) (mkProofEntry: Nat → ProofEntryT)
   : HoareTripleGhost
@@ -427,7 +427,7 @@ theorem appendEntry.spec
     (fun tr =>
       ∀ time,
       ErasableProofEntry.erase (mkProofEntry time) = execEntry ∧
-      ProofEntryInvariant.invariant tr (mkProofEntry time)
+      SubTraceInvariant.invariant tr (mkProofEntry time)
     )
     (fun time tr =>
       tr.at_is time (mkProofEntry time)
@@ -460,7 +460,7 @@ theorem getEntry.spec
   [TraceInvariant]
   {ExecEntryT ProofEntryT: Type}
   [ErasableProofEntry ExecEntryT ProofEntryT]
-  [ProofEntryInvariant ProofEntryT]
+  [SubTraceInvariant ProofEntryT]
   [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
   (timestamp: Nat)
   : HoareTriple
@@ -469,7 +469,7 @@ theorem getEntry.spec
     (fun entry tr =>
       exists proofEntry: ProofEntryT,
       entry = ErasableProofEntry.erase proofEntry ∧
-      ProofEntryInvariant.invariant (tr.prefix timestamp) proofEntry
+      SubTraceInvariant.invariant (tr.prefix timestamp) proofEntry
     )
 := by
   apply HoareTriple.mk
