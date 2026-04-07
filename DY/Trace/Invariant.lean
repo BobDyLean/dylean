@@ -233,20 +233,6 @@ theorem ProofTrace.Entry.erase_eq_imp_exists
     rewrite [TraceTypes.Has.proof_inj_proj_eq] at h
     grind [TraceTypes.Has.erase_commutes]
 
--- TODO remove?
--- @[simp]
--- public
--- theorem ProofTrace.Entry.default_erase_eq_imp
---   [TraceTypes]
---   {ExecEntryT: Type}
---   [TraceTypes.Has (ErasableProofEntry.default ExecEntryT)]
---   {entry: ProofTrace.Entry}
---   {result: ExecEntryT}
---   : entry.erase = ExecTraceTypes.Has.inj result ↔
---     entry = TraceTypes.Has.proofInj result
--- := by
---   simp [ProofTrace.Entry.erase_eq_imp_exists, ErasableProofEntry.default]
-
 public
 theorem Trace.append_erase
   [TraceTypes]
@@ -291,7 +277,6 @@ theorem Trace.at_is_erase
 
 -- Invariant
 
--- TODO: turn this into a typeclass, with invariant an outParam?
 public
 class ProofEntryInvariant [TraceTypes] {ExecEntryT: outParam Type} (ProofEntryT: Type) [ErasableProofEntry ExecEntryT ProofEntryT] where
   invariant: ProofTrace → ProofEntryT → Prop

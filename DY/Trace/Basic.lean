@@ -20,8 +20,7 @@ public
 instance {α: Type}: LE (Trace α) where
   le := Trace.le
 
--- TODO: is there a typeclass about this?
-@[grind ., refl]
+@[refl]
 public
 theorem Trace.le_refl
   {α: Type}
@@ -29,6 +28,8 @@ theorem Trace.le_refl
   : tr ≤ tr
 :=
   Trace.le.equal tr
+
+grind_pattern Trace.le_refl => tr ≤ tr
 
 public
 theorem Trace.le_trans
@@ -43,15 +44,8 @@ theorem Trace.le_trans
     exact (Trace.le.extend tr1 tr3 e ih)
 
 public
-instance {α: Type} : Trans (· ≤ · : Trace α → Trace α → Prop) (· ≤ ·) (· ≤ ·) where
-  trans {x y z} := Trace.le_trans x y z
-
-public
 class IntoTraceEntry (EntryT: Type) (α: Type) where
   make: EntryT → α
-
--- instance {α: Type}: IntoTraceEntry α α where
---   make x := x
 
 public
 def Trace.append
