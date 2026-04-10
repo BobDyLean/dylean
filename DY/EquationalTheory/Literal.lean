@@ -1,6 +1,7 @@
 module
 
 public import DY.Bytes
+public import DY.Trace
 public import DY.Misc.Instances
 
 namespace DY.Literal
@@ -110,11 +111,12 @@ def attKnowsLit: SubAttackerKnowledge Literal where
 public
 abbrev attackerKnowledge := attKnowsLit
 
+variable [ExecTraceTypes] [BaseAttackerKnowledge]
 variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
 public
 theorem attacker_knows_literalToBytes
-  (lit: ByteArray) (tr: Trace α)
+  (lit: ByteArray) (tr: ExecTrace)
   : (literalToBytes lit: Bytes).AttackerKnows tr
 := by
   apply Bytes.AttackerKnows.prove attKnowsLit
@@ -125,6 +127,7 @@ end AttackerKnowledge
 
 section Invariants
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
@@ -179,6 +182,7 @@ end Invariants
 
 section AttackerKnowledgeTheorem
 
+variable [TraceInvariant]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
 variable [BytesInvariants.Has invariants]

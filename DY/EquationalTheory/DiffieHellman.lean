@@ -1,6 +1,7 @@
 module
 
 public import DY.Bytes
+public import DY.Trace
 public import DY.Misc.Instances
 
 namespace DY.DiffieHellman
@@ -200,11 +201,12 @@ def attackerKnowledge: SubAttackerKnowledge SubF :=
 instance: AttackerKnowledge.HasStep attKnowsDhPk attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 0) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
 instance: AttackerKnowledge.HasStep attKnowsDh attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 1) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
 
+variable [ExecTraceTypes] [BaseAttackerKnowledge]
 variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
 public
 theorem attacker_knows_dh_pk
-  (sk: Bytes) (tr: Trace α)
+  (sk: Bytes) (tr: ExecTrace)
   : sk.AttackerKnows tr →
     (dh_pk sk).AttackerKnows tr
 := by
@@ -215,7 +217,7 @@ theorem attacker_knows_dh_pk
 
 public
 theorem attacker_knows_dh
-  (pk sk: Bytes) (tr: Trace α)
+  (pk sk: Bytes) (tr: ExecTrace)
   : pk.AttackerKnows tr →
     sk.AttackerKnows tr →
     (dh pk sk).AttackerKnows tr
@@ -229,6 +231,7 @@ end AttackerKnowledge
 
 section Invariants
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
@@ -334,6 +337,7 @@ end DiffieHellman
 
 section ExtractDhSk
 
+variable [TraceTypes]
 variable [BytesFunctor]
 variable [BytesFunctor.Has DiffieHellman.SubF]
 
@@ -413,6 +417,7 @@ end ExtractDhSk
 namespace DiffieHellman
 section Invariants
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 variable [BytesInvariants] [BytesInvariants.Has invariants]
 
@@ -473,6 +478,7 @@ end Invariants
 
 section AttackerKnowledgeTheorem
 
+variable [TraceInvariant]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
 variable [BytesInvariants.Has invariants]

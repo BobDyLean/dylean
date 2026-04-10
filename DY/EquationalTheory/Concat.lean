@@ -1,6 +1,7 @@
 module
 
 public import DY.Bytes
+public import DY.Trace
 public import DY.Misc.Instances
 
 namespace DY.Concat
@@ -137,11 +138,12 @@ public instance: AttackerKnowledge.HasStep attKnowsConcat attackerKnowledge := i
 public instance: AttackerKnowledge.HasStep attKnowsSplitLeft attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 1) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
 public instance: AttackerKnowledge.HasStep attKnowsSplitRight attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 2) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
 
+variable [ExecTraceTypes] [BaseAttackerKnowledge]
 variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
 public
 theorem attacker_knows_concat
-  (lhs rhs: Bytes) (tr: Trace α)
+  (lhs rhs: Bytes) (tr: ExecTrace)
   : lhs.AttackerKnows tr →
     rhs.AttackerKnows tr →
     (concat lhs rhs).AttackerKnows tr
@@ -153,7 +155,7 @@ theorem attacker_knows_concat
 
 public
 theorem attacker_knows_split
-  (buf: Bytes) (i: Nat) (tr: Trace α)
+  (buf: Bytes) (i: Nat) (tr: ExecTrace)
   : buf.AttackerKnows tr →
     match split buf i with
     | none => True
@@ -177,6 +179,7 @@ end AttackerKnowledge
 
 section Invariants
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
@@ -279,6 +282,7 @@ end Invariants
 
 section AttackerKnowledgeTheorem
 
+variable [TraceInvariant]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
 variable [BytesLength]

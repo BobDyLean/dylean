@@ -11,17 +11,18 @@ module
 public import DY.Bytes.Basic
 public import DY.Bytes.Invariants
 public import DY.Bytes.AttackerKnowledge
+import all DY.Bytes.AttackerKnowledge
 public import DY.Trace
-
 
 namespace DY
 
 variable [BytesFunctor]
+variable [TraceInvariant]
 variable [BytesInvariants]
 
 public
 class SubAttackerKnowledgeTheorem {SubF: Type → Type} (att: SubAttackerKnowledge SubF) where
-  pf: ∀ b: Bytes, ∀ tr: ProofTrace, tr.invariant → att.pred (·.Publishable tr) b → b.Publishable tr
+  pf: ∀ b: Bytes, ∀ tr: ProofTrace, tr.Invariant → att.pred (·.Publishable tr) b → b.Publishable tr
 
 public
 class AttackerKnowledgeTheorem [AttackerKnowledge] where
@@ -60,22 +61,25 @@ where
 end AttackerKnowledgeTheorem
 
 public
-axiom Bytes.MessageSent_implies_Publishable (b: Bytes) (tr: ProofTrace): tr.invariant → tr.MessageSent b → b.Publishable tr
-
-public
 theorem Bytes.AttackerKnows_implies_Publishable
-  [AttackerKnowledge]
+  [BytesInvariantsProofs]
+  [AttackerKnowledge] [BaseAttackerKnowledge]
   [inst: AttackerKnowledgeTheorem]
+  [BaseAttackerKnowledgeTheorem]
   (b: Bytes) (tr: ProofTrace)
-  : tr.invariant →
-    Bytes.AttackerKnows b tr →
+  : tr.Invariant →
+    Bytes.AttackerKnows b tr.erase →
     b.Publishable tr
 := by
   intro h_tr
-  apply Bytes.AttackerKnows.is_least_fixpoint (·.Publishable tr) b tr
+  apply Bytes.AttackerKnows.is_least_fixpoint (·.Publishable tr) b tr.erase
   · intro b
     exact inst.inst.pf b tr h_tr
   · intro b
-    exact Bytes.MessageSent_implies_Publishable b tr h_tr
+    simp only [AttackerKnows.baseKnowledge, SubAttackerKnowledge.fromPred]
+    apply Trace.BaseAttackerKnows_implies_Publishable
+    assumption
+
+grind_pattern Bytes.AttackerKnows_implies_Publishable => Bytes.AttackerKnows b tr.erase
 
 end DY

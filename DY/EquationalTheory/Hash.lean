@@ -1,13 +1,14 @@
 module
 
 public import DY.Bytes
+public import DY.Trace
 public import DY.Misc.Instances
 
 namespace DY.Hash
 
 public
 class CanHash (Bytes: Type u) where
-  hash: Bytes → Bytes
+  hash: (msg: Bytes) → Bytes
 
 export CanHash (hash)
 
@@ -91,11 +92,12 @@ def attKnowsHash: SubAttackerKnowledge Hash where
 public
 abbrev attackerKnowledge := attKnowsHash
 
+variable [ExecTraceTypes] [BaseAttackerKnowledge]
 variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
 public
 theorem attacker_knows_hash
-  (inp: Bytes) (tr: Trace α)
+  (inp: Bytes) (tr: ExecTrace)
   : inp.AttackerKnows tr →
     (hash inp).AttackerKnows tr
 := by
@@ -108,6 +110,7 @@ end AttackerKnowledge
 
 section Invariants
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
@@ -165,6 +168,7 @@ end Invariants
 
 section AttackerKnowledgeTheorem
 
+variable [TraceInvariant]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
 variable [BytesInvariants.Has invariants]

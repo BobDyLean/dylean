@@ -6,6 +6,7 @@ open DY
 
 namespace DY.Step.Benchmark
 
+variable [TraceInvariant]
 variable [BytesFunctor]
 variable [BytesInvariants]
 variable [BytesInvariantsProofs]

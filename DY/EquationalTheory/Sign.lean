@@ -1,6 +1,7 @@
 module
 
 public import DY.Bytes
+public import DY.Trace
 public import DY.Misc.Instances
 
 namespace DY.Signature
@@ -187,11 +188,12 @@ def attackerKnowledge: SubAttackerKnowledge SubF :=
 instance: AttackerKnowledge.HasStep attKnowsVk attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 0) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
 instance: AttackerKnowledge.HasStep attKnowsSign attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 1) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
 
+variable [ExecTraceTypes] [BaseAttackerKnowledge]
 variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
 public
 theorem attacker_knows_vk
-  (sk: Bytes) (tr: Trace α)
+  (sk: Bytes) (tr: ExecTrace)
   : sk.AttackerKnows tr →
     (vk sk).AttackerKnows tr
 := by
@@ -202,7 +204,7 @@ theorem attacker_knows_vk
 
 public
 theorem attacker_knows_sign
-  (sk nonce msg: Bytes) (tr: Trace α)
+  (sk nonce msg: Bytes) (tr: ExecTrace)
   : sk.AttackerKnows tr →
     nonce.AttackerKnows tr →
     msg.AttackerKnows tr →
@@ -217,6 +219,7 @@ end AttackerKnowledge
 
 section Invariants
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
@@ -284,6 +287,7 @@ class SignPredProof [BytesInvariants] [SignPred] where
 
 grind_pattern SignPredProof.pred_later => tr1 ≤ tr2, SignPred.pred skUsg vk msg tr1
 
+public
 theorem SignPredProof.pred_later_fast
   [BytesInvariants] [SignPred] [SignPredProof] [BytesInvariantsProofs]
   (skUsg: Usage) (vk msg: Bytes) (tr1 tr2: ProofTrace)
@@ -328,7 +332,7 @@ def Sign.invariants [SignPred]: Bytes.PartialInvariants Sign where
           --   in practice knowing the nonce used to sign a message
           --   can be used to obtain the private key,
           --   hence this restriction)
-          (sk.label tr).canFlow (nonce.label tr) tr ∧
+          (sk.label tr).canFlow (nonce.label tr) tr.erase ∧
           -- - the nonce has the correct usage (for the same reason as above)
           -- nonce `has_usage tr` SigNonce
           True
@@ -338,7 +342,7 @@ def Sign.invariants [SignPred]: Bytes.PartialInvariants Sign where
           -- The message is not required to be known by the attacker:
           -- the EUF-CMA security assumption on signatures doesn't guarantee
           -- that in case of signature forgeries.
-          (sk.label tr).canFlow Label.pub tr
+          (sk.label tr).canFlow Label.pub tr.erase
         )
       )
 
@@ -378,6 +382,7 @@ end Signature
 
 section ExtractSignKey
 
+variable [TraceTypes]
 variable [BytesFunctor]
 variable [BytesFunctor.Has Signature.SubF]
 
@@ -501,6 +506,7 @@ namespace Signature
 
 section Invariants
 
+variable [TraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 variable [SignPred]
@@ -537,13 +543,13 @@ theorem sign.Invariant
       msg.Invariant tr ∧
       sk.HasUsage sk_usg tr ∧
       --nonce `has_usage tr` SigNonce /\
-      (sk.label tr).canFlow (nonce.label tr) tr ∧
+      (sk.label tr).canFlow (nonce.label tr) tr.erase ∧
       (
         (
           sk_usg.type = "SigKey" ∧
           SignPred.pred sk_usg (vk sk) msg tr
         ) ∨ (
-          (sk.label tr).canFlow Label.pub tr
+          (sk.label tr).canFlow Label.pub tr.erase
         )
       )
     ) →
@@ -566,7 +572,7 @@ theorem verify.Invariant
         skUsg.type = "SigKey" →
         SignPred.pred skUsg vk msg tr
       ) ∨ (
-        (vk.signkeyLabel tr).canFlow Label.pub tr
+        (vk.signkeyLabel tr).canFlow Label.pub tr.erase
       )
     )
 := by
@@ -586,6 +592,7 @@ end Invariants
 
 section AttackerKnowledgeTheorem
 
+variable [TraceInvariant]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
 variable [SignPred]

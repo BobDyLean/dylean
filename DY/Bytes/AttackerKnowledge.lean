@@ -8,7 +8,7 @@ module
 public import DY.Kleene
 public import DY.Bytes.Basic
 public import DY.Trace.Basic
-
+public import DY.Trace.BaseAttackerKnowledge
 
 namespace DY
 
@@ -158,18 +158,11 @@ where
 
 end AttackerKnowledge
 
--- TODO
 public
-opaque Trace.MessageSent (tr: Trace α) (b: Bytes): Prop
-public
-axiom Trace.MessageSent_erase (tr: Trace α) (b: Bytes): tr.MessageSent b = tr.erase.MessageSent b
+def Bytes.AttackerKnows.baseKnowledge [ExecTraceTypes] [BaseAttackerKnowledge] (tr: ExecTrace): SubAttackerKnowledge BytesF :=
+  SubAttackerKnowledge.fromPred tr.BaseAttackerKnows
 
-@[expose]
-public
-def Bytes.AttackerKnows.baseKnowledge (tr: Trace α): SubAttackerKnowledge BytesF :=
-  SubAttackerKnowledge.fromPred tr.MessageSent
-
-def Bytes.AttackerKnows.attackerKnowledge [AttackerKnowledge] (tr: Trace α): SubAttackerKnowledge BytesF :=
+def Bytes.AttackerKnows.attackerKnowledge [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge] (tr: ExecTrace): SubAttackerKnowledge BytesF :=
   SubAttackerKnowledge.combine' (fun (id: Fin 2) =>
     match id with
     | 0 => AttackerKnowledge.attackerKnowledge
@@ -177,16 +170,17 @@ def Bytes.AttackerKnows.attackerKnowledge [AttackerKnowledge] (tr: Trace α): Su
   )
 
 public
-def Bytes.AttackerKnows [AttackerKnowledge] (b: Bytes) (tr: Trace α): Prop :=
+def Bytes.AttackerKnows [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge] (b: Bytes) (tr: ExecTrace): Prop :=
   Kleene.mkWeakestFixpoint ((Bytes.AttackerKnows.attackerKnowledge tr).pred) b
 
 def Bytes.AttackerKnows.attackerKnow.prove
-  [AttackerKnowledge]
+  [ExecTraceTypes]
+  [BaseAttackerKnowledge] [AttackerKnowledge]
   {SubF: Type → Type}
   (att: SubAttackerKnowledge SubF)
   [inst: AttackerKnowledge.Has att]
   (p: Bytes → Prop)
-  (b: Bytes) (tr: Trace α)
+  (b: Bytes) (tr: ExecTrace)
   : att.pred p b → (Bytes.AttackerKnows.attackerKnowledge tr).pred p b
 := by
   unfold Bytes.AttackerKnows.attackerKnowledge SubAttackerKnowledge.combine' Kleene.combine
@@ -199,11 +193,12 @@ def Bytes.AttackerKnows.attackerKnow.prove
 -/
 public
 theorem Bytes.AttackerKnows.prove
-  [AttackerKnowledge]
+  [ExecTraceTypes]
+  [BaseAttackerKnowledge] [AttackerKnowledge]
   {SubF: Type → Type}
   (att: SubAttackerKnowledge SubF)
   [AttackerKnowledge.Has att]
-  (b: Bytes) (tr: Trace α)
+  (b: Bytes) (tr: ExecTrace)
   : att.pred (Bytes.AttackerKnows · tr) b →
     Bytes.AttackerKnows b tr
 := by
@@ -260,9 +255,10 @@ theorem SubAttackerKnowledge.combine.implies
 
 public
 theorem Bytes.AttackerKnows.is_least_fixpoint
-  [AttackerKnowledge]
+  [ExecTraceTypes]
+  [BaseAttackerKnowledge] [AttackerKnowledge]
   (pred: Bytes → Prop)
-  (b: Bytes) (tr: Trace α)
+  (b: Bytes) (tr: ExecTrace)
   (pf1: SubAttackerKnowledge.Implies AttackerKnowledge.attackerKnowledge pred)
   (pf2: SubAttackerKnowledge.Implies (Bytes.AttackerKnows.baseKnowledge tr) pred)
   : Bytes.AttackerKnows b tr →
@@ -275,19 +271,5 @@ theorem Bytes.AttackerKnows.is_least_fixpoint
     have := pf2 b
     grind
   ) b
-
-public
-theorem Bytes.AttackerKnows.pred_trace_erase [AttackerKnowledge] (tr: Trace α) (b: Bytes):
-  b.AttackerKnows tr = b.AttackerKnows (tr.erase)
-:= by
-  simp only [Bytes.AttackerKnows, Bytes.AttackerKnows.attackerKnowledge]
-  congr
-  funext
-  split
-  · rfl
-  · simp only [Bytes.AttackerKnows.baseKnowledge]
-    congr 1
-    funext
-    apply Trace.MessageSent_erase
 
 end DY

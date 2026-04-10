@@ -2,27 +2,34 @@ module
 
 import Init.Control.Lawful.Basic
 public import Lean
+public import DY.Bytes.Basic
 public import DY.Trace.Basic
+public import DY.Trace.Invariant
 public import DY.Label
 
 @[expose] public section
 
 namespace DY
 
-variable [BytesFunctor]
-
-abbrev ExecutionTrace := Trace Unit
-abbrev ProofTrace := Trace Label -- TODO and usage
-
-abbrev Traceful := OptionT (StateT ExecutionTrace Id)
+abbrev Traceful [ExecTraceTypes] := OptionT (StateT ExecTrace Id)
 abbrev Err := OptionT Id
 
-instance : MonadLift Err Traceful := {
+instance [ExecTraceTypes]: MonadLift Err Traceful := {
   monadLift := fun x => StateT.pure x.run
 }
 
-def Traceful.run (x: Traceful a) (tr: ExecutionTrace): (Option a × ExecutionTrace) :=
+def Traceful.run [ExecTraceTypes] (x: Traceful a) (tr: ExecTrace): (Option a × ExecTrace) :=
   Id.run (StateT.run (OptionT.run x) tr)
+
+def Traceful.mk [ExecTraceTypes] {α: Type} (f: ExecTrace → (Option α × ExecTrace)): Traceful α :=
+  OptionT.mk (StateT.mk f)
+
+def Traceful.run_mk
+  [ExecTraceTypes] {α: Type}
+  (f: ExecTrace → (Option α × ExecTrace))
+  : Traceful.run (Traceful.mk f) = f
+:= by
+  rfl
 
 -- This is missing from Lean's standard library??
 theorem OptionT.run_pure {m : Type u → Type v} [Monad m] {α : Type u} (x : α) :
@@ -38,45 +45,52 @@ theorem OptionT.run_bind {m : Type u → Type v} [Monad m] {α β : Type u} (x :
   )
   := rfl
 
-
 theorem Traceful.run_pure
-  (x: a) (tr: ExecutionTrace)
+  [ExecTraceTypes]
+  (x: a) (tr: ExecTrace)
   : Traceful.run (pure x) tr = (some x, tr)
-  := by
-    rfl
+:= by
+  rfl
 
 theorem Traceful.run_bind
-  (x: Traceful a) (f: a → Traceful b) (tr: ExecutionTrace)
+  [ExecTraceTypes]
+  (x: Traceful a) (f: a → Traceful b) (tr: ExecTrace)
   : Traceful.run (x >>= f) tr = (
     let (opt_x, tr) := x.run tr
     match opt_x with
     | some x => (f x).run tr
     | none => (none, tr)
   )
-  := by
-    simp only [Traceful.run, OptionT.run_bind, StateT.run_bind, Id.run_bind]
-    split
-    · simp_all
-    · simp_all
+:= by
+  simp only [Traceful.run, OptionT.run_bind, StateT.run_bind, Id.run_bind]
+  split
+  · simp_all
+  · simp_all
 
-axiom Trace.invariant: ProofTrace -> Prop
+theorem Traceful.run_failure
+  [ExecTraceTypes]
+  (tr: ExecTrace)
+  : Traceful.run (failure: Traceful a) tr = (none, tr)
+:= by
+  rfl
 
-class WP (m: Type u → Type v) where
+
+class WP [TraceTypes] (m: Type u → Type v) where
   wp: m a → (a → ProofTrace → Prop) → (ProofTrace → Prop)
 
 export WP (wp)
 
-instance: WP Id where
+instance [TraceTypes]: WP Id where
   wp f post tr_proof :=
     post f.run tr_proof
 
-instance: WP Err where
+instance [TraceTypes]: WP Err where
   wp f post tr_proof :=
     match f.run with
     | .none => True
     | .some x => post x tr_proof
 
-instance: WP Traceful where
+instance [TraceInvariant]: WP Traceful where
   wp f post tr_proof :=
     let (opt_x, tr_exec') := f.run tr_proof.erase
     ∃ tr_proof',
@@ -85,14 +99,14 @@ instance: WP Traceful where
         | .none => True
         | .some x => post x tr_proof'
       ) ∧
-      Trace.invariant tr_proof' ∧
+      Trace.Invariant tr_proof' ∧
       tr_exec' = tr_proof'.erase ∧
       tr_proof ≤ tr_proof'
 
-def hoareTriple [WP m] (f: m a) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop): Prop :=
+def hoareTriple [TraceInvariant] [WP m] (f: m a) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop): Prop :=
   ∀ tr,
     pre tr →
-    Trace.invariant tr →
+    Trace.Invariant tr →
     WP.wp f post tr
 
 /--
@@ -145,13 +159,14 @@ instance [HasGhostMetaprogram x metaprog]: HasIndirectGhostMetaprogram x metapro
 where
   dummy := ()
 
-class HoareTripleGhost [WP m] (f: m a) [HasGhostArgumentType f g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+class HoareTripleGhost [TraceInvariant] [WP m] (f: m a) [HasGhostArgumentType f g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: hoareTriple f pre post
 
-class HoareTriple [WP m] (f: m a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+class HoareTriple [TraceInvariant] [WP m] (f: m a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: hoareTriple f pre post
 
 instance
+  [TraceInvariant]
   {m :Type u → Type v} [WP m]
   {a: Type u}
   (f: m a)
@@ -162,6 +177,7 @@ where
   dummy := ()
 
 instance
+  [TraceInvariant]
   {m :Type u → Type v} [WP m]
   {a: Type u}
   (f: m a)
@@ -172,11 +188,12 @@ where
   pf := HoareTriple.pf
 
 class WPLift
+  [TraceInvariant]
   (m: Type u → Type v) (n : Type u → Type w)
   [MonadLift m n] [WP m] [WP n]
 where
   pf {a: Type u} (x: m a) (post: a → ProofTrace → Prop) (tr: ProofTrace):
-    tr.invariant →
+    tr.Invariant →
     wp x post tr →
     wp (liftM x: n a) post tr
 
@@ -200,6 +217,7 @@ where
   dummy := ()
 
 instance
+  [TraceInvariant]
   {m: Type u → Type v} {n: Type u → Type w} [MonadLift m n] [WP m] [WP n] [wplift: WPLift m n]
   {a: Type u} {g: Type u_g}
   (x: m a) (ghost: g) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop)
@@ -212,7 +230,7 @@ where
     have := wplift.pf x
     grind [hoareTriple]
 
-instance: WPLift Err Traceful where
+instance [TraceInvariant]: WPLift Err Traceful where
   pf := by
     -- ugh
     simp only [wp, liftM, monadLift, MonadLift.monadLift, Traceful.run, OptionT.run]
@@ -221,6 +239,7 @@ instance: WPLift Err Traceful where
     grind
 
 theorem Traceful.bind_wp
+  [TraceInvariant]
   {a b g}
   (ghost: g)
   (x: Traceful a) (f: a -> Traceful b)
@@ -229,11 +248,11 @@ theorem Traceful.bind_wp
   {pre_x post_x}
   [HasGhostArgumentType x g]
   [ht: HoareTripleGhost x ghost pre_x post_x]
-  (pf_tr_inv: Trace.invariant tr)
+  (pf_tr_inv: Trace.Invariant tr)
   (pf_pre_x: pre_x tr)
   (pf_next: ∀ tr_mid x',
     post_x x' tr_mid →
-    Trace.invariant tr_mid →
+    Trace.Invariant tr_mid →
     tr ≤ tr_mid → (
       WP.wp (f x') (post_f) tr_mid
     )
@@ -242,9 +261,10 @@ theorem Traceful.bind_wp
   := by
     have := ht.pf
     simp_all only [WP.wp, hoareTriple, Traceful.run_bind]
-    grind [Trace.trace_le_trans]
+    grind [Trace.le_trans]
 
 theorem Traceful.finish_wp
+  [TraceInvariant]
   {a g}
   (ghost: g)
   (x: Traceful a)
@@ -253,11 +273,11 @@ theorem Traceful.finish_wp
   {pre_x post_x}
   [HasGhostArgumentType x g]
   [ht: HoareTripleGhost x ghost pre_x post_x]
-  (pf_tr_inv: Trace.invariant tr)
+  (pf_tr_inv: Trace.Invariant tr)
   (pf_pre_x: pre_x tr)
   (pf_next: ∀ tr_mid x',
     post_x x' tr_mid →
-    Trace.invariant tr_mid →
+    Trace.Invariant tr_mid →
     tr ≤ tr_mid → (
       post x' tr_mid
     )
@@ -268,13 +288,14 @@ theorem Traceful.finish_wp
     simp_all only [WP.wp, hoareTriple]
     grind
 
-class HoareTriplePureGhost (x: a) [HasGhostArgumentType x g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+class HoareTriplePureGhost [TraceTypes] (x: a) [HasGhostArgumentType x g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: ∀ tr, pre tr → post x tr
 
-class HoareTriplePure (x: a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+class HoareTriplePure [TraceTypes] (x: a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: ∀ tr, pre tr → post x tr
 
 instance
+  [TraceTypes]
   (x: a)
   (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop)
   [HoareTriplePure x pre post]
@@ -282,10 +303,11 @@ instance
 where
   dummy := ()
 
-instance [HoareTriplePure x pre post]: HoareTriplePureGhost x () pre post where
+instance [TraceTypes] (x: a) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop) [HoareTriplePure x pre post]: HoareTriplePureGhost x () pre post where
   pf := HoareTriplePure.pf
 
 theorem apply_hoare_triple_pure
+  [TraceTypes]
   {a g}
   (ghost: g) (x: a)
   {pre: ProofTrace → Prop} {post: a → ProofTrace → Prop}
@@ -297,6 +319,7 @@ theorem apply_hoare_triple_pure
   := ht.pf tr p
 
 instance
+  [TraceTypes]
   (b: Bool)
   [HasGhostArgumentType b g]
   : HasGhostArgumentType (guard b: Traceful Unit) g
@@ -304,13 +327,14 @@ where
   dummy := ()
 
 instance
+  [TraceTypes]
   (b: Bool)
   [HasIndirectGhostMetaprogram b metaprog y]
   : HasIndirectGhostMetaprogram (guard b: Traceful Unit) metaprog y
 where
   dummy := ()
 
-instance (b: Bool) [HasGhostArgumentType b g] [ht: HoareTriplePureGhost b ghost pre post]:
+instance [TraceInvariant] (b: Bool) (pre: ProofTrace → Prop) (post: Bool → ProofTrace → Prop) [HasGhostArgumentType b g] [ht: HoareTriplePureGhost b ghost pre post]:
   HoareTripleGhost
     (guard (b = true): Traceful Unit)
     (ghost)
@@ -323,12 +347,172 @@ where
     intro tr h_pre h_inv
     exists tr
     cases b
-    · simp [failure, Traceful.run, OptionT.fail, OptionT.mk, OptionT.run]
+    · simp [Traceful.run_failure]
       grind
-    · simp [pure, Traceful.run, OptionT.pure, OptionT.mk, OptionT.run]
-      unfold StateT.pure
-      simp [StateT.run]
+    · simp_all [Traceful.run_pure]
       grind
+
+instance (priority := low) [TraceInvariant] (b: Prop) [Decidable b]:
+  HoareTriple
+    (guard b: Traceful Unit)
+    (fun _ => True)
+    (fun () _ => b)
+where
+  pf := by
+    simp only [hoareTriple, wp, guard]
+    intro tr h_pre h_inv
+    exists tr
+    by_cases b
+    · simp_all [Traceful.run_pure]
+      grind
+    · simp_all [Traceful.run_failure]
+      grind
+
+instance
+  [TraceInvariant]
+  : HoareTriple
+    (pure x: Traceful a)
+    (fun _ => True)
+    (fun res _ => res = x)
+where
+  pf := by
+    simp only [hoareTriple, forall_const]
+    intro tr h_inv
+    exists tr
+
+instance
+  [TraceInvariant]
+  : HoareTriple
+    (OptionT.fail: Traceful a)
+    (fun _ => True)
+    (fun _ _ => True)
+where
+  pf := by
+    simp only [hoareTriple, forall_const]
+    intro tr h_inv
+    exists tr
+
+public
+def appendEntry
+  [ExecTraceTypes] {EntryT: Type} [ExecTraceTypes.Has EntryT]
+  (entry: EntryT)
+  : Traceful Nat
+:=
+  Traceful.mk (fun tr =>
+    (some tr.length, tr.append entry)
+  )
+
+instance
+  [TraceTypes]
+  {ExecEntryT ProofEntryT: Type}
+  [ErasableProofEntry ExecEntryT ProofEntryT]
+  [TraceTypes.Has ProofEntryT]
+  (entry: ExecEntryT)
+  : HasGhostArgumentType (appendEntry entry) (Nat → ProofEntryT)
+where
+  dummy := ()
+
+@[instance]
+public
+theorem appendEntry.spec
+  [TraceInvariant]
+  {ExecEntryT ProofEntryT: Type}
+  [ErasableProofEntry ExecEntryT ProofEntryT]
+  [SubTraceInvariant ProofEntryT]
+  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
+  (execEntry: ExecEntryT) (mkProofEntry: Nat → ProofEntryT)
+  : HoareTripleGhost
+    (appendEntry execEntry)
+    (mkProofEntry)
+    (fun tr =>
+      ∀ time,
+      ErasableProofEntry.erase (mkProofEntry time) = execEntry ∧
+      SubTraceInvariant.invariant tr (mkProofEntry time)
+    )
+    (fun time tr =>
+      tr.at_is time (mkProofEntry time)
+    )
+:= by
+  apply HoareTripleGhost.mk
+  simp only [hoareTriple, wp, appendEntry, Traceful.run_mk]
+  intro trProof h_pre h_inv
+  exists trProof.append (mkProofEntry trProof.length)
+  simp_all [Trace.append_erase, Trace.append_le, Trace.invariant_append, Trace.at_is_append, Trace.erase_length]
+
+public
+def getEntry
+  [ExecTraceTypes] {EntryT: Type} [ExecTraceTypes.Has EntryT]
+  (timestamp: Nat)
+  : Traceful EntryT
+:=
+  Traceful.mk (fun tr =>
+    let result :=
+      if h: timestamp < tr.length then
+        ExecTraceTypes.Has.proj (tr.at timestamp h)
+      else
+        none
+    (result, tr)
+  )
+
+@[instance]
+public
+theorem getEntry.spec
+  [TraceInvariant]
+  {ExecEntryT ProofEntryT: Type}
+  [ErasableProofEntry ExecEntryT ProofEntryT]
+  [SubTraceInvariant ProofEntryT]
+  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
+  (timestamp: Nat)
+  : HoareTriple
+    (getEntry timestamp: Traceful ExecEntryT)
+    (fun _ => True)
+    (fun entry tr =>
+      exists proofEntry: ProofEntryT,
+      entry = ErasableProofEntry.erase proofEntry ∧
+      SubTraceInvariant.invariant (tr.prefix timestamp) proofEntry
+    )
+:= by
+  apply HoareTriple.mk
+  simp only [hoareTriple, wp, getEntry, Traceful.run_mk]
+  intro trProof h_pre h_inv
+  exists trProof
+  split
+  · grind
+  rename_i execEntry heq
+  simp only [h_inv, Trace.le_refl, and_true]
+  simp only [Option.dite_none_right_eq_some] at heq
+  obtain ⟨ h_timestamp, heq ⟩ := heq
+  cases h: (TraceTypes.Has.proofProj (tr_proof'.at timestamp (by grind [Trace.erase_length])): Option ProofEntryT)
+  · simp_all [TraceTypes.Has.proofProj_none_eq_erase, Trace.erase_at]
+  rename_i proofEntry
+  exists proofEntry
+  simp only [TraceTypes.Has.proof_inj_proj_eq] at h
+  simp only [ExecTraceTypes.Has.inj_proj_eq, Trace.erase_at, TraceTypes.Has.erase_commutes, h] at heq
+  constructor
+  · grind
+  rewrite [← TraceInvariant.Has.inv_commutes, ← h]
+  apply Trace.invariant_at
+  assumption
+
+public
+def getTimestamp [ExecTraceTypes]: Traceful Nat
+:=
+  Traceful.mk (fun tr =>
+    (some tr.length, tr)
+  )
+
+@[instance]
+public
+theorem getTimestamp.spec [TraceInvariant]:
+  HoareTriple
+    (getTimestamp)
+    (fun _ => True)
+    (fun _ _ => True)
+:= by
+  apply HoareTriple.mk
+  simp [hoareTriple, wp, getTimestamp]
+  intro tr h_inv
+  exists tr
 
 end DY
 

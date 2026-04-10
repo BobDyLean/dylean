@@ -181,7 +181,7 @@ def introAndMassagePostX
       try
         goal.clear xFv
       catch _ =>
-        throwError "could not clear useless () value, post-condition depends on it"
+        pure goal -- silently fail
     else
       pure goal
   let goal ← do
@@ -194,7 +194,7 @@ def introAndMassagePostX
 -- Cannot mark it `reducible`
 -- because the monotonization pass using GrindM
 -- unfolds every reducible definition.
-@[grind, simp]
+@[expose, grind, simp]
 public
 def nonMono (α : Sort u) : Sort u := α
 
@@ -484,7 +484,7 @@ def massageNextGoal
     -- get trace invariant for old trace
     -- how: unify Trace.invariant tr_old with an assumption
     let trInvOldFv ← do
-      let trInvOldType ← mkAppOptM ``DY.Trace.invariant #[none, mkFVar trOldFv]
+      let trInvOldType ← mkAppOptM ``DY.Trace.Invariant #[none, mkFVar trOldFv]
       let trInvOldMVarId ← mkFreshExprMVar trInvOldType
       trace[Step] "finding in assumptions {trInvOldType}"
       trInvOldMVarId.mvarId!.assumption

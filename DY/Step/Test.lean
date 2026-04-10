@@ -6,6 +6,7 @@ open DY
 
 namespace StepTest
 
+variable [TraceInvariant]
 variable [BytesFunctor]
 variable [BytesInvariants]
 variable [BytesInvariantsProofs]
@@ -30,7 +31,7 @@ def receive_message (n:Nat) : Traceful Bytes := sorry
 
 abbrev is_knowable_by (b: Bytes) (l: Label) (tr: ProofTrace): Prop :=
   b.Invariant tr ∧
-  (b.label tr).canFlow l tr
+  (b.label tr).canFlow l tr.erase
 
 set_option trace.Step true
 
@@ -134,11 +135,12 @@ instance:
 
 /--
 trace: case pf
+inst✝³ : TraceInvariant
 inst✝² : BytesFunctor
 inst✝¹ : BytesInvariants
 inst✝ : BytesInvariantsProofs
 tr : ProofTrace
-h_inv : Trace.invariant tr
+h_inv : Trace.Invariant tr
 pre : Step.nonMono (nonMonotoneProperty tr)
 ⊢ wp
     (do
@@ -148,11 +150,12 @@ pre : Step.nonMono (nonMonotoneProperty tr)
     (fun x x_1 => True) tr
 ---
 trace: case pf_next
-inst : BytesFunctor
-inst_1 : BytesInvariants
-inst_2 : BytesInvariantsProofs
-tr : Trace Label
-h_inv : tr.invariant
+inst : TraceInvariant
+inst_1 : BytesFunctor
+inst_2 : BytesInvariants
+inst_3 : BytesInvariantsProofs
+tr : Trace ProofTrace.Entry
+h_inv : tr.Invariant
 ⊢ wp
     (do
       let msg ← receive_message 0
@@ -285,11 +288,12 @@ def testIncrementalCleanup: Traceful Unit := do
 
 /--
 trace: case pf_next
-inst : BytesFunctor
-inst_1 : BytesInvariants
-inst_2 : BytesInvariantsProofs
-tr : Trace Label
-h : tr.invariant
+inst : TraceInvariant
+inst_1 : BytesFunctor
+inst_2 : BytesInvariants
+inst_3 : BytesInvariantsProofs
+tr : Trace ProofTrace.Entry
+h : tr.Invariant
 b : Bytes
 h_b✝ : b.Publishable tr
 ⊢ True
@@ -332,7 +336,24 @@ def testIncrementalCleanup': Traceful Unit := do
   send_message b
   send_message b
 
-/-- error: could not clear useless () value, post-condition depends on it -/
+/--
+trace: case pf_next
+inst : TraceInvariant
+inst_1 : BytesFunctor
+inst_2 : BytesInvariants
+inst_3 : BytesInvariantsProofs
+tr : Trace ProofTrace.Entry
+h : tr.Invariant
+b : Bytes
+h_b✝ : b.Publishable tr
+x✝ : PUnit
+h_x✝ : x✝ = PUnit.unit
+⊢ wp
+    (do
+      send_message b
+      send_message b)
+    (fun x x_1 => True) tr
+-/
 #guard_msgs in
 example:
 HoareTriple
@@ -344,9 +365,11 @@ HoareTriple
   step
   step
   step
-  -- The following fails because
   step
-  sorry
+  trace_state -- unit is not cleared because precondition depends on it
+  step
+  step
+  trivial
 
 end IncrementalCleanup
 
@@ -359,23 +382,25 @@ def testBrutalCleanup (n: Nat): Traceful Unit := do
 
 /--
 trace: case pf_next
-inst : BytesFunctor
-inst_1 : BytesInvariants
-inst_2 : BytesInvariantsProofs
+inst : TraceInvariant
+inst_1 : BytesFunctor
+inst_2 : BytesInvariants
+inst_3 : BytesInvariantsProofs
 n : Nat
-tr : Trace Label
-h : tr.invariant
+tr : Trace ProofTrace.Entry
+h : tr.Invariant
 a✝ : n + 0 = n
 b : Bytes
 h_b✝ : b.Publishable tr
 ⊢ wp (send_message b) (fun x x_1 => True) tr
 ---
 trace: case pf_next
-inst : BytesFunctor
-inst_1 : BytesInvariants
-inst_2 : BytesInvariantsProofs
-tr : Trace Label
-h : tr.invariant
+inst : TraceInvariant
+inst_1 : BytesFunctor
+inst_2 : BytesInvariants
+inst_3 : BytesInvariantsProofs
+tr : Trace ProofTrace.Entry
+h : tr.Invariant
 b : Bytes
 h_b✝ : b.Publishable tr
 ⊢ wp (send_message b) (fun x x_1 => True) tr

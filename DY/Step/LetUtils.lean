@@ -229,7 +229,7 @@ elab "hoist" : tactic => do
   replaceMainGoal ([← hoist (← getMainGoal)])
 
 namespace Test
-  variable [BytesFunctor]
+  variable [BytesFunctor] [TraceInvariant]
   def g (foo: Bytes) (bar: Bytes) := foo
   def send_message (b: Bytes): Traceful Nat := sorry
 
