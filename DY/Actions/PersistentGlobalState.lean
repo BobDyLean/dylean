@@ -173,7 +173,9 @@ end Compromise
 public
 def compromise
   (StateT: Type)
-  [BytesFunctor]
+  [BytesFunctor] [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   [Comparse.ParseableSerializeable StateT]
   [ExecTraceTypes]
   [ExecTraceTypes.Has Network.ExecEntryT]
@@ -184,7 +186,7 @@ def compromise
 := do
   let state: StateT ← getGlobalState i
   ProtocolEvent.logEvent ({ state }: Compromise.CompromiseEvent StateT)
-  Network.sendMessage (Comparse.ParseableSerializeable.serialize state)
+  Network.sendMessage (Comparse.serialize state)
 
 public
 def GlobalStateCompromised
@@ -307,7 +309,10 @@ public
 class CompromisableGlobalStateInv
   (StateT: Type)
   [TraceTypes]
-  [BytesFunctor] [BytesInvariants]
+  [BytesFunctor] [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+  [BytesInvariants]
   [Comparse.ParseableSerializeable StateT]
   [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
 extends
@@ -322,7 +327,9 @@ where
 public
 theorem compromise.spec
   {StateT: Type}
-  [BytesFunctor]
+  [BytesFunctor] [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   [Comparse.ParseableSerializeable StateT]
   [TraceInvariant]
   [TraceTypes.Has Network.ProofEntryT]
@@ -416,6 +423,7 @@ instance (StateT: Type): TraceTypes.HasStep (Compromise.ProofEntryT StateT) (Pro
 public
 instance
   [TraceTypes] [BytesFunctor] [BytesInvariants]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (StateT: Type) [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
   [CompromisableGlobalStateInv StateT]
   : ∀ id, SubTraceInvariant (ProofEntryT.internal StateT id)
@@ -424,6 +432,7 @@ instance
 public
 instance
   [TraceTypes] [BytesFunctor] [BytesInvariants]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (StateT: Type) [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
   [CompromisableGlobalStateInv StateT]
   : SubTraceInvariant (ProofEntryT StateT)
@@ -433,6 +442,7 @@ instance
 public
 instance
   [TraceTypes] [BytesFunctor] [BytesInvariants]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (StateT: Type) [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
   [CompromisableGlobalStateInv StateT]
   : TraceInvariant.HasStep (State.ProofEntryT StateT) (ProofEntryT StateT)
@@ -442,6 +452,7 @@ instance
 public
 instance
   [TraceTypes] [BytesFunctor] [BytesInvariants]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (StateT: Type) [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
   [CompromisableGlobalStateInv StateT]
   : TraceInvariant.HasStep (Compromise.ProofEntryT StateT) (ProofEntryT StateT)
@@ -451,6 +462,7 @@ instance
 public
 instance
   [TraceInvariant] [BytesFunctor] [BytesInvariants]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (StateT: Type) [Comparse.ParseableSerializeable StateT]
   [TraceTypes.Has (ProofEntryT StateT)]
   [CompromisableGlobalStateInv StateT]
@@ -463,6 +475,7 @@ instance
 public
 instance baseAttackerKnowledgeTheorem
   [TraceInvariant] [BytesFunctor] [BytesInvariants]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (StateT: Type) [Comparse.ParseableSerializeable StateT]
   [TraceTypes.Has (ProofEntryT StateT)]
   [CompromisableGlobalStateInv StateT]

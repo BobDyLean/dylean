@@ -21,11 +21,32 @@ structure LocalState (StateT: Type) where
   participant: Participant
   state: StateT
 
-noncomputable
 instance
-  [BytesFunctor]
+  [BytesFunctor] [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (StateT: Type)
-  [Comparse.ParseableSerializeable StateT]: Comparse.ParseableSerializeable (LocalState StateT) := Comparse.comparseMetaProgramExists
+  [Comparse.ParseableSerializeable StateT]
+  : Comparse.ParseableSerializeable (LocalState StateT)
+where
+  mf :=
+    .triviallyIsomorphic
+      (.prod .slowString Comparse.ParseableSerializeable.mf)
+      (fun ⟨ participant, state ⟩ => { participant, state })
+      (fun { participant, state } => ⟨ participant, state ⟩)
+
+theorem LocalState.isWellFormedLemma
+  [BytesFunctor] [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+  {StateT: Type} [Comparse.ParseableSerializeable StateT]
+  (pre: Bytes → τ → Prop) [Comparse.BytesCompatibleTracePred pre]
+  (x: LocalState StateT) (tr: τ):
+  Comparse.isWellFormed pre x tr = Comparse.isWellFormed pre x.state tr
+:= by
+  simp [Comparse.isWellFormed, Comparse.ParseableSerializeable.mf]
+
+grind_pattern LocalState.isWellFormedLemma => Comparse.isWellFormed pre x tr
 
 namespace State
 
@@ -233,7 +254,9 @@ public
 noncomputable
 def compromise
   (StateT: Type)
-  [BytesFunctor]
+  [BytesFunctor] [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   [Comparse.ParseableSerializeable StateT]
   [ExecTraceTypes]
   [ExecTraceTypes.Has Network.ExecEntryT]
@@ -358,6 +381,9 @@ class CompromisableLocalStateInv
   (StateT: Type)
   [TraceTypes]
   [BytesFunctor] [BytesInvariants]
+  [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   [Comparse.ParseableSerializeable StateT]
   [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
 extends
@@ -368,17 +394,11 @@ where
       LocalStateInv.invariant participant state tr →
       Comparse.isWellFormed (Bytes.KnowableBy (label participant state)) state tr
 
-axiom LocalState.isWellFormedLemma
-  [BytesFunctor]
-  {StateT: Type} [Comparse.ParseableSerializeable StateT]
-  (pre: Bytes → τ → Prop) [Comparse.BytesCompatible pre]
-  (x: LocalState StateT) (tr: τ):
-  Comparse.isWellFormed pre x tr = Comparse.isWellFormed pre x.state tr
-
-grind_pattern LocalState.isWellFormedLemma => Comparse.isWellFormed pre x tr
-
 instance
   [TraceTypes] [BytesFunctor] [BytesInvariants]
+  [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesInvariants.Has Literal.invariants]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Concat.invariants]
   (StateT: Type)
   [Comparse.ParseableSerializeable StateT]
   [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
@@ -396,13 +416,17 @@ where
 public
 theorem compromise.spec
   {StateT: Type}
-  [BytesFunctor]
+  [BytesFunctor] [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   [Comparse.ParseableSerializeable StateT]
   [TraceInvariant]
   [TraceTypes.Has Network.ProofEntryT]
   [TraceTypes.Has (State.ProofEntryT StateT)]
   [TraceTypes.Has (Compromise.ProofEntryT StateT)]
   [BytesInvariants] [BytesInvariantsProofs]
+  [BytesInvariants.Has Literal.invariants]
+  [BytesInvariants.Has Concat.invariants]
   [Comparse.ParseableSerializeable StateT]
   [CompromisableLocalStateInv StateT]
   [TraceInvariant.Has Network.ProofEntryT]
@@ -485,6 +509,7 @@ instance (StateT: Type): TraceTypes.HasStep (Compromise.ProofEntryT StateT) (Pro
 public
 instance
   [TraceTypes] [BytesFunctor] [BytesInvariants]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (StateT: Type) [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
   [CompromisableLocalStateInv StateT]
   : ∀ id, SubTraceInvariant (ProofEntryT.internal StateT id)
@@ -493,6 +518,7 @@ instance
 public
 instance
   [TraceTypes] [BytesFunctor] [BytesInvariants]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (StateT: Type) [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
   [CompromisableLocalStateInv StateT]
   : SubTraceInvariant (ProofEntryT StateT)
@@ -502,6 +528,7 @@ instance
 public
 instance
   [TraceTypes] [BytesFunctor] [BytesInvariants]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (StateT: Type) [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
   [CompromisableLocalStateInv StateT]
   : TraceInvariant.HasStep (State.ProofEntryT StateT) (ProofEntryT StateT)
@@ -511,6 +538,7 @@ instance
 public
 instance
   [TraceTypes] [BytesFunctor] [BytesInvariants]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (StateT: Type) [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
   [CompromisableLocalStateInv StateT]
   : TraceInvariant.HasStep (Compromise.ProofEntryT StateT) (ProofEntryT StateT)
@@ -520,6 +548,7 @@ instance
 public
 instance
   [TraceInvariant] [BytesFunctor] [BytesInvariants]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (StateT: Type) [Comparse.ParseableSerializeable StateT]
   [TraceTypes.Has (ProofEntryT StateT)]
   [CompromisableLocalStateInv StateT]
@@ -532,6 +561,7 @@ instance
 public
 instance baseAttackerKnowledgeTheorem
   [TraceInvariant] [BytesFunctor] [BytesInvariants]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (StateT: Type) [Comparse.ParseableSerializeable StateT]
   [TraceTypes.Has (ProofEntryT StateT)]
   [CompromisableLocalStateInv StateT]

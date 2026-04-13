@@ -96,6 +96,27 @@ theorem concat_split
   simp only [concat, split]
   grind
 
+@[simp]
+public
+theorem length_concat
+  [BytesLength.Has SubF.length]
+  (lhs rhs: Bytes)
+  : Bytes.length (concat lhs rhs) = Bytes.length lhs + Bytes.length rhs
+:= by
+  simp only [concat]
+  grind [Concat.length]
+
+@[simp]
+public
+theorem length_split
+  [BytesLength.Has SubF.length]
+  (buf: Bytes) (i: Nat) (lhs rhs: Bytes)
+  : split buf i = some (lhs, rhs) →
+    (Bytes.length lhs = i ∧ i+Bytes.length rhs = Bytes.length buf)
+:= by
+  simp only [split]
+  grind [Concat.length]
+
 end Constructors
 
 section AttackerKnowledge
@@ -204,12 +225,12 @@ def Concat.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Con
 public
 abbrev invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs invariants := Concat.Concat.invariantsProofs
 
-variable [BytesInvariants] [BytesInvariants.Has invariants]
 variable [BytesLength]
 
 @[simp]
 public
 theorem concat.WellFormed
+  [BytesWellFormed] [BytesWellFormed.Has invariants.well_formed]
   (lhs rhs: Bytes) (tr: ProofTrace)
   : (concat lhs rhs).WellFormed tr = (lhs.WellFormed tr ∧ rhs.WellFormed tr)
 := by
@@ -218,6 +239,7 @@ theorem concat.WellFormed
 @[simp]
 public
 theorem concat.label
+  [BytesInvariants] [BytesInvariants.Has invariants]
   (lhs rhs: Bytes) (tr: ProofTrace)
   : (concat lhs rhs).label tr = Label.meet (lhs.label tr) (rhs.label tr)
 := by
@@ -226,6 +248,7 @@ theorem concat.label
 @[simp]
 public
 theorem concat.Invariant
+  [BytesInvariants] [BytesInvariants.Has invariants]
   (lhs rhs: Bytes) (tr: ProofTrace)
   : (concat lhs rhs).Invariant tr = (lhs.Invariant tr ∧ rhs.Invariant tr)
 := by
@@ -234,6 +257,7 @@ theorem concat.Invariant
 @[simp]
 public
 theorem split.WellFormed
+  [BytesWellFormed] [BytesWellFormed.Has invariants.well_formed]
   (buf: Bytes) (i: Nat) (tr: ProofTrace)
   : match split buf i with
     | none => True
@@ -249,6 +273,7 @@ theorem split.WellFormed
 @[simp]
 public
 theorem split.label
+  [BytesInvariants] [BytesInvariants.Has invariants]
   (buf: Bytes) (i: Nat) (tr: ProofTrace)
   : match split buf i with
     | none => True
@@ -264,6 +289,7 @@ theorem split.label
 @[simp]
 public
 theorem split.Invariant
+  [BytesInvariants] [BytesInvariants.Has invariants]
   (buf: Bytes) (i: Nat) (tr: ProofTrace)
   : buf.Invariant tr →
     match split buf i with
