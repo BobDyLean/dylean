@@ -109,9 +109,8 @@ def ParseableSerializeable.makeNE
 :=
   .make (mf.toExtensible)
 
--- TODO: FormatRel
 public
-def formatRel [ParseableSerializeable a] (buf: Bytes) (x: a): Prop :=
+def FormatRel [ParseableSerializeable a] (buf: Bytes) (x: a): Prop :=
   buf = serialize x
 
 public
@@ -119,29 +118,30 @@ instance [TraceInvariant] [ParseableSerializeable a]:
   HoareTriple
     (parse buf: Err a)
     (fun _ => True)
-    (fun res _ => formatRel buf res)
+    (fun res _ => FormatRel buf res)
 where
   pf := by
-    simp only [hoareTriple, wp, formatRel, OptionT.run]
+    simp only [hoareTriple, wp, FormatRel, OptionT.run]
     grind [serialize_parse_inv]
 
 public
-theorem serialize_formatRel [ParseableSerializeable a] (x: a):
-  (formatRel (serialize x) x)
+theorem serialize_FormatRel [ParseableSerializeable a] (x: a):
+  (FormatRel (serialize x) x)
 := by
-  simp [formatRel]
+  simp [FormatRel]
 
-grind_pattern serialize_formatRel => serialize x
+grind_pattern serialize_FormatRel => serialize x
+grind_pattern [grind_later] serialize_FormatRel => serialize x
 
 public
-theorem parse_formatRel [ParseableSerializeable a] (b: Bytes):
+theorem parse_FormatRel [ParseableSerializeable a] (b: Bytes):
   match (parse b: Err a) with
   | none => True
-  | some x => formatRel b x
+  | some x => FormatRel b x
 := by
-  grind [formatRel, serialize_parse_inv]
+  grind [FormatRel, serialize_parse_inv]
 
-grind_pattern parse_formatRel => parse (a := a) b
+grind_pattern parse_FormatRel => parse (a := a) b
 
 public
 class BytesCompatibleTracePred (pre: Bytes → τ → Prop) where
@@ -269,58 +269,58 @@ where
       grind [Literal.attacker_knows_literalToBytes]
   }
 
--- TODO naming convention
 @[expose]
 public
-def isWellFormed [ParseableSerializeable a] (pre: Bytes → τ → Prop) (x: a) (tr: τ): Prop :=
+def IsWellFormed [ParseableSerializeable a] (pre: Bytes → τ → Prop) (x: a) (tr: τ): Prop :=
   ParseableSerializeable.mf.wf (pre · tr) x
 
 public
 theorem IsWellFormed_FormatRel [ParseableSerializeable a] (pre: Bytes → τ → Prop) (buf: Bytes) (x: a) (tr: τ):
-  formatRel buf x →
-  (pre buf tr = isWellFormed pre x tr)
+  FormatRel buf x →
+  (pre buf tr = IsWellFormed pre x tr)
 := by
-  simp [formatRel, serialize, isWellFormed]
+  simp [FormatRel, serialize, IsWellFormed]
   simp_all [Comparse.ExtensibleMessageFormat.wf_eq]
 
 public
 theorem IsWellFormed_FormatRel_BytesWellFormed [TraceTypes] [BytesWellFormed] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
-  formatRel buf x →
-  (buf.WellFormed tr = isWellFormed Bytes.WellFormed x tr)
+  FormatRel buf x →
+  (buf.WellFormed tr = IsWellFormed Bytes.WellFormed x tr)
 :=
   IsWellFormed_FormatRel Bytes.WellFormed
 
-grind_pattern IsWellFormed_FormatRel_BytesWellFormed => formatRel buf x, buf.WellFormed tr
+grind_pattern IsWellFormed_FormatRel_BytesWellFormed => FormatRel buf x, buf.WellFormed tr
 
 public
 theorem IsWellFormed_FormatRel_BytesInvariant [TraceTypes] [BytesInvariant] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
-  formatRel buf x →
-  (buf.Invariant tr = isWellFormed Bytes.Invariant x tr)
+  FormatRel buf x →
+  (buf.Invariant tr = IsWellFormed Bytes.Invariant x tr)
 :=
   IsWellFormed_FormatRel Bytes.Invariant
 
-grind_pattern IsWellFormed_FormatRel_BytesInvariant => formatRel buf x, buf.Invariant tr
+grind_pattern IsWellFormed_FormatRel_BytesInvariant => FormatRel buf x, buf.Invariant tr
+grind_pattern [grind_later] IsWellFormed_FormatRel_BytesInvariant => FormatRel buf x, buf.Invariant tr
 
 public
 theorem IsWellFormed_FormatRel_IsPublishable [TraceTypes] [BytesInvariants] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
-  formatRel buf x →
-  (buf.Publishable tr = isWellFormed Bytes.Publishable x tr)
+  FormatRel buf x →
+  (buf.Publishable tr = IsWellFormed Bytes.Publishable x tr)
 :=
   IsWellFormed_FormatRel Bytes.Publishable
 
-grind_pattern IsWellFormed_FormatRel_IsPublishable => formatRel buf x, Bytes.Publishable buf tr
+grind_pattern IsWellFormed_FormatRel_IsPublishable => FormatRel buf x, Bytes.Publishable buf tr
 
 public
-theorem isWellFormedParse [ParseableSerializeable a] (pre: Bytes → τ → Prop) (buf: Bytes) (x: a) (tr: τ):
+theorem IsWellFormedParse [ParseableSerializeable a] (pre: Bytes → τ → Prop) (buf: Bytes) (x: a) (tr: τ):
   parse buf = some x →
   pre buf tr →
-  isWellFormed pre x tr
+  IsWellFormed pre x tr
 := by
   have := serialize_parse_inv buf x
-  simp_all [serialize, isWellFormed]
+  simp_all [serialize, IsWellFormed]
   grind [Comparse.ExtensibleMessageFormat.wf_eq]
 
 end DY.Comparse

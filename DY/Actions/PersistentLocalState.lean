@@ -35,18 +35,18 @@ where
       (fun ⟨ participant, state ⟩ => { participant, state })
       (fun { participant, state } => ⟨ participant, state ⟩)
 
-theorem LocalState.isWellFormedLemma
+theorem LocalState.IsWellFormed_eq
   [BytesFunctor] [BytesLength]
   [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
   [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   {StateT: Type} [Comparse.ParseableSerializeable StateT]
   (pre: Bytes → τ → Prop) [Comparse.BytesCompatibleTracePred pre]
   (x: LocalState StateT) (tr: τ):
-  Comparse.isWellFormed pre x tr = Comparse.isWellFormed pre x.state tr
+  Comparse.IsWellFormed pre x tr = Comparse.IsWellFormed pre x.state tr
 := by
-  simp [Comparse.isWellFormed, Comparse.ParseableSerializeable.mf]
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern LocalState.isWellFormedLemma => Comparse.isWellFormed pre x tr
+grind_pattern LocalState.IsWellFormed_eq => Comparse.IsWellFormed pre x tr
 
 namespace State
 
@@ -392,7 +392,7 @@ where
   invariant_implies_KnowableBy:
     ∀ (participant: Participant) (state: StateT) tr,
       LocalStateInv.invariant participant state tr →
-      Comparse.isWellFormed (Bytes.KnowableBy (label participant state)) state tr
+      Comparse.IsWellFormed (Bytes.KnowableBy (label participant state)) state tr
 
 instance
   [TraceTypes] [BytesFunctor] [BytesInvariants]

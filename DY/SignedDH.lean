@@ -38,13 +38,13 @@ instance: ParseableSerializeable ClientInitiateState where
       (fun ⟨ xPk, xSk ⟩ => { xPk, xSk })
       (fun { xPk, xSk } => ⟨ xPk, xSk ⟩)
 
-theorem ClientInitiateState.isWellFormedLemma
+theorem ClientInitiateState.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ClientInitiateState) (tr: τ):
-  isWellFormed pre x tr = (pre x.xPk tr ∧ pre x.xSk tr)
+  IsWellFormed pre x tr = (pre x.xPk tr ∧ pre x.xSk tr)
 := by
-  simp [Comparse.isWellFormed, Comparse.ParseableSerializeable.mf]
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern ClientInitiateState.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern ClientInitiateState.IsWellFormed_eq => IsWellFormed pre x tr
 
 structure ClientFinishState where
   xPk: Bytes
@@ -57,13 +57,13 @@ instance: ParseableSerializeable ClientFinishState where
       (fun ⟨ xPk, kC ⟩ => { xPk, kC })
       (fun { xPk, kC } => ⟨ xPk, kC ⟩)
 
-theorem ClientFinishState.isWellFormedLemma
+theorem ClientFinishState.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ClientFinishState) (tr: τ):
-  isWellFormed pre x tr = (pre x.xPk tr ∧ pre x.kC tr)
+  IsWellFormed pre x tr = (pre x.xPk tr ∧ pre x.kC tr)
 := by
-  simp [Comparse.isWellFormed, Comparse.ParseableSerializeable.mf]
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern ClientFinishState.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern ClientFinishState.IsWellFormed_eq => IsWellFormed pre x tr
 
 structure ServerFinishState where
   yPk: Bytes
@@ -76,17 +76,13 @@ instance: ParseableSerializeable ServerFinishState where
     (fun ⟨ yPk, kS ⟩ => { yPk, kS })
     (fun { yPk, kS } => ⟨ yPk, kS ⟩)
 
-theorem ServerFinishState.isWellFormedLemma
+theorem ServerFinishState.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ServerFinishState) (tr: τ):
-  isWellFormed pre x tr = (pre x.yPk tr ∧ pre x.kS tr)
+  IsWellFormed pre x tr = (pre x.yPk tr ∧ pre x.kS tr)
 := by
-  simp [Comparse.isWellFormed, Comparse.ParseableSerializeable.mf]
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern ServerFinishState.isWellFormedLemma => isWellFormed pre x tr
-
--- TODO move
-grind_pattern [grind_later] serialize_formatRel => serialize x
-grind_pattern [grind_later] IsWellFormed_FormatRel_BytesInvariant => formatRel buf x, buf.Invariant tr
+grind_pattern ServerFinishState.IsWellFormed_eq => IsWellFormed pre x tr
 
 structure ClientMessage where
   xPk: Bytes
@@ -98,14 +94,14 @@ instance: ParseableSerializeable ClientMessage where
       (fun xPk => { xPk })
       (fun { xPk := xPk } => xPk)
 
-theorem ClientMessage.isWellFormedLemma
+theorem ClientMessage.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ClientMessage) (tr: τ):
-  isWellFormed pre x tr = pre x.xPk tr
+  IsWellFormed pre x tr = pre x.xPk tr
 := by
-  simp [Comparse.isWellFormed, Comparse.ParseableSerializeable.mf]
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern ClientMessage.isWellFormedLemma => isWellFormed pre x tr
-grind_pattern [grind_later] ClientMessage.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern ClientMessage.IsWellFormed_eq => IsWellFormed pre x tr
+grind_pattern [grind_later] ClientMessage.IsWellFormed_eq => IsWellFormed pre x tr
 
 structure ServerMessage where
   yPk: Bytes
@@ -118,17 +114,17 @@ instance: ParseableSerializeable ServerMessage where
     (fun ⟨ yPk, sig ⟩ => { yPk, sig })
     (fun { yPk, sig } => ⟨ yPk, sig ⟩)
 
-theorem ServerMessage.isWellFormedLemma
+theorem ServerMessage.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ServerMessage) (tr: τ):
-  isWellFormed pre x tr = (
+  IsWellFormed pre x tr = (
     pre x.yPk tr ∧
     pre x.sig tr
   )
 := by
-  simp [Comparse.isWellFormed, Comparse.ParseableSerializeable.mf]
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern ServerMessage.isWellFormedLemma => isWellFormed pre x tr
-grind_pattern [grind_later] ServerMessage.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern ServerMessage.IsWellFormed_eq => IsWellFormed pre x tr
+grind_pattern [grind_later] ServerMessage.IsWellFormed_eq => IsWellFormed pre x tr
 
 structure SigInput where
   xPk: Bytes
@@ -141,17 +137,17 @@ instance: ParseableSerializeable SigInput where
     (fun ⟨ xPk, yPk ⟩ => { xPk, yPk })
     (fun { xPk, yPk } => ⟨ xPk, yPk ⟩)
 
-theorem SigInput.isWellFormedLemma
+theorem SigInput.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: SigInput) (tr: τ):
-  isWellFormed pre x tr = (
+  IsWellFormed pre x tr = (
     pre x.xPk tr ∧
     pre x.yPk tr
   )
 := by
-  simp [Comparse.isWellFormed, Comparse.ParseableSerializeable.mf]
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern SigInput.isWellFormedLemma => isWellFormed pre x tr
-grind_pattern [grind_later] SigInput.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern SigInput.IsWellFormed_eq => IsWellFormed pre x tr
+grind_pattern [grind_later] SigInput.IsWellFormed_eq => IsWellFormed pre x tr
 
 inductive SignedDHEvent where
   | ClientInitiateEvent (client: Participant) (xPk: Bytes)

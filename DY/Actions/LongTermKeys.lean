@@ -33,17 +33,17 @@ where
       (fun sk => { sk })
       (fun { sk := sk } => sk)
 
-theorem SecretKeyState.isWellFormedLemma
+theorem SecretKeyState.IsWellFormed_eq
   [BytesFunctor] [BytesLength]
   [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
   [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (pre: Bytes → τ → Prop) [Comparse.BytesCompatibleTracePred pre]
   (x: SecretKeyState name) (tr: τ):
-  Comparse.isWellFormed pre x tr = pre x.sk tr
+  Comparse.IsWellFormed pre x tr = pre x.sk tr
 := by
-  simp [Comparse.isWellFormed, Comparse.ParseableSerializeable.mf]
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern SecretKeyState.isWellFormedLemma => Comparse.isWellFormed pre x tr
+grind_pattern SecretKeyState.IsWellFormed_eq => Comparse.IsWellFormed pre x tr
 
 public
 structure PublicKeyState [BytesFunctor] (name: String) where
@@ -64,17 +64,17 @@ where
       (fun ⟨ p, pk ⟩ => { p, pk })
       (fun { p, pk } => ⟨ p, pk ⟩)
 
-theorem PublicKeyState.isWellFormedLemma
+theorem PublicKeyState.IsWellFormed_eq
   [BytesFunctor] [BytesLength]
   [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
   [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (pre: Bytes → τ → Prop) [Comparse.BytesCompatibleTracePred pre]
   (x: PublicKeyState name) (tr: τ):
-  Comparse.isWellFormed pre x tr = pre x.pk tr
+  Comparse.IsWellFormed pre x tr = pre x.pk tr
 := by
-  simp [Comparse.isWellFormed, Comparse.ParseableSerializeable.mf]
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern PublicKeyState.isWellFormedLemma => Comparse.isWellFormed pre x tr
+grind_pattern PublicKeyState.IsWellFormed_eq => Comparse.IsWellFormed pre x tr
 
 variable [BytesFunctor]
 variable (name: String)

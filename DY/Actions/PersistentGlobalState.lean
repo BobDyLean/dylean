@@ -321,7 +321,7 @@ where
   invariant_implies_KnowableBy:
     ∀ (state: StateT) tr,
       GlobalStateInv.invariant state tr →
-      Comparse.isWellFormed (Bytes.KnowableBy (label state)) state tr
+      Comparse.IsWellFormed (Bytes.KnowableBy (label state)) state tr
 
 @[instance]
 public
@@ -354,7 +354,7 @@ theorem compromise.spec
   step by
     have := CompromisableGlobalStateInv.invariant_implies_KnowableBy state tr
     have : (label state).isCorrupt tr.erase := by simp_all [label, ProtocolEvent.label_isCorrupt]
-    grind [Comparse.isWellFormed, canFlowTrans]
+    grind [Comparse.IsWellFormed, canFlowTrans]
   trivial
 
 end Proof
