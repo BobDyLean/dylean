@@ -26,12 +26,11 @@ instance
   [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (name: String)
   : Comparse.ParseableSerializeable (SecretKeyState name)
-where
-  mf :=
-    .triviallyIsomorphic
-      (.bytes)
-      (fun sk => { sk })
-      (fun { sk := sk } => sk)
+:= .make <|
+  .triviallyIsomorphic
+    (.bytes)
+    (fun sk => { sk })
+    (fun { sk := sk } => sk)
 
 theorem SecretKeyState.IsWellFormed_eq
   [BytesFunctor] [BytesLength]
@@ -57,12 +56,11 @@ instance
   [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   (name: String)
   : Comparse.ParseableSerializeable (PublicKeyState name)
-where
-  mf :=
-    .triviallyIsomorphic
-      (.prod .slowString .bytes)
-      (fun ⟨ p, pk ⟩ => { p, pk })
-      (fun { p, pk } => ⟨ p, pk ⟩)
+:= .make <|
+  .triviallyIsomorphic
+    (.prod .slowString .bytes)
+    (fun ⟨ p, pk ⟩ => { p, pk })
+    (fun { p, pk } => ⟨ p, pk ⟩)
 
 theorem PublicKeyState.IsWellFormed_eq
   [BytesFunctor] [BytesLength]

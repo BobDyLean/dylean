@@ -28,12 +28,11 @@ instance
   (StateT: Type)
   [Comparse.ParseableSerializeable StateT]
   : Comparse.ParseableSerializeable (LocalState StateT)
-where
-  mf :=
-    .triviallyIsomorphic
-      (.prod .slowString Comparse.ParseableSerializeable.mf)
-      (fun ⟨ participant, state ⟩ => { participant, state })
-      (fun { participant, state } => ⟨ participant, state ⟩)
+:= .make <|
+  .triviallyIsomorphic
+    (.prod .slowString Comparse.ParseableSerializeable.mf)
+    (fun ⟨ participant, state ⟩ => { participant, state })
+    (fun { participant, state } => ⟨ participant, state ⟩)
 
 theorem LocalState.IsWellFormed_eq
   [BytesFunctor] [BytesLength]

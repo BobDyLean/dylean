@@ -31,12 +31,11 @@ structure ClientInitiateState where
   xPk: Bytes
   xSk: Bytes
 
-instance: ParseableSerializeable ClientInitiateState where
-  mf :=
-    .triviallyIsomorphic
-      (.prod .slowBytes .bytes)
-      (fun ⟨ xPk, xSk ⟩ => { xPk, xSk })
-      (fun { xPk, xSk } => ⟨ xPk, xSk ⟩)
+instance: ParseableSerializeable ClientInitiateState := .make <|
+  .triviallyIsomorphic
+    (.prod .slowBytes .bytes)
+    (fun ⟨ xPk, xSk ⟩ => { xPk, xSk })
+    (fun { xPk, xSk } => ⟨ xPk, xSk ⟩)
 
 theorem ClientInitiateState.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ClientInitiateState) (tr: τ):
@@ -50,12 +49,11 @@ structure ClientFinishState where
   xPk: Bytes
   kC: Bytes
 
-instance: ParseableSerializeable ClientFinishState where
-  mf :=
-    .triviallyIsomorphic
-      (.prod .slowBytes .bytes)
-      (fun ⟨ xPk, kC ⟩ => { xPk, kC })
-      (fun { xPk, kC } => ⟨ xPk, kC ⟩)
+instance: ParseableSerializeable ClientFinishState := .make <|
+  .triviallyIsomorphic
+    (.prod .slowBytes .bytes)
+    (fun ⟨ xPk, kC ⟩ => { xPk, kC })
+    (fun { xPk, kC } => ⟨ xPk, kC ⟩)
 
 theorem ClientFinishState.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ClientFinishState) (tr: τ):
@@ -69,12 +67,11 @@ structure ServerFinishState where
   yPk: Bytes
   kS: Bytes
 
-instance: ParseableSerializeable ServerFinishState where
-  mf :=
-    .triviallyIsomorphic
-    (.prod .slowBytes .bytes)
-    (fun ⟨ yPk, kS ⟩ => { yPk, kS })
-    (fun { yPk, kS } => ⟨ yPk, kS ⟩)
+instance: ParseableSerializeable ServerFinishState := .make <|
+  .triviallyIsomorphic
+  (.prod .slowBytes .bytes)
+  (fun ⟨ yPk, kS ⟩ => { yPk, kS })
+  (fun { yPk, kS } => ⟨ yPk, kS ⟩)
 
 theorem ServerFinishState.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ServerFinishState) (tr: τ):
@@ -87,12 +84,11 @@ grind_pattern ServerFinishState.IsWellFormed_eq => IsWellFormed pre x tr
 structure ClientMessage where
   xPk: Bytes
 
-instance: ParseableSerializeable ClientMessage where
-  mf :=
-    .triviallyIsomorphic
-      (.bytes)
-      (fun xPk => { xPk })
-      (fun { xPk := xPk } => xPk)
+instance: ParseableSerializeable ClientMessage := .make <|
+  .triviallyIsomorphic
+    (.bytes)
+    (fun xPk => { xPk })
+    (fun { xPk := xPk } => xPk)
 
 theorem ClientMessage.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ClientMessage) (tr: τ):
@@ -107,12 +103,11 @@ structure ServerMessage where
   yPk: Bytes
   sig: Bytes
 
-instance: ParseableSerializeable ServerMessage where
-  mf :=
-    .triviallyIsomorphic
-    (.prod .slowBytes .bytes)
-    (fun ⟨ yPk, sig ⟩ => { yPk, sig })
-    (fun { yPk, sig } => ⟨ yPk, sig ⟩)
+instance: ParseableSerializeable ServerMessage := .make <|
+  .triviallyIsomorphic
+  (.prod .slowBytes .bytes)
+  (fun ⟨ yPk, sig ⟩ => { yPk, sig })
+  (fun { yPk, sig } => ⟨ yPk, sig ⟩)
 
 theorem ServerMessage.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ServerMessage) (tr: τ):
@@ -130,12 +125,11 @@ structure SigInput where
   xPk: Bytes
   yPk: Bytes
 
-instance: ParseableSerializeable SigInput where
-  mf :=
-    .triviallyIsomorphic
-    (.prod .slowBytes .bytes)
-    (fun ⟨ xPk, yPk ⟩ => { xPk, yPk })
-    (fun { xPk, yPk } => ⟨ xPk, yPk ⟩)
+instance: ParseableSerializeable SigInput := .make <|
+  .triviallyIsomorphic
+  (.prod .slowBytes .bytes)
+  (fun ⟨ xPk, yPk ⟩ => { xPk, yPk })
+  (fun { xPk, yPk } => ⟨ xPk, yPk ⟩)
 
 theorem SigInput.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: SigInput) (tr: τ):
@@ -223,12 +217,11 @@ where
 structure LongTermKeyUsage where
   principal: Participant
 
-instance : ParseableSerializeable LongTermKeyUsage where
-  mf :=
-    .triviallyIsomorphic
-      (.string)
-      (fun principal => { principal })
-      (fun { principal := principal } => principal)
+instance : ParseableSerializeable LongTermKeyUsage := .make <|
+  .triviallyIsomorphic
+    (.string)
+    (fun principal => { principal })
+    (fun { principal := principal } => principal)
 
 
 @[grind]

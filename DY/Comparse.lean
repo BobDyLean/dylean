@@ -86,9 +86,8 @@ theorem serialize_parse_inv
   simp only [parse, serialize]
   grind [Comparse.ExtensibleMessageFormat.HasUniqueRepresentation.serialize_parse_inv]
 
-@[implicit_reducible]
 public
-def ParseableSerializeable.make
+abbrev ParseableSerializeable.make
   {a: Type}
   (mf: Comparse.ExtensibleMessageFormat Bytes a)
   [mf.IsNonAmbiguous]
@@ -97,9 +96,8 @@ def ParseableSerializeable.make
 where
   mf := mf
 
-@[implicit_reducible]
 public
-def ParseableSerializeable.makeNE
+abbrev ParseableSerializeable.makeNE
   {a: Type}
   (mf: Comparse.NonExtensibleMessageFormat Bytes a)
   [mf.IsNonAmbiguous]
