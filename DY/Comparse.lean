@@ -66,8 +66,7 @@ theorem parse_serialize_inv
 := by
   simp [parse, serialize, Comparse.ExtensibleMessageFormat.IsNonAmbiguous.parse_serialize_inv]
 
--- TODO: do we need this grind pattern, or is the injectivity one below enough?
-grind_pattern parse_serialize_inv => serialize x
+grind_pattern parse_serialize_inv => parse (serialize x)
 
 @[grind inj]
 public
@@ -76,7 +75,7 @@ theorem serialize_injective
   : Function.Injective (serialize: a → Bytes)
 := by
   simp only [Function.Injective]
-  grind
+  grind [parse_serialize_inv]
 
 theorem serialize_parse_inv
   {a: Type} [ParseableSerializeable a]
