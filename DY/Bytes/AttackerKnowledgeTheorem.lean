@@ -17,7 +17,7 @@ public import DY.Trace
 namespace DY
 
 variable [BytesFunctor]
-variable [TraceInvariant]
+variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
 variable [BytesInvariants]
 
 public

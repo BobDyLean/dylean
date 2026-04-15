@@ -220,7 +220,7 @@ end AttackerKnowledge
 
 section Invariants
 
-variable [TraceTypes]
+variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
@@ -383,7 +383,7 @@ end Signature
 
 section ExtractSignKey
 
-variable [TraceTypes]
+variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor]
 variable [BytesFunctor.Has Signature.SubF]
 
@@ -507,7 +507,7 @@ namespace Signature
 
 section Invariants
 
-variable [TraceTypes]
+variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 variable [SignPred]
@@ -597,7 +597,7 @@ variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
 instance
-  [TraceTypes]
+  [ExecTraceTypes] [ProofTraceTypes]
   [SignPred]
   [BytesInvariants] [BytesInvariants.Has invariants]
   (sk: Bytes)
@@ -654,7 +654,7 @@ where
 
 public
 instance
-  [TraceTypes]
+  [ExecTraceTypes] [ProofTraceTypes]
   [SignPred]
   [BytesInvariants] [BytesInvariants.Has invariants]
   (sk nonce msg: Bytes) (skUsg: Usage)
@@ -722,7 +722,7 @@ where
 
 public
 instance
-  [TraceTypes]
+  [ExecTraceTypes] [ProofTraceTypes]
   [SignPred]
   [BytesInvariants] [BytesInvariants.Has invariants]
   (vkey msg sig: Bytes) (skUsg: Usage)
@@ -753,7 +753,7 @@ end HoareTriples
 
 section AttackerKnowledgeTheorem
 
-variable [TraceInvariant]
+variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
 variable [SignPred]

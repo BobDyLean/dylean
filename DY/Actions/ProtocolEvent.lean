@@ -21,12 +21,15 @@ public
 instance (EventT: Type): ErasableProofEntry (ExecEntryT EventT) (ProofEntryT EventT) := ErasableProofEntry.default (ExecEntryT EventT)
 
 public
-class EventInv [TraceTypes] (EventT: Type) where
+instance (EventT: Type): ExecEntryAssociatedWithProofEntry (ExecEntryT EventT) (ProofEntryT EventT) where
+
+public
+class EventInv [ExecTraceTypes] [ProofTraceTypes] (EventT: Type) where
   invariant: ProofTrace → EventT → Prop
 
 public
 instance
-  [TraceTypes] (EventT: Type) [EventInv EventT]
+  [ExecTraceTypes] [ProofTraceTypes] (EventT: Type) [EventInv EventT]
   : SubTraceInvariant (ProofEntryT EventT)
 where
   invariant tr entry :=
@@ -34,9 +37,10 @@ where
 
 public
 instance baseAttackerKnowledgeTheorem
-  [TraceInvariant] [BytesFunctor] [BytesInvariants]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [BytesFunctor] [BytesInvariants]
   (EventT: Type)
-  [TraceTypes.Has (ProofEntryT EventT)]
+  [ExecTraceTypes.Has (ExecEntryT EventT)]
+  [ProofTraceTypes.Has (ProofEntryT EventT)]
   [EventInv EventT]
   [TraceInvariant.Has (ProofEntryT EventT)]
   : SubBaseAttackerKnowledgeTheorem (ProofEntryT EventT) (baseAttackerKnowledge EventT)
@@ -85,9 +89,9 @@ abbrev _root_.DY.Trace.EventLogged
 public
 theorem _root_.DY.Trace.EventLoggedAt_imp_EventInv
   {EventT: Type}
-  [TraceInvariant]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [EventInv EventT]
-  [TraceTypes.Has (ProofEntryT EventT)] [TraceInvariant.Has (ProofEntryT EventT)]
+  [ExecTraceTypes.Has (ExecEntryT EventT)] [ProofTraceTypes.Has (ProofEntryT EventT)] [TraceInvariant.Has (ProofEntryT EventT)]
   (ev: EventT)
   (i: Nat)
   (tr: ProofTrace)
@@ -118,9 +122,9 @@ def logEvent
 public
 theorem logEvent.spec
   {EventT: Type}
-  [TraceInvariant]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [EventInv EventT]
-  [TraceTypes.Has (ProofEntryT EventT)] [TraceInvariant.Has (ProofEntryT EventT)]
+  [ExecTraceTypes.Has (ExecEntryT EventT)] [ProofTraceTypes.Has (ProofEntryT EventT)] [TraceInvariant.Has (ProofEntryT EventT)]
   (ev: EventT)
   : HoareTriple
     (logEvent ev)

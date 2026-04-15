@@ -191,7 +191,7 @@ where
 
 public
 class ProofConfig
-  [BytesFunctor] [TraceTypes] [BytesInvariants]
+  [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [BytesInvariants]
   (name: String) {skToPk: outParam (Bytes → Bytes)} (usage: outParam (Participant → Usage))
   [ExecConfig name skToPk]
   [ExecTraceTypes.Has (ExecEntryT name)]
@@ -222,7 +222,7 @@ grind_pattern [grind_later] ProofConfig.IsLongTermPublicKey_le => tr1 ≤ tr2, P
 
 public
 theorem IsLongTermPublicKey_implies_Invariant
-  [BytesFunctor] [TraceTypes] [BytesInvariants]
+  [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [BytesInvariants]
   (name: String) {skToPk: Bytes → Bytes} (usage: Participant → Usage)
   [ExecTraceTypes.Has (ExecEntryT name)]
   [ExecConfig name skToPk] [ProofConfig name usage]
@@ -238,7 +238,7 @@ grind_pattern [grind_later] IsLongTermPublicKey_implies_Invariant => IsLongTermP
 @[expose]
 public
 def IsLongTermSecretKey
-  [BytesFunctor] [TraceTypes] [BytesInvariants]
+  [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [BytesInvariants]
   (name: String) {skToPk: Bytes → Bytes} {usage: Participant → Usage}
   [ExecTraceTypes.Has (ExecEntryT name)]
   [ExecConfig name skToPk] [ProofConfig name usage]
@@ -251,7 +251,7 @@ def IsLongTermSecretKey
 
 public
 theorem IsLongTermSecretKey_later
-  [BytesFunctor] [TraceTypes] [BytesInvariants] [BytesInvariantsProofs]
+  [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [BytesInvariants] [BytesInvariantsProofs]
   (name: String) {skToPk: Bytes → Bytes} {usage: Participant → Usage}
   [ExecTraceTypes.Has (ExecEntryT name)]
   [ExecConfig name skToPk] [ProofConfig name usage]
@@ -266,7 +266,7 @@ grind_pattern [grind_later] IsLongTermSecretKey_later => tr1 ≤ tr2, IsLongTerm
 
 section
 
-variable [BytesFunctor] [BytesLength] [TraceTypes] [BytesInvariants] [BytesInvariantsProofs]
+variable [BytesFunctor] [BytesLength] [ExecTraceTypes] [ProofTraceTypes] [BytesInvariants] [BytesInvariantsProofs]
 variable [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
 variable [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
 variable [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
@@ -307,7 +307,7 @@ def ProofEntryT.internal: Fin 2 → Type
 @[expose, implicit_reducible]
 public
 def ProofEntryT: Type :=
-  TraceTypes.combine (ProofEntryT.internal name)
+  ProofTraceTypes.combine (ProofEntryT.internal name)
 
 public
 instance: ∀ id, ErasableProofEntry (ExecEntryT.internal name id) (ProofEntryT.internal name id)
@@ -315,15 +315,15 @@ instance: ∀ id, ErasableProofEntry (ExecEntryT.internal name id) (ProofEntryT.
 
 public
 instance: ErasableProofEntry (ExecEntryT name) (ProofEntryT name) :=
-  (inferInstance: ErasableProofEntry (ExecTraceTypes.combine (ExecEntryT.internal name)) (TraceTypes.combine (ProofEntryT.internal name)))
+  (inferInstance: ErasableProofEntry (ExecTraceTypes.combine (ExecEntryT.internal name)) (ProofTraceTypes.combine (ProofEntryT.internal name)))
 
 public
-instance: TraceTypes.HasStep (PersistentLocalState.CompromisableState.ProofEntryT (SecretKeyState name)) (ProofEntryT name) :=
-  inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal name 0) (TraceTypes.combine (ProofEntryT.internal name)))
+instance: ProofTraceTypes.HasStep (PersistentLocalState.CompromisableState.ProofEntryT (SecretKeyState name)) (ProofEntryT name) :=
+  inferInstanceAs (ProofTraceTypes.HasStep (ProofEntryT.internal name 0) (ProofTraceTypes.combine (ProofEntryT.internal name)))
 
 public
-instance: TraceTypes.HasStep (PersistentGlobalState.CompromisableState.ProofEntryT (PublicKeyState name)) (ProofEntryT name) :=
-  inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal name 1) (TraceTypes.combine (ProofEntryT.internal name)))
+instance: ProofTraceTypes.HasStep (PersistentGlobalState.CompromisableState.ProofEntryT (PublicKeyState name)) (ProofEntryT name) :=
+  inferInstanceAs (ProofTraceTypes.HasStep (ProofEntryT.internal name 1) (ProofTraceTypes.combine (ProofEntryT.internal name)))
 
 public
 instance
@@ -334,19 +334,19 @@ public
 instance
   : SubTraceInvariant (ProofEntryT name)
 :=
-  (inferInstance: SubTraceInvariant (TraceTypes.combine (ProofEntryT.internal name)))
+  (inferInstance: SubTraceInvariant (ProofTraceTypes.combine (ProofEntryT.internal name)))
 
 public
 instance
   : TraceInvariant.HasStep (PersistentLocalState.CompromisableState.ProofEntryT (SecretKeyState name)) (ProofEntryT name)
 :=
-  inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal name 0) (TraceTypes.combine (ProofEntryT.internal name)))
+  inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal name 0) (ProofTraceTypes.combine (ProofEntryT.internal name)))
 
 public
 instance
   : TraceInvariant.HasStep (PersistentGlobalState.CompromisableState.ProofEntryT (PublicKeyState name)) (ProofEntryT name)
 :=
-  inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal name 1) (TraceTypes.combine (ProofEntryT.internal name)))
+  inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal name 1) (ProofTraceTypes.combine (ProofEntryT.internal name)))
 
 end
 
@@ -354,9 +354,10 @@ section
 
 public
 instance
-  [BytesFunctor] [TraceInvariant] [BytesInvariants] [BytesInvariantsProofs]
+  [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [BytesInvariants] [BytesInvariantsProofs]
   [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
-  [TraceTypes.Has (ProofEntryT name)]
+  [ExecTraceTypes.Has (ExecEntryT name)]
+  [ProofTraceTypes.Has (ProofEntryT name)]
   {skToPk: Bytes → Bytes} {usage: Participant → Usage}
   [ExecConfig name skToPk] [ProofConfig name usage]
   [TraceInvariant.Has (ProofEntryT name)]
@@ -367,10 +368,11 @@ instance
 
 public
 instance baseAttackerKnowledgeTheorem
-  [BytesFunctor] [TraceInvariant] [BytesInvariants] [BytesInvariantsProofs]
+  [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [BytesInvariants] [BytesInvariantsProofs]
   [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
   (name: String) {skToPk: Bytes → Bytes} {usage: Participant → Usage}
-  [TraceTypes.Has (ProofEntryT name)]
+  [ExecTraceTypes.Has (ExecEntryT name)]
+  [ProofTraceTypes.Has (ProofEntryT name)]
   [ExecConfig name skToPk] [ProofConfig name usage]
   [TraceInvariant.Has (ProofEntryT name)]
   : SubBaseAttackerKnowledgeTheorem (ProofEntryT name) (baseAttackerKnowledge name)
@@ -384,7 +386,7 @@ end
 public
 theorem generateKeyPair.spec
   [BytesFunctor]
-  [TraceInvariant]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
   [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
 
@@ -393,9 +395,12 @@ theorem generateKeyPair.spec
 
   [BytesFunctor.Has Random.SubF]
 
-  [TraceTypes.Has <| Random.ProofEntryT]
-  [TraceTypes.Has <| Network.ProofEntryT]
-  [TraceTypes.Has <| ProofEntryT name]
+  [ExecTraceTypes.Has <| Random.ExecEntryT]
+  [ProofTraceTypes.Has <| Random.ProofEntryT]
+  [ExecTraceTypes.Has <| Network.ExecEntryT]
+  [ProofTraceTypes.Has <| Network.ProofEntryT]
+  [ExecTraceTypes.Has <| ExecEntryT name]
+  [ProofTraceTypes.Has <| ProofEntryT name]
 
   [BytesInvariants.Has <| Random.invariants]
 
@@ -431,7 +436,7 @@ theorem generateKeyPair.spec
 public
 theorem getPublicKey.spec
   [BytesFunctor]
-  [TraceInvariant]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
   [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
 
@@ -439,7 +444,8 @@ theorem getPublicKey.spec
   {skToPk: Bytes → Bytes} {usage: Participant → Usage}
 
   [BytesFunctor.Has Random.SubF]
-  [TraceTypes.Has <| ProofEntryT name]
+  [ExecTraceTypes.Has <| ExecEntryT name]
+  [ProofTraceTypes.Has <| ProofEntryT name]
   [ExecConfig name skToPk] [ProofConfig name usage]
   [TraceInvariant.Has <| ProofEntryT name]
   (p: Participant)
@@ -458,7 +464,7 @@ theorem getPublicKey.spec
 public
 theorem getPrivateKey.spec
   [BytesFunctor]
-  [TraceInvariant]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
   [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
 
@@ -466,7 +472,8 @@ theorem getPrivateKey.spec
   {skToPk: Bytes → Bytes} {usage: Participant → Usage}
 
   [BytesFunctor.Has Random.SubF]
-  [TraceTypes.Has <| ProofEntryT name]
+  [ExecTraceTypes.Has <| ExecEntryT name]
+  [ProofTraceTypes.Has <| ProofEntryT name]
   [ExecConfig name skToPk] [ProofConfig name usage]
   [TraceInvariant.Has <| ProofEntryT name]
   (p: Participant)

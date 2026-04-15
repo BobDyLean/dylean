@@ -28,13 +28,18 @@ instance [BytesFunctor] [ExecTraceTypes]: ErasableProofEntry ExecEntryT ProofEnt
   erase | {length, label := _, usage := _} => { length }
 
 public
-instance [BytesFunctor] [TraceTypes]: SubTraceInvariant ProofEntryT where
+instance[BytesFunctor] [ExecTraceTypes]: ExecEntryAssociatedWithProofEntry ExecEntryT ProofEntryT where
+
+public
+instance [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes]: SubTraceInvariant ProofEntryT where
   invariant _ _ := True
 
 public
 instance baseAttackerKnowledgeTheorem
-  [BytesFunctor] [TraceInvariant] [BytesInvariants]
-  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
+  [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [BytesInvariants]
+  [ExecTraceTypes.Has ExecEntryT]
+  [ProofTraceTypes.Has ProofEntryT]
+  [TraceInvariant.Has ProofEntryT]
   : SubBaseAttackerKnowledgeTheorem ProofEntryT baseAttackerKnowledge
 where
   pf trBefore entry b := by
@@ -114,9 +119,10 @@ end AttackerKnowledge
 
 section Invariants
 
-variable [TraceTypes]
+variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
-variable [TraceTypes.Has ProofEntryT]
+variable [ExecTraceTypes.Has ExecEntryT]
+variable [ProofTraceTypes.Has ProofEntryT]
 
 public
 def Random.invariants: Bytes.PartialInvariants Random where
@@ -126,7 +132,7 @@ def Random.invariants: Bytes.PartialInvariants Random where
 
   usage := fun {timestamp, size := _} _rec tr =>
     if h_timestamp: timestamp < tr.length then
-      match TraceTypes.Has.proofProj (tr.at timestamp h_timestamp) with
+      match ProofTraceTypes.Has.proofProj (tr.at timestamp h_timestamp) with
       | some (entry: ProofEntryT) =>
         entry.usage
       | none => Usage.nothing
@@ -135,7 +141,7 @@ def Random.invariants: Bytes.PartialInvariants Random where
 
   label := fun {timestamp, size := _} _rec tr =>
     if h_timestamp: timestamp < tr.length then
-      match TraceTypes.Has.proofProj (tr.at timestamp h_timestamp) with
+      match ProofTraceTypes.Has.proofProj (tr.at timestamp h_timestamp) with
       | some (entry: ProofEntryT) =>
         entry.label
       | none => Label.pub
@@ -184,10 +190,11 @@ end Invariants
 
 section AttackerKnowledgeTheorem
 
-variable [TraceInvariant]
+variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
-variable [TraceTypes.Has ProofEntryT]
+variable [ExecTraceTypes.Has ExecEntryT]
+variable [ProofTraceTypes.Has ProofEntryT]
 variable [BytesInvariants.Has invariants]
 
 public
@@ -219,10 +226,10 @@ where
 public
 theorem genRand.spec
   [BytesFunctor]
-  [TraceInvariant]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
   [BytesFunctor.Has SubF]
-  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
+  [ExecTraceTypes.Has ExecEntryT] [ProofTraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
   [BytesInvariants.Has invariants]
   (size: Nat)
   (label: Bytes → Label) (usage: Usage)

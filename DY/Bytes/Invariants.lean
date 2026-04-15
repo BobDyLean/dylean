@@ -14,7 +14,7 @@ public meta import DY.Trace.Grind
 namespace DY
 
 variable [BytesFunctor]
-variable [TraceTypes]
+variable [ExecTraceTypes] [ProofTraceTypes]
 
 -- Well formed
 

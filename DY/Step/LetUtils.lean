@@ -206,11 +206,11 @@ def hoistArgumentsInWpAux
   : MetaM (Option Expr)
   := do
     let (fn, args) := e.withApp Prod.mk
-    unless fn.constName = ``DY.wp && args.size = 7 do
+    unless fn.constName = ``DY.wp && args.size = 8 do
       return none
-    match ← hoistArguments isExplicitComplexExpr args[4]! with
+    match ← hoistArguments isExplicitComplexExpr args[5]! with
     | .some arg1 =>
-      let args := args.set! 4 arg1
+      let args := args.set! 5 arg1
       pure (some (mkAppN fn args))
     | .none => pure none
 
@@ -229,7 +229,7 @@ elab "hoist" : tactic => do
   replaceMainGoal ([← hoist (← getMainGoal)])
 
 namespace Test
-  variable [BytesFunctor] [TraceInvariant]
+  variable [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   def g (foo: Bytes) (bar: Bytes) := foo
   def send_message (b: Bytes): Traceful Nat := sorry
 

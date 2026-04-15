@@ -111,7 +111,7 @@ def FormatRel [ParseableSerializeable a] (buf: Bytes) (x: a): Prop :=
   buf = serialize x
 
 public
-instance [TraceInvariant] [ParseableSerializeable a]:
+instance [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [ParseableSerializeable a]:
   HoareTriple
     (parse buf: Err a)
     (fun _ => True)
@@ -149,7 +149,7 @@ instance (pre: Bytes → τ → Prop) [inst: BytesCompatibleTracePred pre] (tr: 
 
 public
 instance
-  [TraceTypes]
+  [ExecTraceTypes] [ProofTraceTypes]
   [BytesWellFormed]
   [BytesWellFormed.Has Literal.invariants.well_formed] [BytesWellFormed.Has Concat.invariants.well_formed]
   : BytesCompatibleTracePred Bytes.WellFormed
@@ -171,7 +171,7 @@ where
 
 public
 instance
-  [TraceTypes]
+  [ExecTraceTypes] [ProofTraceTypes]
   [BytesInvariants]
   [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
   : BytesCompatibleTracePred Bytes.Invariant
@@ -193,7 +193,7 @@ where
 
 public
 instance
-  [TraceTypes]
+  [ExecTraceTypes] [ProofTraceTypes]
   [BytesInvariants]
   [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
   : BytesCompatibleTracePred Bytes.Publishable
@@ -218,7 +218,7 @@ where
 
 public
 instance
-  [TraceTypes]
+  [ExecTraceTypes] [ProofTraceTypes]
   [BytesInvariants]
   [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
   (l: Label)
@@ -280,7 +280,7 @@ theorem IsWellFormed_FormatRel [ParseableSerializeable a] (pre: Bytes → τ →
   simp_all [Comparse.ExtensibleMessageFormat.wf_eq]
 
 public
-theorem IsWellFormed_FormatRel_BytesWellFormed [TraceTypes] [BytesWellFormed] [ParseableSerializeable a]:
+theorem IsWellFormed_FormatRel_BytesWellFormed [ExecTraceTypes] [ProofTraceTypes] [BytesWellFormed] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
   FormatRel buf x →
   (buf.WellFormed tr = IsWellFormed Bytes.WellFormed x tr)
@@ -290,7 +290,7 @@ theorem IsWellFormed_FormatRel_BytesWellFormed [TraceTypes] [BytesWellFormed] [P
 grind_pattern IsWellFormed_FormatRel_BytesWellFormed => FormatRel buf x, buf.WellFormed tr
 
 public
-theorem IsWellFormed_FormatRel_BytesInvariant [TraceTypes] [BytesInvariant] [ParseableSerializeable a]:
+theorem IsWellFormed_FormatRel_BytesInvariant [ExecTraceTypes] [ProofTraceTypes] [BytesInvariant] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
   FormatRel buf x →
   (buf.Invariant tr = IsWellFormed Bytes.Invariant x tr)
@@ -301,7 +301,7 @@ grind_pattern IsWellFormed_FormatRel_BytesInvariant => FormatRel buf x, buf.Inva
 grind_pattern [grind_later] IsWellFormed_FormatRel_BytesInvariant => FormatRel buf x, buf.Invariant tr
 
 public
-theorem IsWellFormed_FormatRel_IsPublishable [TraceTypes] [BytesInvariants] [ParseableSerializeable a]:
+theorem IsWellFormed_FormatRel_IsPublishable [ExecTraceTypes] [ProofTraceTypes] [BytesInvariants] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
   FormatRel buf x →
   (buf.Publishable tr = IsWellFormed Bytes.Publishable x tr)

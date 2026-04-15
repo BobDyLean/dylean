@@ -12,13 +12,15 @@ namespace DY
 
 public
 class SubBaseAttackerKnowledgeTheorem
-  [TraceInvariant]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesFunctor] [BytesInvariants]
   {ExecEntryT: Type}
   (ProofEntryT: Type)
   [ErasableProofEntry ExecEntryT ProofEntryT]
   [SubTraceInvariant ProofEntryT]
-  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
+  [ExecTraceTypes.Has ExecEntryT]
+  [ProofTraceTypes.Has ProofEntryT]
+  [TraceInvariant.Has ProofEntryT]
   (att: SubBaseAttackerKnowledge ExecEntryT)
 where
   pf: ∀ trBefore (entry: ProofEntryT) (b: Bytes),
@@ -28,7 +30,7 @@ where
 
 public
 class BaseAttackerKnowledgeTheorem
-  [TraceInvariant]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesFunctor] [BytesInvariants]
   [BaseAttackerKnowledge]
 where
@@ -36,23 +38,25 @@ where
 
 public
 instance instSubBaseAttackerKnowledgeTheoremCombine
-  [TraceInvariant]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesFunctor] [BytesInvariants]
   {n: Nat}
   {ExecTypes: Fin n → Type} {ProofTypes: Fin n → Type}
   [∀ id, ErasableProofEntry (ExecTypes id) (ProofTypes id)]
   [∀ id, SubTraceInvariant (ProofTypes id)]
-  [TraceTypes.Has (TraceTypes.combine ProofTypes)] [TraceInvariant.Has (TraceTypes.combine ProofTypes)]
+  [ExecTraceTypes.Has (ExecTraceTypes.combine ExecTypes)]
+  [ProofTraceTypes.Has (ProofTraceTypes.combine ProofTypes)]
+  [TraceInvariant.Has (ProofTraceTypes.combine ProofTypes)]
   (atts: (id: Fin n) → SubBaseAttackerKnowledge (ExecTypes id))
   [attThms: (id: Fin n) → SubBaseAttackerKnowledgeTheorem (ProofTypes id) (atts id)]
-  : SubBaseAttackerKnowledgeTheorem (TraceTypes.combine ProofTypes) (SubBaseAttackerKnowledge.combine atts)
+  : SubBaseAttackerKnowledgeTheorem (ProofTraceTypes.combine ProofTypes) (SubBaseAttackerKnowledge.combine atts)
 where
   pf := fun trBefore { id, entry } b =>
     (attThms id).pf trBefore entry b
 
 public
 theorem Trace.BaseAttackerKnows_implies_Publishable
-  [TraceInvariant]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesFunctor] [BytesInvariants] [BytesInvariantsProofs]
   [BaseAttackerKnowledge] [BaseAttackerKnowledgeTheorem]
   (tr: ProofTrace) (b: Bytes)

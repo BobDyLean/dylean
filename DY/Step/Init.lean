@@ -42,11 +42,11 @@ def preservesInvariantTelescope
     let (fName, args) := type.getAppFnArgs
     trace[Step] "function name: {fName}, arguments: {args}"
     if fName = ``DY.hoareTriple then
-      guard (args.size = 7)
-      pure (xs_and_bi, StepSpecTheorem.hoareTriple args[4]! args[5]! args[6]!)
+      guard (args.size = 9)
+      pure (xs_and_bi, StepSpecTheorem.hoareTriple args[6]! args[7]! args[8]!)
     else if fName = ``DY.wp then
-      guard (args.size = 7)
-      pure (xs_and_bi, StepSpecTheorem.wp args[4]! args[5]! args[6]!)
+      guard (args.size = 8)
+      pure (xs_and_bi, StepSpecTheorem.wp args[5]! args[6]! args[7]!)
     else if fName = ``DY.HoareTriple then
       pure (xs_and_bi, StepSpecTheorem.hoareTripleTC)
     else
@@ -465,8 +465,8 @@ def massageNextGoal
     -- get old and mid trace FVarId
     -- how: unify ?tr_old ≤ ?tr_mid with the hypthesis we introduced
     let (trOldFv, trMidFv) ← do
-      let oldTraceMVarId ← mkFreshExprMVar (← mkAppOptM ``DY.ProofTrace #[none])
-      let midTraceMVarId ← mkFreshExprMVar (← mkAppOptM ``DY.ProofTrace #[none])
+      let oldTraceMVarId ← mkFreshExprMVar (← mkAppOptM ``DY.ProofTrace #[none, none])
+      let midTraceMVarId ← mkFreshExprMVar (← mkAppOptM ``DY.ProofTrace #[none, none])
       let trLeToUnify ← mkAppOptM ``LE.le #[none, none, oldTraceMVarId, midTraceMVarId]
       trace[Step] "finding old trace fvarid by unifying {trLeToUnify} and {(← trGrowsFv.getType)}"
       unless (← isDefEq trLeToUnify (← trGrowsFv.getType)) do
@@ -484,7 +484,7 @@ def massageNextGoal
     -- get trace invariant for old trace
     -- how: unify Trace.invariant tr_old with an assumption
     let trInvOldFv ← do
-      let trInvOldType ← mkAppOptM ``DY.Trace.Invariant #[none, mkFVar trOldFv]
+      let trInvOldType ← mkAppOptM ``DY.Trace.Invariant #[none, none, none, mkFVar trOldFv]
       let trInvOldMVarId ← mkFreshExprMVar trInvOldType
       trace[Step] "finding in assumptions {trInvOldType}"
       trInvOldMVarId.mvarId!.assumption
@@ -660,14 +660,14 @@ def evalStepBind
   := do
     evalStepAux args {
       theoremName := ``DY.Traceful.bind_wp
-      nbArgs := 16
-      nbUnifiedArgs := 15
-      ghostPosition := 4,
-      hasGhostPosition := 11
-      xSpecTheoremPosition := 12
-      trInvPosition := 13
-      preconditionPosition := 14
-      nextPosition := 15
+      nbArgs := 18
+      nbUnifiedArgs := 17
+      ghostPosition := 6,
+      hasGhostPosition := 13
+      xSpecTheoremPosition := 14
+      trInvPosition := 15
+      preconditionPosition := 16
+      nextPosition := 17
       xName
     }
 
@@ -678,14 +678,14 @@ def evalStepFinal
   := do
     evalStepAux args {
       theoremName := ``DY.Traceful.finish_wp
-      nbArgs := 14
-      nbUnifiedArgs := 13
-      ghostPosition := 3
-      hasGhostPosition := 9
-      xSpecTheoremPosition := 10
-      trInvPosition := 11
-      preconditionPosition := 12
-      nextPosition := 13
+      nbArgs := 16
+      nbUnifiedArgs := 15
+      ghostPosition := 5
+      hasGhostPosition := 11
+      xSpecTheoremPosition := 12
+      trInvPosition := 13
+      preconditionPosition := 14
+      nextPosition := 15
       xName := `x
     }
 
@@ -704,21 +704,21 @@ def applyLetTheorem (args: StepArgs) (goal: MVarId) (letFv: FVarId): TacticM Uni
     let applyMVars := applyMVars.map (·.mvarId!)
 
     -- x
-    applyMVars[4]!.safeAssign (.fvar letFv)
+    applyMVars[5]!.safeAssign (.fvar letFv)
     -- ghost things
-    assignGhostParameter args applyMVars[7]! applyMVars[3]!
+    assignGhostParameter args applyMVars[8]! applyMVars[4]!
     -- HoareTriplePureGhost instance
-    applyMVars[8]!.assignTypeclassInstance
+    applyMVars[9]!.assignTypeclassInstance
     -- tr
-    applyMVars[9]!.assumption -- "I am feeling lucky" (works if there is only one `ProofTrace` in the local context)
+    applyMVars[10]!.assumption -- "I am feeling lucky" (works if there is only one `ProofTrace` in the local context)
 
-    let pfPreMVar := applyMVars[10]!
+    let pfPreMVar := applyMVars[11]!
     solvePrecondition args pfPreMVar
     guard (← pfPreMVar.isAssigned)
 
     -- sanity check
-    guard (applyMVars.size = 11);
-    for i in [0:11] do
+    guard (applyMVars.size = 12);
+    for i in [0:12] do
       guard (← applyMVars[i]!.isAssigned)
 
     trace[Step] "using theorem {applyTheoremExpr} of type {applyTheoremType}"

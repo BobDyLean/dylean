@@ -232,7 +232,7 @@ end AttackerKnowledge
 
 section Invariants
 
-variable [TraceTypes]
+variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
@@ -338,7 +338,7 @@ end DiffieHellman
 
 section ExtractDhSk
 
-variable [TraceTypes]
+variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor]
 variable [BytesFunctor.Has DiffieHellman.SubF]
 
@@ -418,7 +418,7 @@ end ExtractDhSk
 namespace DiffieHellman
 section Invariants
 
-variable [TraceTypes]
+variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 variable [BytesInvariants] [BytesInvariants.Has invariants]
 
@@ -480,7 +480,7 @@ end Invariants
 section HoareTriples
 
 variable [BytesFunctor] [BytesFunctor.Has SubF]
-variable [TraceTypes]
+variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesInvariants] [BytesInvariants.Has invariants]
 
 public
@@ -521,7 +521,7 @@ end HoareTriples
 
 section AttackerKnowledgeTheorem
 
-variable [TraceInvariant]
+variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
 variable [BytesInvariants.Has invariants]

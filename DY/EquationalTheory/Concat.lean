@@ -200,7 +200,7 @@ end AttackerKnowledge
 
 section Invariants
 
-variable [TraceTypes]
+variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
@@ -308,7 +308,7 @@ end Invariants
 
 section AttackerKnowledgeTheorem
 
-variable [TraceInvariant]
+variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
 variable [BytesLength]

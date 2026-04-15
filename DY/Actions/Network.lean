@@ -41,8 +41,11 @@ public
 instance: ErasableProofEntry ExecEntryT ProofEntryT := ErasableProofEntry.default ExecEntryT
 
 public
+instance: ExecEntryAssociatedWithProofEntry ExecEntryT ProofEntryT where
+
+public
 instance
-  [TraceTypes] [BytesInvariants]
+  [ExecTraceTypes] [ProofTraceTypes] [BytesInvariants]
   : SubTraceInvariant ProofEntryT
 where
   invariant tr entry :=
@@ -50,8 +53,9 @@ where
 
 public
 instance baseAttackerKnowledgeTheorem
-  [TraceInvariant] [BytesInvariants]
-  [TraceTypes.Has ProofEntryT]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [BytesInvariants]
+  [ExecTraceTypes.Has ExecEntryT]
+  [ProofTraceTypes.Has ProofEntryT]
   [TraceInvariant.Has ProofEntryT]:
   SubBaseAttackerKnowledgeTheorem ProofEntryT baseAttackerKnowledge
 where
@@ -62,9 +66,11 @@ where
 @[instance]
 public
 theorem sendMessage.spec
-  [TraceInvariant]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
-  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
+  [ExecTraceTypes.Has ExecEntryT]
+  [ProofTraceTypes.Has ProofEntryT]
+  [TraceInvariant.Has ProofEntryT]
   (msg: Bytes)
   : HoareTriple
     (sendMessage msg)
@@ -80,9 +86,11 @@ theorem sendMessage.spec
 @[instance]
 public
 theorem receiveMessage.spec
-  [TraceInvariant]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
-  [TraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
+  [ExecTraceTypes.Has ExecEntryT]
+  [ProofTraceTypes.Has ProofEntryT]
+  [TraceInvariant.Has ProofEntryT]
   (timestamp: Nat)
   : HoareTriple
     (receiveMessage timestamp)

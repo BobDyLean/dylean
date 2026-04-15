@@ -6,7 +6,7 @@ open DY
 
 namespace StepTest
 
-variable [TraceInvariant]
+variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
 variable [BytesFunctor]
 variable [BytesInvariants]
 variable [BytesInvariantsProofs]
@@ -135,6 +135,8 @@ instance:
 
 /--
 trace: case pf
+inst✝⁵ : ExecTraceTypes
+inst✝⁴ : ProofTraceTypes
 inst✝³ : TraceInvariant
 inst✝² : BytesFunctor
 inst✝¹ : BytesInvariants
@@ -150,10 +152,12 @@ pre : Step.nonMono (nonMonotoneProperty tr)
     (fun x x_1 => True) tr
 ---
 trace: case pf_next
-inst : TraceInvariant
-inst_1 : BytesFunctor
-inst_2 : BytesInvariants
-inst_3 : BytesInvariantsProofs
+inst : ExecTraceTypes
+inst_1 : ProofTraceTypes
+inst_2 : TraceInvariant
+inst_3 : BytesFunctor
+inst_4 : BytesInvariants
+inst_5 : BytesInvariantsProofs
 tr : Trace ProofTrace.Entry
 h_inv : tr.Invariant
 ⊢ wp
@@ -288,10 +292,12 @@ def testIncrementalCleanup: Traceful Unit := do
 
 /--
 trace: case pf_next
-inst : TraceInvariant
-inst_1 : BytesFunctor
-inst_2 : BytesInvariants
-inst_3 : BytesInvariantsProofs
+inst : ExecTraceTypes
+inst_1 : ProofTraceTypes
+inst_2 : TraceInvariant
+inst_3 : BytesFunctor
+inst_4 : BytesInvariants
+inst_5 : BytesInvariantsProofs
 tr : Trace ProofTrace.Entry
 h : tr.Invariant
 b : Bytes
@@ -338,10 +344,12 @@ def testIncrementalCleanup': Traceful Unit := do
 
 /--
 trace: case pf_next
-inst : TraceInvariant
-inst_1 : BytesFunctor
-inst_2 : BytesInvariants
-inst_3 : BytesInvariantsProofs
+inst : ExecTraceTypes
+inst_1 : ProofTraceTypes
+inst_2 : TraceInvariant
+inst_3 : BytesFunctor
+inst_4 : BytesInvariants
+inst_5 : BytesInvariantsProofs
 tr : Trace ProofTrace.Entry
 h : tr.Invariant
 b : Bytes
@@ -382,10 +390,12 @@ def testBrutalCleanup (n: Nat): Traceful Unit := do
 
 /--
 trace: case pf_next
-inst : TraceInvariant
-inst_1 : BytesFunctor
-inst_2 : BytesInvariants
-inst_3 : BytesInvariantsProofs
+inst : ExecTraceTypes
+inst_1 : ProofTraceTypes
+inst_2 : TraceInvariant
+inst_3 : BytesFunctor
+inst_4 : BytesInvariants
+inst_5 : BytesInvariantsProofs
 n : Nat
 tr : Trace ProofTrace.Entry
 h : tr.Invariant
@@ -395,10 +405,12 @@ h_b✝ : b.Publishable tr
 ⊢ wp (send_message b) (fun x x_1 => True) tr
 ---
 trace: case pf_next
-inst : TraceInvariant
-inst_1 : BytesFunctor
-inst_2 : BytesInvariants
-inst_3 : BytesInvariantsProofs
+inst : ExecTraceTypes
+inst_1 : ProofTraceTypes
+inst_2 : TraceInvariant
+inst_3 : BytesFunctor
+inst_4 : BytesInvariants
+inst_5 : BytesInvariantsProofs
 tr : Trace ProofTrace.Entry
 h : tr.Invariant
 b : Bytes

@@ -111,7 +111,7 @@ end AttackerKnowledge
 
 section Invariants
 
-variable [TraceTypes]
+variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
@@ -172,7 +172,7 @@ section HoareTriples
 public
 instance
   [BytesFunctor] [BytesFunctor.Has Hash.SubF]
-  [TraceTypes]
+  [ExecTraceTypes] [ProofTraceTypes]
   [BytesInvariants] [BytesInvariants.Has Hash.invariants]
   (b: Bytes)
   : HoareTriplePure
@@ -190,7 +190,7 @@ end HoareTriples
 
 section AttackerKnowledgeTheorem
 
-variable [TraceInvariant]
+variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
 variable [BytesFunctor] [BytesInvariants]
 variable [BytesFunctor.Has SubF]
 variable [BytesInvariants.Has invariants]
