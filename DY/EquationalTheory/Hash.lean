@@ -3,6 +3,7 @@ module
 public import DY.Bytes
 public import DY.Trace
 public import DY.Misc.Instances
+public import DY.Trace.Manipulation -- HoareTriplePure
 
 namespace DY.Hash
 
@@ -165,6 +166,27 @@ theorem hash.Invariant
   simp [hash, Bytes.Invariant.eq, Hash.invariants]
 
 end Invariants
+
+section HoareTriples
+
+public
+instance
+  [BytesFunctor] [BytesFunctor.Has Hash.SubF]
+  [TraceTypes]
+  [BytesInvariants] [BytesInvariants.Has Hash.invariants]
+  (b: Bytes)
+  : HoareTriplePure
+    (hash b)
+    (fun tr => b.Invariant tr)
+    (fun res tr =>
+      res.Invariant tr ∧
+      res.label tr = b.label tr
+    )
+where
+  pf := by
+    simp
+
+end HoareTriples
 
 section AttackerKnowledgeTheorem
 

@@ -3,6 +3,7 @@ module
 public import DY.Bytes
 public import DY.Trace
 public import DY.Misc.Instances
+public import DY.Trace.Manipulation -- HoareTriplePure
 
 namespace DY.Signature
 
@@ -589,6 +590,166 @@ theorem verify.Invariant
   · simp
 
 end Invariants
+
+section HoareTriples
+
+variable [BytesFunctor] [BytesFunctor.Has SubF]
+
+public
+instance
+  [TraceTypes]
+  [SignPred]
+  [BytesInvariants] [BytesInvariants.Has invariants]
+  (sk: Bytes)
+  : HoareTriplePure
+    (vk sk)
+    (fun tr =>
+      sk.Invariant tr
+    )
+    (fun res tr =>
+      res.Invariant tr ∧
+      res.label tr = Label.pub
+      -- and usage
+    )
+where
+  pf := by
+    grind [vk.Invariant, vk.label]
+
+public
+instance
+  (sk nonce msg: Bytes)
+  : HasGhostArgumentType (sign sk nonce msg) Usage
+where
+  dummy := ()
+
+public
+def signMetaprog: GhostParameterFinder where
+  findGhost mvar e :=
+  Lean.withTraceNode `Step (fun _ => pure m!"signMetaprog") do
+    let sk_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
+    let nonce_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
+    let msg_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
+    let signToUnify ← Lean.Meta.mkAppM ``sign #[sk_mvar, nonce_mvar, msg_mvar]
+    trace[Step] "gonna unify {e} and {signToUnify}"
+    unless ← Lean.Meta.isDefEq e signToUnify do
+      throwError "signMetaprog: cannot unify {e} and {signToUnify}"
+    trace[Step] "got {signToUnify}"
+
+    let usg_mvar: Lean.Expr := .mvar mvar
+    let tr_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``ProofTrace #[none]))
+    let hasUsageToUnify ← Lean.Meta.mkAppOptM ``Bytes.HasUsage #[none, none, none, none, sk_mvar, usg_mvar, tr_mvar]
+    trace[Step] "gonna find {hasUsageToUnify} in assumptions"
+    let .mvar hasUsageMvar ← Lean.Meta.mkFreshExprMVar hasUsageToUnify
+      | throwError ""
+    unless ← hasUsageMvar.assumptionCore do
+      throwError "Cannot find `sk.HasUsage _ _` in the context, please supply usage manually using `with ⟨ ... ⟩`"
+    pure ()
+
+public
+instance
+  (sk nonce msg: Bytes)
+  : HasGhostMetaprogram (sign sk nonce msg) signMetaprog
+where
+  dummy := ()
+
+public
+instance
+  [TraceTypes]
+  [SignPred]
+  [BytesInvariants] [BytesInvariants.Has invariants]
+  (sk nonce msg: Bytes) (skUsg: Usage)
+  : HoareTriplePureGhost
+    (sign sk nonce msg)
+    (skUsg)
+    (fun tr =>
+      sk.Invariant tr ∧
+      nonce.Invariant tr ∧
+      msg.Invariant tr ∧
+      sk.HasUsage skUsg tr ∧
+      --nonce `has_usage tr` SigNonce /\
+      (sk.label tr).canFlow (nonce.label tr) tr.erase ∧
+      (
+        (
+          skUsg.type = "SigKey" ∧
+          SignPred.pred skUsg (vk sk) msg tr
+        ) ∨ (
+          (sk.label tr).canFlow Label.pub tr.erase
+        )
+      )
+    )
+    (fun res tr =>
+      res.Invariant tr ∧
+      res.label tr = msg.label tr
+    )
+where
+  pf := by
+    simp only [sign.label]
+    grind [sign.Invariant sk nonce msg skUsg]
+
+public
+instance
+  (vkey msg sig: Bytes): HasGhostArgumentType (verify vkey msg sig) Usage
+where
+  dummy := ()
+
+public
+def verifyMetaprog: GhostParameterFinder where
+  findGhost mvar e :=
+  Lean.withTraceNode `Step (fun _ => pure m!"verifyMetaprog") do
+    let vkey_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
+    let msg_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
+    let sig_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``Bytes #[none]))
+    let verifyToUnify ← Lean.Meta.mkAppM ``verify #[vkey_mvar, msg_mvar, sig_mvar]
+    trace[Step] "gonna unify {e} and {verifyToUnify}"
+    unless ← Lean.Meta.isDefEq e verifyToUnify do
+      throwError "verifyMetaprog: cannot unify {e} and {verifyToUnify}"
+    trace[Step] "got {verifyToUnify}"
+
+    let usg_mvar: Lean.Expr := .mvar mvar
+    let tr_mvar ← Lean.Meta.mkFreshExprMVar (some (← Lean.Meta.mkAppOptM ``ProofTrace #[none]))
+    let hasUsageToUnify ← Lean.Meta.mkAppOptM ``Bytes.SignkeyHasUsage #[none, none, none, none, vkey_mvar, usg_mvar, tr_mvar]
+    trace[Step] "gonna find {hasUsageToUnify} in assumptions"
+    let .mvar hasUsageMvar ← Lean.Meta.mkFreshExprMVar hasUsageToUnify
+      | throwError ""
+    unless ← hasUsageMvar.assumptionCore do
+      throwError "Cannot find `vk.SignkeyHasUsage _ _` in the context, please supply usage manually using `with ⟨ ... ⟩`"
+
+public
+instance
+  (vkey msg sig: Bytes): HasGhostMetaprogram (verify vkey msg sig) verifyMetaprog
+where
+  dummy := ()
+
+public
+instance
+  [TraceTypes]
+  [SignPred]
+  [BytesInvariants] [BytesInvariants.Has invariants]
+  (vkey msg sig: Bytes) (skUsg: Usage)
+  : HoareTriplePureGhost
+    (verify vkey msg sig)
+    (skUsg: Usage)
+    (fun tr =>
+      vkey.Invariant tr ∧
+      msg.Invariant tr ∧
+      sig.Invariant tr ∧
+      vkey.SignkeyHasUsage skUsg tr
+    )
+    (fun res tr =>
+      res → (
+        (
+          skUsg.type = "SigKey" →
+          SignPred.pred skUsg vkey msg tr
+        ) ∨ (
+          (vkey.signkeyLabel tr).canFlow Label.pub tr.erase
+        )
+      )
+    )
+where
+  pf := by
+    grind [verify.Invariant vkey msg sig skUsg]
+
+end HoareTriples
 
 section AttackerKnowledgeTheorem
 

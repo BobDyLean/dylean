@@ -3,6 +3,7 @@ module
 public import DY.Bytes
 public import DY.Trace
 public import DY.Misc.Instances
+public import DY.Trace.Manipulation -- HoareTriplePure
 
 namespace DY.DiffieHellman
 
@@ -475,6 +476,48 @@ theorem dh.Invariant
   · simp [Dh.invariants]
 
 end Invariants
+
+section HoareTriples
+
+variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [TraceTypes]
+variable [BytesInvariants] [BytesInvariants.Has invariants]
+
+public
+instance
+  (sk: Bytes)
+  : HoareTriplePure
+    (dh_pk sk)
+    (fun tr => sk.Invariant tr)
+    (fun res tr =>
+      res.Invariant tr ∧
+      res.label tr = Label.pub
+      -- and usage
+    )
+  where
+    pf := by
+      grind [dh_pk.Invariant, dh_pk.label]
+
+public
+instance
+  (pk sk: Bytes)
+  : HoareTriplePure
+    (dh pk sk)
+    (fun tr =>
+      sk.Invariant tr ∧
+      pk.Publishable tr
+      -- and usage
+    )
+    (fun res tr =>
+      res.Invariant tr ∧
+      res.label tr = Label.join (sk.label tr) (pk.dhSkLabel tr)
+      -- and usage
+    )
+  where
+    pf := by
+      grind [dh.Invariant, dh.label]
+
+end HoareTriples
 
 section AttackerKnowledgeTheorem
 
