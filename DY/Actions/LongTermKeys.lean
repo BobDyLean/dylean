@@ -20,8 +20,29 @@ structure SecretKeyState [BytesFunctor] (name: String) where
   sk: Bytes
 
 public
-noncomputable
-instance [BytesFunctor] (name: String): Comparse.ParseableSerializeable (SecretKeyState name) := Comparse.comparseMetaProgramExists
+instance
+  [BytesFunctor] [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+  (name: String)
+  : Comparse.ParseableSerializeable (SecretKeyState name)
+:= .make <|
+  .triviallyIsomorphic
+    (.bytes)
+    (fun sk => { sk })
+    (fun { sk := sk } => sk)
+
+theorem SecretKeyState.IsWellFormed_eq
+  [BytesFunctor] [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+  (pre: Bytes → τ → Prop) [Comparse.BytesCompatibleTracePred pre]
+  (x: SecretKeyState name) (tr: τ):
+  Comparse.IsWellFormed pre x tr = pre x.sk tr
+:= by
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
+
+grind_pattern SecretKeyState.IsWellFormed_eq => Comparse.IsWellFormed pre x tr
 
 public
 structure PublicKeyState [BytesFunctor] (name: String) where
@@ -29,8 +50,29 @@ structure PublicKeyState [BytesFunctor] (name: String) where
   pk: Bytes
 
 public
-noncomputable
-instance [BytesFunctor] (name: String): Comparse.ParseableSerializeable (PublicKeyState name) := Comparse.comparseMetaProgramExists
+instance
+  [BytesFunctor] [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+  (name: String)
+  : Comparse.ParseableSerializeable (PublicKeyState name)
+:= .make <|
+  .triviallyIsomorphic
+    (.prod .slowString .bytes)
+    (fun ⟨ p, pk ⟩ => { p, pk })
+    (fun { p, pk } => ⟨ p, pk ⟩)
+
+theorem PublicKeyState.IsWellFormed_eq
+  [BytesFunctor] [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+  (pre: Bytes → τ → Prop) [Comparse.BytesCompatibleTracePred pre]
+  (x: PublicKeyState name) (tr: τ):
+  Comparse.IsWellFormed pre x tr = pre x.pk tr
+:= by
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
+
+grind_pattern PublicKeyState.IsWellFormed_eq => Comparse.IsWellFormed pre x tr
 
 variable [BytesFunctor]
 variable (name: String)
@@ -222,25 +264,12 @@ theorem IsLongTermSecretKey_later
 
 grind_pattern [grind_later] IsLongTermSecretKey_later => tr1 ≤ tr2, IsLongTermSecretKey name p b tr1
 
-axiom SecretKeyState.isWellFormedLemma
-  [BytesFunctor]
-  (pre: Bytes → τ → Prop) [Comparse.BytesCompatible pre]
-  (x: SecretKeyState name) (tr: τ):
-  Comparse.isWellFormed pre x tr = pre x.sk tr
-
-grind_pattern SecretKeyState.isWellFormedLemma => Comparse.isWellFormed pre x tr
-
-axiom PublicKeyState.isWellFormedLemma
-  [BytesFunctor]
-  (pre: Bytes → τ → Prop) [Comparse.BytesCompatible pre]
-  (x: PublicKeyState name) (tr: τ):
-  Comparse.isWellFormed pre x tr = pre x.pk tr
-
-grind_pattern PublicKeyState.isWellFormedLemma => Comparse.isWellFormed pre x tr
-
 section
 
-variable [BytesFunctor] [TraceTypes] [BytesInvariants] [BytesInvariantsProofs]
+variable [BytesFunctor] [BytesLength] [TraceTypes] [BytesInvariants] [BytesInvariantsProofs]
+variable [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+variable [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+variable [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
 variable (name: String)
 variable [ExecTraceTypes.Has <| ExecEntryT name]
 variable {skToPk: Bytes → Bytes} {usage: Participant → Usage}
@@ -297,13 +326,11 @@ instance: TraceTypes.HasStep (PersistentGlobalState.CompromisableState.ProofEntr
   inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal name 1) (TraceTypes.combine (ProofEntryT.internal name)))
 
 public
-noncomputable
 instance
   : ∀ id, SubTraceInvariant (ProofEntryT.internal name id)
   | 0 | 1 => by dsimp only [ProofEntryT.internal]; infer_instance
 
 public
-noncomputable
 instance
   : SubTraceInvariant (ProofEntryT name)
 :=
@@ -328,6 +355,7 @@ section
 public
 instance
   [BytesFunctor] [TraceInvariant] [BytesInvariants] [BytesInvariantsProofs]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
   [TraceTypes.Has (ProofEntryT name)]
   {skToPk: Bytes → Bytes} {usage: Participant → Usage}
   [ExecConfig name skToPk] [ProofConfig name usage]
@@ -340,6 +368,7 @@ instance
 public
 instance baseAttackerKnowledgeTheorem
   [BytesFunctor] [TraceInvariant] [BytesInvariants] [BytesInvariantsProofs]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
   (name: String) {skToPk: Bytes → Bytes} {usage: Participant → Usage}
   [TraceTypes.Has (ProofEntryT name)]
   [ExecConfig name skToPk] [ProofConfig name usage]
@@ -357,6 +386,7 @@ theorem generateKeyPair.spec
   [BytesFunctor]
   [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
 
   (name: String)
   {skToPk: Bytes → Bytes} {usage: Participant → Usage}
@@ -403,6 +433,7 @@ theorem getPublicKey.spec
   [BytesFunctor]
   [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
 
   (name: String)
   {skToPk: Bytes → Bytes} {usage: Participant → Usage}
@@ -429,6 +460,7 @@ theorem getPrivateKey.spec
   [BytesFunctor]
   [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
 
   (name: String)
   {skToPk: Bytes → Bytes} {usage: Participant → Usage}

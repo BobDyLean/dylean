@@ -23,97 +23,125 @@ open DY.Comparse -- TODO?
 
 namespace Test
 
-variable [BytesFunctor]
+variable [BytesFunctor] [BytesLength]
+variable [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+variable [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
 
 structure ClientInitiateState where
   xPk: Bytes
   xSk: Bytes
 
-noncomputable
-instance: ParseableSerializeable ClientInitiateState := comparseMetaProgramExists
+instance: ParseableSerializeable ClientInitiateState := .make <|
+  .triviallyIsomorphic
+    (.prod .slowBytes .bytes)
+    (fun ⟨ xPk, xSk ⟩ => { xPk, xSk })
+    (fun { xPk, xSk } => ⟨ xPk, xSk ⟩)
 
-axiom ClientInitiateState.isWellFormedLemma
-  (pre: Bytes → τ → Prop) [BytesCompatible pre] (x: ClientInitiateState) (tr: τ):
-  isWellFormed pre x tr = (pre x.xPk tr ∧ pre x.xSk tr)
+theorem ClientInitiateState.IsWellFormed_eq
+  (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ClientInitiateState) (tr: τ):
+  IsWellFormed pre x tr = (pre x.xPk tr ∧ pre x.xSk tr)
+:= by
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern ClientInitiateState.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern ClientInitiateState.IsWellFormed_eq => IsWellFormed pre x tr
 
 structure ClientFinishState where
   xPk: Bytes
   kC: Bytes
 
-noncomputable
-instance: ParseableSerializeable ClientFinishState := comparseMetaProgramExists
+instance: ParseableSerializeable ClientFinishState := .make <|
+  .triviallyIsomorphic
+    (.prod .slowBytes .bytes)
+    (fun ⟨ xPk, kC ⟩ => { xPk, kC })
+    (fun { xPk, kC } => ⟨ xPk, kC ⟩)
 
-axiom ClientFinishState.isWellFormedLemma
-  (pre: Bytes → τ → Prop) [BytesCompatible pre] (x: ClientFinishState) (tr: τ):
-  isWellFormed pre x tr = (pre x.xPk tr ∧ pre x.kC tr)
+theorem ClientFinishState.IsWellFormed_eq
+  (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ClientFinishState) (tr: τ):
+  IsWellFormed pre x tr = (pre x.xPk tr ∧ pre x.kC tr)
+:= by
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern ClientFinishState.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern ClientFinishState.IsWellFormed_eq => IsWellFormed pre x tr
 
 structure ServerFinishState where
   yPk: Bytes
   kS: Bytes
 
-noncomputable
-instance: ParseableSerializeable ServerFinishState := comparseMetaProgramExists
+instance: ParseableSerializeable ServerFinishState := .make <|
+  .triviallyIsomorphic
+  (.prod .slowBytes .bytes)
+  (fun ⟨ yPk, kS ⟩ => { yPk, kS })
+  (fun { yPk, kS } => ⟨ yPk, kS ⟩)
 
-axiom ServerFinishState.isWellFormedLemma
-  (pre: Bytes → τ → Prop) [BytesCompatible pre] (x: ServerFinishState) (tr: τ):
-  isWellFormed pre x tr = (pre x.yPk tr ∧ pre x.kS tr)
+theorem ServerFinishState.IsWellFormed_eq
+  (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ServerFinishState) (tr: τ):
+  IsWellFormed pre x tr = (pre x.yPk tr ∧ pre x.kS tr)
+:= by
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern ServerFinishState.isWellFormedLemma => isWellFormed pre x tr
-
--- TODO move
-grind_pattern [grind_later] serialize_formatRel => serialize x
-grind_pattern [grind_later] isWellFormedFormatRelBytesInvariant => formatRel buf x, buf.Invariant tr
+grind_pattern ServerFinishState.IsWellFormed_eq => IsWellFormed pre x tr
 
 structure ClientMessage where
   xPk: Bytes
 
-noncomputable
-instance: ParseableSerializeable ClientMessage := comparseMetaProgramExists
+instance: ParseableSerializeable ClientMessage := .make <|
+  .triviallyIsomorphic
+    (.bytes)
+    (fun xPk => { xPk })
+    (fun { xPk := xPk } => xPk)
 
-axiom ClientMessage.isWellFormedLemma
-  (pre: Bytes → τ → Prop) [BytesCompatible pre] (x: ClientMessage) (tr: τ):
-  isWellFormed pre x tr = pre x.xPk tr
+theorem ClientMessage.IsWellFormed_eq
+  (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ClientMessage) (tr: τ):
+  IsWellFormed pre x tr = pre x.xPk tr
+:= by
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern ClientMessage.isWellFormedLemma => isWellFormed pre x tr
-grind_pattern [grind_later] ClientMessage.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern ClientMessage.IsWellFormed_eq => IsWellFormed pre x tr
+grind_pattern [grind_later] ClientMessage.IsWellFormed_eq => IsWellFormed pre x tr
 
 structure ServerMessage where
   yPk: Bytes
   sig: Bytes
 
-noncomputable
-instance: ParseableSerializeable ServerMessage := comparseMetaProgramExists
+instance: ParseableSerializeable ServerMessage := .make <|
+  .triviallyIsomorphic
+  (.prod .slowBytes .bytes)
+  (fun ⟨ yPk, sig ⟩ => { yPk, sig })
+  (fun { yPk, sig } => ⟨ yPk, sig ⟩)
 
-axiom ServerMessage.isWellFormedLemma
-  (pre: Bytes → τ → Prop) [BytesCompatible pre] (x: ServerMessage) (tr: τ):
-  isWellFormed pre x tr = (
+theorem ServerMessage.IsWellFormed_eq
+  (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ServerMessage) (tr: τ):
+  IsWellFormed pre x tr = (
     pre x.yPk tr ∧
     pre x.sig tr
   )
+:= by
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern ServerMessage.isWellFormedLemma => isWellFormed pre x tr
-grind_pattern [grind_later] ServerMessage.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern ServerMessage.IsWellFormed_eq => IsWellFormed pre x tr
+grind_pattern [grind_later] ServerMessage.IsWellFormed_eq => IsWellFormed pre x tr
 
 structure SigInput where
   xPk: Bytes
   yPk: Bytes
 
-noncomputable
-instance: ParseableSerializeable SigInput := comparseMetaProgramExists
+instance: ParseableSerializeable SigInput := .make <|
+  .triviallyIsomorphic
+  (.prod .slowBytes .bytes)
+  (fun ⟨ xPk, yPk ⟩ => { xPk, yPk })
+  (fun { xPk, yPk } => ⟨ xPk, yPk ⟩)
 
-axiom SigInput.isWellFormedLemma
-  (pre: Bytes → τ → Prop) [BytesCompatible pre] (x: SigInput) (tr: τ):
-  isWellFormed pre x tr = (
+theorem SigInput.IsWellFormed_eq
+  (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: SigInput) (tr: τ):
+  IsWellFormed pre x tr = (
     pre x.xPk tr ∧
     pre x.yPk tr
   )
+:= by
+  simp [Comparse.IsWellFormed, Comparse.ParseableSerializeable.mf]
 
-grind_pattern SigInput.isWellFormedLemma => isWellFormed pre x tr
-grind_pattern [grind_later] SigInput.isWellFormedLemma => isWellFormed pre x tr
+grind_pattern SigInput.IsWellFormed_eq => IsWellFormed pre x tr
+grind_pattern [grind_later] SigInput.IsWellFormed_eq => IsWellFormed pre x tr
 
 inductive SignedDHEvent where
   | ClientInitiateEvent (client: Participant) (xPk: Bytes)
@@ -189,11 +217,14 @@ where
 structure LongTermKeyUsage where
   principal: Participant
 
-noncomputable
-instance : ParseableSerializeable LongTermKeyUsage := comparseMetaProgramExists
+instance : ParseableSerializeable LongTermKeyUsage := .make <|
+  .triviallyIsomorphic
+    (.string)
+    (fun principal => { principal })
+    (fun { principal := principal } => principal)
+
 
 @[grind]
-noncomputable
 def mk_long_term_usage (me: Participant): Usage := {
   type := "SigKey",
   tag := "SignedDH",
@@ -236,6 +267,8 @@ instance
   [ExecTraceTypes.Has (PersistentLocalState.Compromise.ExecEntryT ServerFinishState)]
   [BytesInvariants]
   [BytesInvariants.Has DiffieHellman.DhPk.invariants]
+  [BytesInvariants.Has Literal.invariants]
+  [BytesInvariants.Has Concat.invariants]
   : Signature.SignPredProof
 where
   pred_later := by
@@ -254,6 +287,8 @@ instance ClientInitiateStateInv
   [BytesFunctor.Has DiffieHellman.SubF]
   [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientInitiateState)]
   [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientFinishState)]
+  [BytesInvariants.Has Literal.invariants]
+  [BytesInvariants.Has Concat.invariants]
   : PersistentLocalState.CompromisableLocalStateInv ClientInitiateState
 where
   invariant me st tr :=
@@ -275,6 +310,8 @@ theorem ClientInitiateStateInv_imp_Invariant
   [BytesFunctor.Has DiffieHellman.SubF]
   [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientInitiateState)]
   [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientFinishState)]
+  [BytesInvariants.Has Literal.invariants]
+  [BytesInvariants.Has Concat.invariants]
   (participant: Participant) (st: ClientInitiateState)
   : PersistentLocalState.LocalStateInv.invariant participant st tr → (
       st.xSk.Invariant tr ∧
@@ -289,6 +326,8 @@ grind_pattern [grind_later] ClientInitiateStateInv_imp_Invariant => PersistentLo
 instance ClientFinishStateInv
   [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientInitiateState)]
   [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientFinishState)]
+  [BytesInvariants.Has Literal.invariants]
+  [BytesInvariants.Has Concat.invariants]
   : PersistentLocalState.CompromisableLocalStateInv ClientFinishState
 where
   invariant me st tr :=
@@ -306,6 +345,8 @@ where
 
 instance ServerFinishStateInv
   [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ServerFinishState)]
+  [BytesInvariants.Has Literal.invariants]
+  [BytesInvariants.Has Concat.invariants]
   : PersistentLocalState.CompromisableLocalStateInv ServerFinishState
 where
   invariant me st tr :=
@@ -549,7 +590,6 @@ variable [BytesInvariantsProofs]
 instance [BytesFunctor.Has Signature.SubF]: LongTermKeys.ExecConfig "SignedDH" Signature.vk where
 
 @[grind]
-noncomputable
 instance
   [BytesFunctor.Has Signature.SubF] [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
   [ExecTraceTypes.Has <| LongTermKeys.ExecEntryT "SignedDH"]
@@ -565,7 +605,6 @@ where
     grind
 
 instance SignedDHEventInv
-  [BytesFunctor]
   [BytesFunctor.Has Signature.SubF]
   [BytesFunctor.Has DiffieHellman.SubF]
   [TraceTypes]
@@ -574,6 +613,8 @@ instance SignedDHEventInv
   [ExecTraceTypes.Has (PersistentLocalState.Compromise.ExecEntryT ServerFinishState)]
   [ExecTraceTypes.Has (LongTermKeys.ExecEntryT "SignedDH")]
   [BytesInvariants]
+  [BytesInvariants.Has Literal.invariants]
+  [BytesInvariants.Has Concat.invariants]
   [ExecTraceTypes.Has (ProtocolEvent.ExecEntryT SignedDHEvent)]
   : ProtocolEvent.EventInv (SignedDHEvent)
 where
@@ -617,7 +658,6 @@ variable [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT
 variable [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientFinishState)]
 variable [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ServerFinishState)]
 
-noncomputable
 def client_initiate (me: Participant): Traceful (Nat × Nat) := do
   let xSk ← Random.genRand 32
   let xPk := DiffieHellman.dh_pk xSk
@@ -627,7 +667,6 @@ def client_initiate (me: Participant): Traceful (Nat × Nat) := do
   let msg_ts ← Network.sendMessage (serialize ({ xPk } : ClientMessage))
   pure (st_ts, msg_ts)
 
-noncomputable
 def server_receive (me: Participant) (sk_ts: Nat) (msg_ts: Nat): Traceful (Nat × Nat) := do
   let msg_bytes ← Network.receiveMessage msg_ts
   let msg: ClientMessage ← parse msg_bytes
@@ -645,7 +684,6 @@ def server_receive (me: Participant) (sk_ts: Nat) (msg_ts: Nat): Traceful (Nat �
   let msg_ts ← Network.sendMessage (serialize ({ yPk, sig } : ServerMessage))
   pure (st_ts, msg_ts)
 
-noncomputable
 def client_finish (me: Participant) (server: Participant) (pk_ts: Nat) (msg_ts: Nat) (sid: Nat) : Traceful Unit := do
   let msg_bytes ← Network.receiveMessage msg_ts
   let msg: ServerMessage ← parse msg_bytes
@@ -668,6 +706,9 @@ variable [BaseAttackerKnowledge] [AttackerKnowledge] [BaseAttackerKnowledgeTheor
 
 variable [BytesFunctor.Has Signature.SubF]
 variable [BytesFunctor.Has DiffieHellman.SubF]
+
+variable [BytesInvariants.Has Literal.invariants]
+variable [BytesInvariants.Has Concat.invariants]
 
 variable [TraceTypes.Has (ProtocolEvent.ProofEntryT SignedDHEvent)]
 variable [TraceTypes.Has (LongTermKeys.ProofEntryT "SignedDH")]
@@ -738,6 +779,8 @@ variable [TraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT Cl
 variable [TraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT ClientFinishState)]
 variable [TraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT ServerFinishState)]
 
+variable [BytesInvariants.Has Literal.invariants]
+variable [BytesInvariants.Has Concat.invariants]
 variable [BytesInvariants.Has DiffieHellman.invariants]
 variable [BytesInvariants.Has Hash.invariants]
 variable [BytesInvariants.Has Signature.invariants]
@@ -855,24 +898,25 @@ end SignedDH
 
 end Test
 
-abbrev SubF.internal: (id: Fin 4) → (Type → Type)
-  | 0 => Hash.SubF
-  | 1 => Signature.SubF
-  | 2 => DiffieHellman.SubF
-  | 3 => Random.SubF
+abbrev SubF.internal: (id: Fin 6) → (Type → Type)
+  | 0 => Literal.SubF
+  | 1 => Concat.SubF
+  | 2 => Hash.SubF
+  | 3 => Signature.SubF
+  | 4 => DiffieHellman.SubF
+  | 5 => Random.SubF
 
 abbrev SubF := BytesFunctor.combine SubF.internal
 
 instance: ∀ id, SubBytesFunctor (SubF.internal id)
-  | 0 => inferInstance
-  | 1 => inferInstance
-  | 2 => inferInstance
-  | 3 => inferInstance
+  | 0 | 1 | 2 | 3 | 4 | 5 => inferInstance
 
-instance: BytesFunctor.HasStep Hash.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) SubF)
-instance: BytesFunctor.HasStep Signature.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 1) SubF)
-instance: BytesFunctor.HasStep DiffieHellman.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 2) SubF)
-instance: BytesFunctor.HasStep Random.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 3) SubF)
+instance: BytesFunctor.HasStep Literal.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) SubF)
+instance: BytesFunctor.HasStep Concat.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 1) SubF)
+instance: BytesFunctor.HasStep Hash.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 2) SubF)
+instance: BytesFunctor.HasStep Signature.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 3) SubF)
+instance: BytesFunctor.HasStep DiffieHellman.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 4) SubF)
+instance: BytesFunctor.HasStep Random.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 5) SubF)
 
 instance: BytesFunctor where
   BytesF := SubF
@@ -885,10 +929,12 @@ example: BytesFunctor.Has DiffieHellman.SubF := inferInstance
 example: BytesFunctor.Has Random.SubF := inferInstance
 
 def SubF.length.internal [BytesFunctor]: ∀ id, Bytes.PartialLength (SubF.internal id)
-  | 0 => Hash.SubF.length
-  | 1 => Signature.SubF.length
-  | 2 => DiffieHellman.SubF.length
-  | 3 => Random.SubF.length
+  | 0 => Literal.SubF.length
+  | 1 => Concat.SubF.length
+  | 2 => Hash.SubF.length
+  | 3 => Signature.SubF.length
+  | 4 => DiffieHellman.SubF.length
+  | 5 => Random.SubF.length
 
 abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
   Bytes.PartialLength.combine SubF.length.internal
@@ -896,32 +942,40 @@ abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
 instance: BytesLength where
   funs := SubF.length
 
-instance: BytesLength.HasStep Hash.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 0) SubF.length)
-instance: BytesLength.HasStep Signature.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 1) SubF.length)
-instance: BytesLength.HasStep DiffieHellman.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 2) SubF.length)
-instance: BytesLength.HasStep Random.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 3) SubF.length)
+instance: BytesLength.HasStep Literal.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 0) SubF.length)
+instance: BytesLength.HasStep Concat.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 1) SubF.length)
+instance: BytesLength.HasStep Hash.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 2) SubF.length)
+instance: BytesLength.HasStep Signature.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 3) SubF.length)
+instance: BytesLength.HasStep DiffieHellman.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 4) SubF.length)
+instance: BytesLength.HasStep Random.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 5) SubF.length)
 
 instance: BytesLength.Has SubF.length := inferInstanceAs (BytesLength.Has SubF.length)
 
+example: BytesLength.Has Literal.SubF.length := inferInstance
+example: BytesLength.Has Concat.SubF.length := inferInstance
 example: BytesLength.Has Hash.SubF.length := inferInstance
 example: BytesLength.Has Signature.SubF.length := inferInstance
 example: BytesLength.Has DiffieHellman.SubF.length := inferInstance
 example: BytesLength.Has Random.SubF.length := inferInstance
 
-def attackerKnowledge.internal (id: Fin 4): SubAttackerKnowledge (SubF.internal id) :=
+def attackerKnowledge.internal (id: Fin 6): SubAttackerKnowledge (SubF.internal id) :=
   match id with
-  | 0 => Hash.attackerKnowledge
-  | 1 => Signature.attackerKnowledge
-  | 2 => DiffieHellman.attackerKnowledge
-  | 3 => Random.attackerKnowledge
+  | 0 => Literal.attackerKnowledge
+  | 1 => Concat.attackerKnowledge
+  | 2 => Hash.attackerKnowledge
+  | 3 => Signature.attackerKnowledge
+  | 4 => DiffieHellman.attackerKnowledge
+  | 5 => Random.attackerKnowledge
 
 def attackerKnowledge: SubAttackerKnowledge SubF :=
   SubAttackerKnowledge.combine attackerKnowledge.internal
 
-instance: AttackerKnowledge.HasStep Hash.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 0) (SubAttackerKnowledge.combine attackerKnowledge.internal))
-instance: AttackerKnowledge.HasStep Signature.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 1) (SubAttackerKnowledge.combine attackerKnowledge.internal))
-instance: AttackerKnowledge.HasStep DiffieHellman.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 2) (SubAttackerKnowledge.combine attackerKnowledge.internal))
-instance: AttackerKnowledge.HasStep Random.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 3) (SubAttackerKnowledge.combine attackerKnowledge.internal))
+instance: AttackerKnowledge.HasStep Literal.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 0) (SubAttackerKnowledge.combine attackerKnowledge.internal))
+instance: AttackerKnowledge.HasStep Concat.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 1) (SubAttackerKnowledge.combine attackerKnowledge.internal))
+instance: AttackerKnowledge.HasStep Hash.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 2) (SubAttackerKnowledge.combine attackerKnowledge.internal))
+instance: AttackerKnowledge.HasStep Signature.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 3) (SubAttackerKnowledge.combine attackerKnowledge.internal))
+instance: AttackerKnowledge.HasStep DiffieHellman.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 4) (SubAttackerKnowledge.combine attackerKnowledge.internal))
+instance: AttackerKnowledge.HasStep Random.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 5) (SubAttackerKnowledge.combine attackerKnowledge.internal))
 
 instance: AttackerKnowledge where
   attackerKnowledge
@@ -1033,19 +1087,23 @@ example: TraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT Tes
 example: TraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT Test.ServerFinishState) := inferInstance
 example: TraceTypes.Has (LongTermKeys.ProofEntryT "SignedDH") := inferInstance
 
-def invariants.internal: (id: Fin 4) → Bytes.PartialInvariants (SubF.internal id)
-  | 0 => Hash.invariants
-  | 1 => Signature.invariants
-  | 2 => DiffieHellman.invariants
-  | 3 => Random.invariants
+def invariants.internal: (id: Fin 6) → Bytes.PartialInvariants (SubF.internal id)
+  | 0 => Literal.invariants
+  | 1 => Concat.invariants
+  | 2 => Hash.invariants
+  | 3 => Signature.invariants
+  | 4 => DiffieHellman.invariants
+  | 5 => Random.invariants
 
 abbrev invariants: Bytes.PartialInvariants SubF :=
   Bytes.PartialInvariants.combine invariants.internal
 
-instance [BytesInvariants]: BytesInvariants.HasStep Hash.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 0) invariants)
-instance [BytesInvariants]: BytesInvariants.HasStep Signature.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 1) invariants)
-instance [BytesInvariants]: BytesInvariants.HasStep DiffieHellman.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 2) invariants)
-instance [BytesInvariants]: BytesInvariants.HasStep Random.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 3) invariants)
+instance [BytesInvariants]: BytesInvariants.HasStep Literal.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 0) invariants)
+instance [BytesInvariants]: BytesInvariants.HasStep Concat.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 1) invariants)
+instance [BytesInvariants]: BytesInvariants.HasStep Hash.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 2) invariants)
+instance [BytesInvariants]: BytesInvariants.HasStep Signature.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 3) invariants)
+instance [BytesInvariants]: BytesInvariants.HasStep DiffieHellman.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 4) invariants)
+instance [BytesInvariants]: BytesInvariants.HasStep Random.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 5) invariants)
 
 instance: BytesInvariants where
   invs := invariants
@@ -1057,11 +1115,13 @@ example: BytesInvariants.Has Signature.invariants := inferInstance
 example: BytesInvariants.Has DiffieHellman.invariants := inferInstance
 example: BytesInvariants.Has Random.invariants := inferInstance
 
-def invariantsProofs.internal: (id: Fin 4) → Bytes.PartialInvariantsProofs (invariants.internal id)
-  | 0 => Hash.invariantsProofs
-  | 1 => Signature.invariantsProofs
-  | 2 => DiffieHellman.invariantsProofs
-  | 3 => Random.invariantsProofs
+def invariantsProofs.internal: (id: Fin 6) → Bytes.PartialInvariantsProofs (invariants.internal id)
+  | 0 => Literal.invariantsProofs
+  | 1 => Concat.invariantsProofs
+  | 2 => Hash.invariantsProofs
+  | 3 => Signature.invariantsProofs
+  | 4 => DiffieHellman.invariantsProofs
+  | 5 => Random.invariantsProofs
 
 abbrev invariantsProofs: Bytes.PartialInvariantsProofs invariants :=
   Bytes.PartialInvariantsProofs.combine invariantsProofs.internal
@@ -1070,16 +1130,13 @@ instance: BytesInvariantsProofs where
   pfs := invariantsProofs
 
 public
-noncomputable
 instance: ∀ id, SubTraceInvariant (ProofEntryT.internal id)
   | 0 | 1 | 2 | 3 | 4 | 5 | 6 => by dsimp only [ProofEntryT.internal]; infer_instance
 
 public
-noncomputable
 instance: SubTraceInvariant ProofEntryT :=
   (inferInstance: SubTraceInvariant (TraceTypes.combine ProofEntryT.internal))
 
-noncomputable
 instance : TraceInvariant where
   tc_inv := by dsimp only [ProofTrace.Entry, TraceTypes.ProofT]; infer_instance
 
@@ -1121,11 +1178,13 @@ instance: BaseAttackerKnowledgeTheorem where
     -- TODO infer_instance
     exact instSubBaseAttackerKnowledgeTheoremExecEntryTProofEntryTBaseAttackerKnowledge
 
-instance: (id: Fin 4) → SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)
-  | 0 => inferInstanceAs (SubAttackerKnowledgeTheorem Hash.attackerKnowledge)
-  | 1 => inferInstanceAs (SubAttackerKnowledgeTheorem Signature.attackerKnowledge)
-  | 2 => inferInstanceAs (SubAttackerKnowledgeTheorem DiffieHellman.attackerKnowledge)
-  | 3 => inferInstanceAs (SubAttackerKnowledgeTheorem Random.attackerKnowledge)
+instance: (id: Fin 6) → SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)
+  | 0 => inferInstanceAs (SubAttackerKnowledgeTheorem Literal.attackerKnowledge)
+  | 1 => inferInstanceAs (SubAttackerKnowledgeTheorem Concat.attackerKnowledge)
+  | 2 => inferInstanceAs (SubAttackerKnowledgeTheorem Hash.attackerKnowledge)
+  | 3 => inferInstanceAs (SubAttackerKnowledgeTheorem Signature.attackerKnowledge)
+  | 4 => inferInstanceAs (SubAttackerKnowledgeTheorem DiffieHellman.attackerKnowledge)
+  | 5 => inferInstanceAs (SubAttackerKnowledgeTheorem Random.attackerKnowledge)
 
 instance: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstanceAs (SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine attackerKnowledge.internal))
 

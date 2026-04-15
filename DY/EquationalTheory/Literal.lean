@@ -96,6 +96,17 @@ theorem literalToBytes_bytesToLiteral
   simp only [bytesToLiteral, literalToBytes]
   grind
 
+@[simp]
+public
+theorem length_literalToBytes
+  [BytesFunctor] [BytesLength]
+  [BytesFunctor.Has SubF] [BytesLength.Has SubF.length]
+  (buf: ByteArray)
+  : Bytes.length (literalToBytes buf) = buf.size
+:= by
+  simp only [literalToBytes]
+  grind [Literal.length]
+
 end Constructors
 
 section AttackerKnowledge
@@ -152,11 +163,10 @@ def Literal.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Li
 public
 abbrev invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs invariants := Literal.Literal.invariantsProofs
 
-variable [BytesInvariants] [BytesInvariants.Has invariants]
-
 @[simp]
 public
 theorem literalToBytes.WellFormed
+  [BytesWellFormed] [BytesWellFormed.Has invariants.well_formed]
   (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).WellFormed tr
 := by
@@ -165,6 +175,7 @@ theorem literalToBytes.WellFormed
 @[simp]
 public
 theorem literalToBytes.label
+  [BytesInvariants] [BytesInvariants.Has invariants]
   (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).label tr = Label.pub
 := by
@@ -173,6 +184,7 @@ theorem literalToBytes.label
 @[simp]
 public
 theorem literalToBytes.Invariant
+  [BytesInvariants] [BytesInvariants.Has invariants]
   (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).Invariant tr
 := by

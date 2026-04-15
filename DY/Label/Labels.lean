@@ -73,6 +73,13 @@ theorem Label.meetIsCorrupt (l1 l2: Label) (tr: ExecTrace):
 
 @[grind =]
 public
+theorem Label.meetEq (l1: Label) (l2: Label) (l3: Label) (tr: ExecTrace):
+  (l1.meet l2).canFlow l3 tr = (l1.canFlow l3 tr ∧ l2.canFlow l3 tr)
+  := by
+  grind [canFlow]
+
+@[grind =]
+public
 theorem Label.joinEq (l1: Label) (l2: Label) (l3: Label) (tr: ExecTrace):
   l1.canFlow (l2.join l3) tr = (l1.canFlow l2 tr ∧ l1.canFlow l3 tr)
   := by

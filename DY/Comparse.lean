@@ -1,41 +1,113 @@
 module
 
+public import Comparse
 public import DY.Bytes
+public import DY.EquationalTheory.Literal
+public import DY.EquationalTheory.Concat
 
 namespace DY.Comparse
 
-variable [BytesFunctor]
+variable [BytesFunctor] [BytesLength]
+variable [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+variable [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+
+public
+instance: Comparse.BytesLike Bytes where
+  length := Bytes.length
+
+  empty := Literal.literalToBytes .empty
+  empty_length := by simp
+
+  recognizeEmpty b := b = Literal.literalToBytes .empty
+  recognizeEmpty_correct b := by simp
+
+  concat := Concat.concat
+  concat_length := by simp
+
+  split := Concat.split
+  split_length := by grind [Concat.length_split]
+
+  split_concat := Concat.split_concat
+
+  concat_split buf i := by grind [Concat.concat_split]
+
+  toByteArray := Literal.bytesToLiteral
+  fromByteArray := Literal.literalToBytes
+
+  fromByteArray_length := by simp
+
+  to_from_ByteArray := Literal.bytesToLiteral_literalToBytes
+
+  from_to_ByteArray := by grind [Literal.literalToBytes_bytesToLiteral]
 
 public
 class ParseableSerializeable (a: Type) where
-  parse: Bytes -> Err a
-  serialize: a -> Bytes
+  mf: Comparse.ExtensibleMessageFormat Bytes a
+  [mf_na: mf.IsNonAmbiguous]
+  [mf_ur: mf.HasUniqueRepresentation]
 
-  parse_serialize_inv:
-    ∀ x: a,
-      parse (serialize x) = some x
+attribute [instance] ParseableSerializeable.mf_na
+attribute [instance] ParseableSerializeable.mf_ur
 
-  serialize_parse_inv:
-    ∀ buf: Bytes, ∀ x: a,
-      parse buf = some x →
-      buf = serialize x
+public
+def parse {a: Type} [ParseableSerializeable a] (buf: Bytes): Err a :=
+  ParseableSerializeable.mf.parse buf
 
-export ParseableSerializeable (parse)
-export ParseableSerializeable (serialize)
-export ParseableSerializeable (parse_serialize_inv)
-export ParseableSerializeable (serialize_parse_inv)
+public
+def serialize {a: Type} [ParseableSerializeable a] (x: a): Bytes :=
+  ParseableSerializeable.mf.serialize x
 
 @[simp]
 public
-theorem parse_serialize_inv_grind [ParseableSerializeable a] (x: a):
-  ParseableSerializeable.parse (serialize x) = some x
-  := by
-  exact (parse_serialize_inv x)
+theorem parse_serialize_inv
+  {a: Type} [ParseableSerializeable a]
+  (x: a)
+  : parse (serialize x) = some x
+:= by
+  simp [parse, serialize, Comparse.ExtensibleMessageFormat.IsNonAmbiguous.parse_serialize_inv]
 
-grind_pattern parse_serialize_inv_grind => serialize x
+grind_pattern parse_serialize_inv => parse (serialize x)
+
+@[grind inj]
+public
+theorem serialize_injective
+  {a: Type} [ParseableSerializeable a]
+  : Function.Injective (serialize: a → Bytes)
+:= by
+  simp only [Function.Injective]
+  grind [parse_serialize_inv]
+
+theorem serialize_parse_inv
+  {a: Type} [ParseableSerializeable a]
+  (buf: Bytes) (x: a)
+  : parse buf = some x →
+    buf = serialize x
+:= by
+  simp only [parse, serialize]
+  grind [Comparse.ExtensibleMessageFormat.HasUniqueRepresentation.serialize_parse_inv]
 
 public
-def formatRel [ParseableSerializeable a] (buf: Bytes) (x: a) :=
+abbrev ParseableSerializeable.make
+  {a: Type}
+  (mf: Comparse.ExtensibleMessageFormat Bytes a)
+  [mf.IsNonAmbiguous]
+  [mf.HasUniqueRepresentation]
+  : ParseableSerializeable a
+where
+  mf := mf
+
+public
+abbrev ParseableSerializeable.makeNE
+  {a: Type}
+  (mf: Comparse.NonExtensibleMessageFormat Bytes a)
+  [mf.IsNonAmbiguous]
+  [mf.HasUniqueRepresentation]
+  : ParseableSerializeable a
+:=
+  .make (mf.toExtensible)
+
+public
+def FormatRel [ParseableSerializeable a] (buf: Bytes) (x: a): Prop :=
   buf = serialize x
 
 public
@@ -43,101 +115,209 @@ instance [TraceInvariant] [ParseableSerializeable a]:
   HoareTriple
     (parse buf: Err a)
     (fun _ => True)
-    (fun res _ => formatRel buf res)
+    (fun res _ => FormatRel buf res)
 where
   pf := by
-    simp only [hoareTriple, wp, formatRel, OptionT.run]
+    simp only [hoareTriple, wp, FormatRel, OptionT.run]
     grind [serialize_parse_inv]
 
 public
-theorem serialize_formatRel [ParseableSerializeable a] (x: a):
-  (formatRel (serialize x) x)
-  := by
-    simp [formatRel]
+theorem serialize_FormatRel [ParseableSerializeable a] (x: a):
+  (FormatRel (serialize x) x)
+:= by
+  simp [FormatRel]
 
-grind_pattern serialize_formatRel => serialize x
+grind_pattern serialize_FormatRel => serialize x
+grind_pattern [grind_later] serialize_FormatRel => serialize x
 
-@[grind! .]
 public
-theorem parse_formatRel [ParseableSerializeable a] (b: Bytes):
+theorem parse_FormatRel [ParseableSerializeable a] (b: Bytes):
   match (parse b: Err a) with
   | none => True
-  | some x => formatRel b x
-  := by
-    grind [formatRel, serialize_parse_inv]
+  | some x => FormatRel b x
+:= by
+  grind [FormatRel, serialize_parse_inv]
+
+grind_pattern parse_FormatRel => parse (a := a) b
+
+public
+class BytesCompatibleTracePred (pre: Bytes → τ → Prop) where
+  pf: ∀ tr: τ, Comparse.BytesCompatiblePred (pre · tr)
+
+public
+instance (pre: Bytes → τ → Prop) [inst: BytesCompatibleTracePred pre] (tr: τ): Comparse.BytesCompatiblePred (pre · tr) := inst.pf tr
+
+public
+instance
+  [TraceTypes]
+  [BytesWellFormed]
+  [BytesWellFormed.Has Literal.invariants.well_formed] [BytesWellFormed.Has Concat.invariants.well_formed]
+  : BytesCompatibleTracePred Bytes.WellFormed
+where
+  pf tr := {
+    pred_empty := by
+      simp [Comparse.BytesLike.empty]
+    pred_concat := by
+      simp [Comparse.BytesLike.concat]
+      grind
+    pred_split := by
+      intro buf i
+      have := Concat.split.WellFormed buf i tr
+      simp [Comparse.BytesLike.split]
+      grind
+    pred_fromByteArray := by
+      simp [Comparse.BytesLike.fromByteArray]
+  }
+
+public
+instance
+  [TraceTypes]
+  [BytesInvariants]
+  [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
+  : BytesCompatibleTracePred Bytes.Invariant
+where
+  pf tr := {
+    pred_empty := by
+      simp [Comparse.BytesLike.empty]
+    pred_concat := by
+      simp [Comparse.BytesLike.concat]
+      grind
+    pred_split := by
+      intro buf i
+      have := Concat.split.Invariant buf i tr
+      simp [Comparse.BytesLike.split]
+      grind
+    pred_fromByteArray := by
+      simp [Comparse.BytesLike.fromByteArray]
+  }
+
+public
+instance
+  [TraceTypes]
+  [BytesInvariants]
+  [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
+  : BytesCompatibleTracePred Bytes.Publishable
+where
+  pf tr := {
+    pred_empty := by
+      simp [Bytes.Publishable, Comparse.BytesLike.empty]
+      grind
+    pred_concat := by
+      simp [Bytes.Publishable, Comparse.BytesLike.concat]
+      grind
+    pred_split := by
+      intro buf i
+      have := Concat.split.Invariant buf i tr
+      have := Concat.split.label buf i tr
+      simp [Bytes.Publishable, Comparse.BytesLike.split]
+      grind
+    pred_fromByteArray := by
+      simp [Bytes.Publishable, Comparse.BytesLike.fromByteArray]
+      grind
+  }
+
+public
+instance
+  [TraceTypes]
+  [BytesInvariants]
+  [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
+  (l: Label)
+  : BytesCompatibleTracePred (Bytes.KnowableBy l)
+where
+  pf tr := {
+    pred_empty := by
+      simp [Bytes.KnowableBy, Comparse.BytesLike.empty]
+      grind
+    pred_concat := by
+      simp [Bytes.KnowableBy, Comparse.BytesLike.concat]
+      grind
+    pred_split := by
+      intro buf i
+      have := Concat.split.Invariant buf i tr
+      have := Concat.split.label buf i tr
+      simp [Bytes.KnowableBy, Comparse.BytesLike.split]
+      grind
+    pred_fromByteArray := by
+      simp [Bytes.KnowableBy, Comparse.BytesLike.fromByteArray]
+      grind
+  }
+
+public
+instance
+  [ExecTraceTypes]
+  [BaseAttackerKnowledge] [AttackerKnowledge]
+  [AttackerKnowledge.Has Literal.attackerKnowledge] [AttackerKnowledge.Has Concat.attackerKnowledge]
+  : BytesCompatibleTracePred Bytes.AttackerKnows
+where
+  pf tr := {
+    pred_empty := by
+      simp only [Comparse.BytesLike.empty]
+      grind [Literal.attacker_knows_literalToBytes]
+    pred_concat := by
+      simp only [Comparse.BytesLike.concat]
+      grind[Concat.attacker_knows_concat]
+    pred_split := by
+      intro buf i
+      have := Concat.attacker_knows_split buf i tr
+      simp only [Comparse.BytesLike.split]
+      grind
+    pred_fromByteArray := by
+      simp only [Comparse.BytesLike.fromByteArray]
+      grind [Literal.attacker_knows_literalToBytes]
+  }
 
 @[expose]
 public
-def isWellFormed [ParseableSerializeable a] (pre: Bytes → τ → Prop) (x: a) (tr: τ): Prop :=
-  pre (serialize x) tr
+def IsWellFormed [ParseableSerializeable a] (pre: Bytes → τ → Prop) (x: a) (tr: τ): Prop :=
+  ParseableSerializeable.mf.wf (pre · tr) x
 
 public
-theorem isWellFormedFormatRel [ParseableSerializeable a] (pre: Bytes → τ → Prop) (buf: Bytes) (x: a) (tr: τ):
-  formatRel buf x →
-  (pre buf tr = isWellFormed pre x tr)
-  := by
-    grind [isWellFormed, formatRel]
+theorem IsWellFormed_FormatRel [ParseableSerializeable a] (pre: Bytes → τ → Prop) (buf: Bytes) (x: a) (tr: τ):
+  FormatRel buf x →
+  (pre buf tr = IsWellFormed pre x tr)
+:= by
+  simp [FormatRel, serialize, IsWellFormed]
+  simp_all [Comparse.ExtensibleMessageFormat.wf_eq]
 
 public
-theorem isWellFormedFormatRelBytesWellFormed [TraceTypes] [BytesWellFormed] [ParseableSerializeable a]:
+theorem IsWellFormed_FormatRel_BytesWellFormed [TraceTypes] [BytesWellFormed] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
-  formatRel buf x →
-  (buf.WellFormed tr = isWellFormed Bytes.WellFormed x tr)
-  := isWellFormedFormatRel Bytes.WellFormed
+  FormatRel buf x →
+  (buf.WellFormed tr = IsWellFormed Bytes.WellFormed x tr)
+:=
+  IsWellFormed_FormatRel Bytes.WellFormed
 
-grind_pattern isWellFormedFormatRelBytesWellFormed => formatRel buf x, buf.WellFormed tr
+grind_pattern IsWellFormed_FormatRel_BytesWellFormed => FormatRel buf x, buf.WellFormed tr
 
 public
-theorem isWellFormedFormatRelBytesInvariant [TraceTypes] [BytesInvariant] [ParseableSerializeable a]:
+theorem IsWellFormed_FormatRel_BytesInvariant [TraceTypes] [BytesInvariant] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
-  formatRel buf x →
-  (buf.Invariant tr = isWellFormed Bytes.Invariant x tr)
-  := isWellFormedFormatRel Bytes.Invariant
+  FormatRel buf x →
+  (buf.Invariant tr = IsWellFormed Bytes.Invariant x tr)
+:=
+  IsWellFormed_FormatRel Bytes.Invariant
 
-grind_pattern isWellFormedFormatRelBytesInvariant => formatRel buf x, buf.Invariant tr
+grind_pattern IsWellFormed_FormatRel_BytesInvariant => FormatRel buf x, buf.Invariant tr
+grind_pattern [grind_later] IsWellFormed_FormatRel_BytesInvariant => FormatRel buf x, buf.Invariant tr
 
 public
-theorem isWellFormedFormatRelIsPublishable [TraceTypes] [BytesInvariants] [ParseableSerializeable a]:
+theorem IsWellFormed_FormatRel_IsPublishable [TraceTypes] [BytesInvariants] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
-  formatRel buf x →
-  (buf.Publishable tr = isWellFormed Bytes.Publishable x tr)
-  := isWellFormedFormatRel Bytes.Publishable
+  FormatRel buf x →
+  (buf.Publishable tr = IsWellFormed Bytes.Publishable x tr)
+:=
+  IsWellFormed_FormatRel Bytes.Publishable
 
-grind_pattern isWellFormedFormatRelIsPublishable => formatRel buf x, Bytes.Publishable buf tr
+grind_pattern IsWellFormed_FormatRel_IsPublishable => FormatRel buf x, Bytes.Publishable buf tr
 
 public
-theorem isWellFormedParse [ParseableSerializeable a] (pre: Bytes → τ → Prop) (buf: Bytes) (x: a) (tr: τ):
+theorem IsWellFormedParse [ParseableSerializeable a] (pre: Bytes → τ → Prop) (buf: Bytes) (x: a) (tr: τ):
   parse buf = some x →
   pre buf tr →
-  isWellFormed pre x tr
-  := by
-    grind [isWellFormed, serialize_parse_inv]
-
-public
-class BytesCompatible (pre: Bytes → τ → Prop) where
-  dummy: Unit
-
-public
-instance [TraceTypes] [BytesWellFormed]: BytesCompatible Bytes.WellFormed where
-  dummy := ()
-
-public
-instance [TraceTypes] [BytesInvariant]: BytesCompatible Bytes.Invariant where
-  dummy := ()
-
-public
-instance [TraceTypes] [BytesInvariants]: BytesCompatible Bytes.Publishable where
-  dummy := ()
-
-public
-instance [TraceTypes] [BytesInvariants] (l: Label): BytesCompatible (Bytes.KnowableBy l) where
-  dummy := ()
-
-public
-instance [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge]: BytesCompatible Bytes.AttackerKnows where
-  dummy := ()
-
-public
-axiom comparseMetaProgramExists {a: Type}: ParseableSerializeable a
+  IsWellFormed pre x tr
+:= by
+  have := serialize_parse_inv buf x
+  simp_all [serialize, IsWellFormed]
+  grind [Comparse.ExtensibleMessageFormat.wf_eq]
 
 end DY.Comparse
