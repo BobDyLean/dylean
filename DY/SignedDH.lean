@@ -21,7 +21,9 @@ open DY.Comparse -- TODO?
 
 @[expose] public section
 
-namespace Test
+namespace SignedDH
+
+section StructuresAndFormats
 
 variable [BytesFunctor] [BytesLength]
 variable [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
@@ -148,6 +150,75 @@ inductive SignedDHEvent where
   | ServerFinishEvent (server: Participant) (xPk: Bytes) (yPk: Bytes) (kS: Bytes)
   | ClientFinishEvent (client server: Participant) (xPk: Bytes) (yPk: Bytes) (kC: Bytes)
 
+end StructuresAndFormats
+
+section Specification
+
+variable [BytesFunctor] [BytesLength]
+variable [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+variable [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+variable [BytesFunctor.Has Random.SubF]
+variable [BytesFunctor.Has Hash.SubF]
+variable [BytesFunctor.Has DiffieHellman.SubF]
+variable [BytesFunctor.Has Signature.SubF]
+
+variable [ExecTraceTypes]
+variable [ExecTraceTypes.Has Network.ExecEntryT]
+variable [ExecTraceTypes.Has Random.ExecEntryT]
+variable [ExecTraceTypes.Has (ProtocolEvent.ExecEntryT SignedDHEvent)]
+variable [ExecTraceTypes.Has (LongTermKeys.ExecEntryT "SignedDH")]
+
+variable [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientInitiateState)]
+variable [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientFinishState)]
+variable [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ServerFinishState)]
+
+def client_initiate (me: Participant): Traceful (Nat × Nat) := do
+  let xSk ← Random.genRand 32
+  let xPk := DiffieHellman.dh_pk xSk
+
+  ProtocolEvent.logEvent (SignedDHEvent.ClientInitiateEvent me xPk)
+  let st_ts ← PersistentLocalState.storeLocalState me ({ xPk, xSk }: ClientInitiateState)
+  let msg_ts ← Network.sendMessage (serialize ({ xPk } : ClientMessage))
+  pure (st_ts, msg_ts)
+
+def server_receive (me: Participant) (sk_ts: Nat) (msg_ts: Nat): Traceful (Nat × Nat) := do
+  let msg_bytes ← Network.receiveMessage msg_ts
+  let msg: ClientMessage ← parse msg_bytes
+  let xPk := msg.xPk
+  let my_sig_key ← LongTermKeys.getPrivateKey "SignedDH" me sk_ts
+
+  let ySk ← Random.genRand 32
+  let yPk := DiffieHellman.dh_pk ySk
+  let kS := Hash.hash (DiffieHellman.dh xPk ySk)
+  let sig_nonce ← Random.genRand 32
+  let sig := Signature.sign my_sig_key sig_nonce (serialize ({xPk, yPk}: SigInput))
+
+  ProtocolEvent.logEvent (SignedDHEvent.ServerFinishEvent me xPk yPk kS)
+  let st_ts ← PersistentLocalState.storeLocalState me ({ yPk, kS }: ServerFinishState)
+  let msg_ts ← Network.sendMessage (serialize ({ yPk, sig } : ServerMessage))
+  pure (st_ts, msg_ts)
+
+def client_finish (me: Participant) (server: Participant) (pk_ts: Nat) (msg_ts: Nat) (sid: Nat) : Traceful Unit := do
+  let msg_bytes ← Network.receiveMessage msg_ts
+  let msg: ServerMessage ← parse msg_bytes
+
+  let ({xPk, xSk}: ClientInitiateState) ← PersistentLocalState.getLocalState me sid
+  let server_vk ← LongTermKeys.getPublicKey "SignedDH" server pk_ts
+
+  guard (Signature.verify server_vk (serialize ({ xPk, yPk := msg.yPk }: SigInput)) msg.sig)
+  let kC := Hash.hash (DiffieHellman.dh msg.yPk xSk)
+
+  ProtocolEvent.logEvent (SignedDHEvent.ClientFinishEvent me server xPk msg.yPk kC)
+  let _ ← PersistentLocalState.storeLocalState me ({ xPk, kC }: ClientFinishState)
+
+end Specification
+
+section ForSecurityTheorem
+
+variable [BytesFunctor] [BytesLength]
+variable [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+variable [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+
 def ClientEphemeralStateCompromised
   [ExecTraceTypes]
   [ExecTraceTypes.Has (PersistentLocalState.Compromise.ExecEntryT ClientInitiateState)]
@@ -174,15 +245,6 @@ theorem ClientEphemeralStateCompromised_le
 
 grind_pattern ClientEphemeralStateCompromised_le => tr1 ≤ tr2, ClientEphemeralStateCompromised me xPk tr1
 
-def client_label
-  [ExecTraceTypes]
-  [ExecTraceTypes.Has (PersistentLocalState.Compromise.ExecEntryT ClientInitiateState)]
-  [ExecTraceTypes.Has (PersistentLocalState.Compromise.ExecEntryT ClientFinishState)]
-  (me: Participant) (xPk: Bytes)
-  : Label
-where
-  isCorrupt tr := ClientEphemeralStateCompromised me xPk tr
-
 def ServerEphemeralStateCompromised
   [ExecTraceTypes]
   [ExecTraceTypes.Has (PersistentLocalState.Compromise.ExecEntryT ServerFinishState)]
@@ -205,6 +267,24 @@ theorem ServerEphemeralStateCompromised_le
   grind
 
 grind_pattern ServerEphemeralStateCompromised_le => tr1 ≤ tr2, ServerEphemeralStateCompromised me yPk tr1
+
+end ForSecurityTheorem
+
+section Invariants
+
+variable [BytesFunctor] [BytesLength]
+variable [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+variable [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+
+def client_label
+  [ExecTraceTypes]
+  [ExecTraceTypes.Has (PersistentLocalState.Compromise.ExecEntryT ClientInitiateState)]
+  [ExecTraceTypes.Has (PersistentLocalState.Compromise.ExecEntryT ClientFinishState)]
+  (me: Participant) (xPk: Bytes)
+  : Label
+where
+  isCorrupt tr := ClientEphemeralStateCompromised me xPk tr
+
 
 def server_label
   [ExecTraceTypes]
@@ -277,7 +357,6 @@ where
     exists server
     grind [DiffieHellman.dh_pk.WellFormed]
 
-section
 
 variable [TraceTypes]
 variable [BytesInvariants]
@@ -362,13 +441,6 @@ where
       grind
     grind [canFlowTrans]
 
-end
-
-section
-
-variable [TraceTypes]
-variable [BytesInvariants]
-variable [BytesInvariantsProofs]
 
 instance [BytesFunctor.Has Signature.SubF]: LongTermKeys.ExecConfig "SignedDH" Signature.vk where
 
@@ -420,73 +492,16 @@ where
       ) ∨ (∃ spk, (LongTermKeys.label "SignedDH" server spk).isCorrupt tr.erase)
     )
 
-end
-
-namespace SignedDH
-
-section Specification
-
-variable [BytesFunctor.Has Random.SubF]
-variable [BytesFunctor.Has Hash.SubF]
-variable [BytesFunctor.Has DiffieHellman.SubF]
-variable [BytesFunctor.Has Signature.SubF]
-
-variable [ExecTraceTypes]
-variable [ExecTraceTypes.Has Network.ExecEntryT]
-variable [ExecTraceTypes.Has Random.ExecEntryT]
-variable [ExecTraceTypes.Has (ProtocolEvent.ExecEntryT SignedDHEvent)]
-variable [ExecTraceTypes.Has (LongTermKeys.ExecEntryT "SignedDH")]
-
-variable [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientInitiateState)]
-variable [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientFinishState)]
-variable [ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ServerFinishState)]
-
-def client_initiate (me: Participant): Traceful (Nat × Nat) := do
-  let xSk ← Random.genRand 32
-  let xPk := DiffieHellman.dh_pk xSk
-
-  ProtocolEvent.logEvent (SignedDHEvent.ClientInitiateEvent me xPk)
-  let st_ts ← PersistentLocalState.storeLocalState me ({ xPk, xSk }: ClientInitiateState)
-  let msg_ts ← Network.sendMessage (serialize ({ xPk } : ClientMessage))
-  pure (st_ts, msg_ts)
-
-def server_receive (me: Participant) (sk_ts: Nat) (msg_ts: Nat): Traceful (Nat × Nat) := do
-  let msg_bytes ← Network.receiveMessage msg_ts
-  let msg: ClientMessage ← parse msg_bytes
-  let xPk := msg.xPk
-  let my_sig_key ← LongTermKeys.getPrivateKey "SignedDH" me sk_ts
-
-  let ySk ← Random.genRand 32
-  let yPk := DiffieHellman.dh_pk ySk
-  let kS := Hash.hash (DiffieHellman.dh xPk ySk)
-  let sig_nonce ← Random.genRand 32
-  let sig := Signature.sign my_sig_key sig_nonce (serialize ({xPk, yPk}: SigInput))
-
-  ProtocolEvent.logEvent (SignedDHEvent.ServerFinishEvent me xPk yPk kS)
-  let st_ts ← PersistentLocalState.storeLocalState me ({ yPk, kS }: ServerFinishState)
-  let msg_ts ← Network.sendMessage (serialize ({ yPk, sig } : ServerMessage))
-  pure (st_ts, msg_ts)
-
-def client_finish (me: Participant) (server: Participant) (pk_ts: Nat) (msg_ts: Nat) (sid: Nat) : Traceful Unit := do
-  let msg_bytes ← Network.receiveMessage msg_ts
-  let msg: ServerMessage ← parse msg_bytes
-
-  let ({xPk, xSk}: ClientInitiateState) ← PersistentLocalState.getLocalState me sid
-  let server_vk ← LongTermKeys.getPublicKey "SignedDH" server pk_ts
-
-  guard (Signature.verify server_vk (serialize ({ xPk, yPk := msg.yPk }: SigInput)) msg.sig)
-  let kC := Hash.hash (DiffieHellman.dh msg.yPk xSk)
-
-  ProtocolEvent.logEvent (SignedDHEvent.ClientFinishEvent me server xPk msg.yPk kC)
-  let _ ← PersistentLocalState.storeLocalState me ({ xPk, kC }: ClientFinishState)
-
-end Specification
+end Invariants
 
 section SecurityTheorems
 
+variable [BytesFunctor] [BytesLength]
 variable [TraceInvariant] [BytesInvariants] [BytesInvariantsProofs]
 variable [BaseAttackerKnowledge] [AttackerKnowledge] [BaseAttackerKnowledgeTheorem] [AttackerKnowledgeTheorem]
 
+variable [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+variable [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
 variable [BytesFunctor.Has Signature.SubF]
 variable [BytesFunctor.Has DiffieHellman.SubF]
 
@@ -543,8 +558,11 @@ theorem client_secrecy
 
 end SecurityTheorems
 
-namespace TestGrindAnnot
+section Proofs
 
+variable [BytesFunctor] [BytesLength]
+variable [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+variable [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
 variable [BytesFunctor.Has Random.SubF]
 variable [BytesFunctor.Has Hash.SubF]
 variable [BytesFunctor.Has DiffieHellman.SubF]
@@ -675,11 +693,9 @@ theorem client_finish.spec:
   step
   grind
 
-end TestGrindAnnot
+end Proofs
 
 end SignedDH
-
-end Test
 
 abbrev SubF.internal: (id: Fin 6) → (Type → Type)
   | 0 => Literal.SubF
@@ -775,10 +791,10 @@ public
 def ExecEntryT.internal: Fin 7 → Type
   | 0 => Network.ExecEntryT
   | 1 => Random.ExecEntryT
-  | 2 => ProtocolEvent.ExecEntryT Test.SignedDHEvent
-  | 3 => PersistentLocalState.CompromisableState.ExecEntryT Test.ClientInitiateState
-  | 4 => PersistentLocalState.CompromisableState.ExecEntryT Test.ClientFinishState
-  | 5 => PersistentLocalState.CompromisableState.ExecEntryT Test.ServerFinishState
+  | 2 => ProtocolEvent.ExecEntryT SignedDH.SignedDHEvent
+  | 3 => PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientInitiateState
+  | 4 => PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientFinishState
+  | 5 => PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ServerFinishState
   | 6 => LongTermKeys.ExecEntryT "SignedDH"
 
 public
@@ -787,10 +803,10 @@ abbrev ExecEntryT: Type :=
 
 instance: ExecTraceTypes.HasStep Network.ExecEntryT ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 0) (ExecTraceTypes.combine ExecEntryT.internal))
 instance: ExecTraceTypes.HasStep Random.ExecEntryT ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 1) (ExecTraceTypes.combine ExecEntryT.internal))
-instance: ExecTraceTypes.HasStep (ProtocolEvent.ExecEntryT Test.SignedDHEvent) ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 2) (ExecTraceTypes.combine ExecEntryT.internal))
-instance: ExecTraceTypes.HasStep (PersistentLocalState.CompromisableState.ExecEntryT Test.ClientInitiateState) ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 3) (ExecTraceTypes.combine ExecEntryT.internal))
-instance: ExecTraceTypes.HasStep (PersistentLocalState.CompromisableState.ExecEntryT Test.ClientFinishState) ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 4) (ExecTraceTypes.combine ExecEntryT.internal))
-instance: ExecTraceTypes.HasStep (PersistentLocalState.CompromisableState.ExecEntryT Test.ServerFinishState) ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 5) (ExecTraceTypes.combine ExecEntryT.internal))
+instance: ExecTraceTypes.HasStep (ProtocolEvent.ExecEntryT SignedDH.SignedDHEvent) ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 2) (ExecTraceTypes.combine ExecEntryT.internal))
+instance: ExecTraceTypes.HasStep (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientInitiateState) ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 3) (ExecTraceTypes.combine ExecEntryT.internal))
+instance: ExecTraceTypes.HasStep (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientFinishState) ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 4) (ExecTraceTypes.combine ExecEntryT.internal))
+instance: ExecTraceTypes.HasStep (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ServerFinishState) ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 5) (ExecTraceTypes.combine ExecEntryT.internal))
 instance: ExecTraceTypes.HasStep (LongTermKeys.ExecEntryT "SignedDH") ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 6) (ExecTraceTypes.combine ExecEntryT.internal))
 
 instance: ExecTraceTypes where
@@ -800,20 +816,20 @@ instance: ExecTraceTypes.Has ExecEntryT := inferInstanceAs (ExecTraceTypes.Has E
 
 example: ExecTraceTypes.Has Network.ExecEntryT := inferInstance
 example: ExecTraceTypes.Has Random.ExecEntryT := inferInstance
-example: ExecTraceTypes.Has (ProtocolEvent.ExecEntryT Test.SignedDHEvent) := inferInstance
-example: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT Test.ClientInitiateState) := inferInstance
-example: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT Test.ClientFinishState) := inferInstance
-example: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT Test.ServerFinishState) := inferInstance
+example: ExecTraceTypes.Has (ProtocolEvent.ExecEntryT SignedDH.SignedDHEvent) := inferInstance
+example: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientInitiateState) := inferInstance
+example: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientFinishState) := inferInstance
+example: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ServerFinishState) := inferInstance
 example: ExecTraceTypes.Has (LongTermKeys.ExecEntryT "SignedDH") := inferInstance
 
 public
 def baseAttackerKnowledge.internal: (id: Fin 7) → SubBaseAttackerKnowledge (ExecEntryT.internal id)
   | 0 => Network.baseAttackerKnowledge
   | 1 => Random.baseAttackerKnowledge
-  | 2 => ProtocolEvent.baseAttackerKnowledge Test.SignedDHEvent
-  | 3 => PersistentLocalState.CompromisableState.baseAttackerKnowledge Test.ClientInitiateState
-  | 4 => PersistentLocalState.CompromisableState.baseAttackerKnowledge Test.ClientFinishState
-  | 5 => PersistentLocalState.CompromisableState.baseAttackerKnowledge Test.ServerFinishState
+  | 2 => ProtocolEvent.baseAttackerKnowledge SignedDH.SignedDHEvent
+  | 3 => PersistentLocalState.CompromisableState.baseAttackerKnowledge SignedDH.ClientInitiateState
+  | 4 => PersistentLocalState.CompromisableState.baseAttackerKnowledge SignedDH.ClientFinishState
+  | 5 => PersistentLocalState.CompromisableState.baseAttackerKnowledge SignedDH.ServerFinishState
   | 6 => LongTermKeys.baseAttackerKnowledge "SignedDH"
 
 public
@@ -830,10 +846,10 @@ public
 def ProofEntryT.internal: Fin 7 → Type
   | 0 => Network.ProofEntryT
   | 1 => Random.ProofEntryT
-  | 2 => ProtocolEvent.ProofEntryT Test.SignedDHEvent
-  | 3 => PersistentLocalState.CompromisableState.ProofEntryT Test.ClientInitiateState
-  | 4 => PersistentLocalState.CompromisableState.ProofEntryT Test.ClientFinishState
-  | 5 => PersistentLocalState.CompromisableState.ProofEntryT Test.ServerFinishState
+  | 2 => ProtocolEvent.ProofEntryT SignedDH.SignedDHEvent
+  | 3 => PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState
+  | 4 => PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState
+  | 5 => PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState
   | 6 => LongTermKeys.ProofEntryT "SignedDH"
 
 public
@@ -850,10 +866,10 @@ instance: ErasableProofEntry ExecEntryT ProofEntryT :=
 
 instance: TraceTypes.HasStep Network.ProofEntryT ProofEntryT := inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal 0) (TraceTypes.combine ProofEntryT.internal))
 instance: TraceTypes.HasStep Random.ProofEntryT ProofEntryT := inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal 1) (TraceTypes.combine ProofEntryT.internal))
-instance: TraceTypes.HasStep (ProtocolEvent.ProofEntryT Test.SignedDHEvent) ProofEntryT := inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal 2) (TraceTypes.combine ProofEntryT.internal))
-instance: TraceTypes.HasStep (PersistentLocalState.CompromisableState.ProofEntryT Test.ClientInitiateState) ProofEntryT := inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal 3) (TraceTypes.combine ProofEntryT.internal))
-instance: TraceTypes.HasStep (PersistentLocalState.CompromisableState.ProofEntryT Test.ClientFinishState) ProofEntryT := inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal 4) (TraceTypes.combine ProofEntryT.internal))
-instance: TraceTypes.HasStep (PersistentLocalState.CompromisableState.ProofEntryT Test.ServerFinishState) ProofEntryT := inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal 5) (TraceTypes.combine ProofEntryT.internal))
+instance: TraceTypes.HasStep (ProtocolEvent.ProofEntryT SignedDH.SignedDHEvent) ProofEntryT := inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal 2) (TraceTypes.combine ProofEntryT.internal))
+instance: TraceTypes.HasStep (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState) ProofEntryT := inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal 3) (TraceTypes.combine ProofEntryT.internal))
+instance: TraceTypes.HasStep (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState) ProofEntryT := inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal 4) (TraceTypes.combine ProofEntryT.internal))
+instance: TraceTypes.HasStep (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState) ProofEntryT := inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal 5) (TraceTypes.combine ProofEntryT.internal))
 instance: TraceTypes.HasStep (LongTermKeys.ProofEntryT "SignedDH") ProofEntryT := inferInstanceAs (TraceTypes.HasStep (ProofEntryT.internal 6) (TraceTypes.combine ProofEntryT.internal))
 
 instance: TraceTypes where
@@ -864,10 +880,10 @@ instance: TraceTypes.Has ProofEntryT := inferInstanceAs (TraceTypes.Has ProofTra
 
 example: TraceTypes.Has Network.ProofEntryT := inferInstance
 example: TraceTypes.Has Random.ProofEntryT := inferInstance
-example: TraceTypes.Has (ProtocolEvent.ProofEntryT Test.SignedDHEvent) := inferInstance
-example: TraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT Test.ClientInitiateState) := inferInstance
-example: TraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT Test.ClientFinishState) := inferInstance
-example: TraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT Test.ServerFinishState) := inferInstance
+example: TraceTypes.Has (ProtocolEvent.ProofEntryT SignedDH.SignedDHEvent) := inferInstance
+example: TraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState) := inferInstance
+example: TraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState) := inferInstance
+example: TraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState) := inferInstance
 example: TraceTypes.Has (LongTermKeys.ProofEntryT "SignedDH") := inferInstance
 
 def invariants.internal: (id: Fin 6) → Bytes.PartialInvariants (SubF.internal id)
@@ -927,18 +943,18 @@ instance: TraceInvariant.Has ProofEntryT := inferInstanceAs (TraceInvariant.Has 
 
 instance: TraceInvariant.HasStep Network.ProofEntryT ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 0) (TraceTypes.combine ProofEntryT.internal))
 instance: TraceInvariant.HasStep Random.ProofEntryT ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 1) (TraceTypes.combine ProofEntryT.internal))
-instance: TraceInvariant.HasStep (ProtocolEvent.ProofEntryT Test.SignedDHEvent) ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 2) (TraceTypes.combine ProofEntryT.internal))
-instance: TraceInvariant.HasStep (PersistentLocalState.CompromisableState.ProofEntryT Test.ClientInitiateState) ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 3) (TraceTypes.combine ProofEntryT.internal))
-instance: TraceInvariant.HasStep (PersistentLocalState.CompromisableState.ProofEntryT Test.ClientFinishState) ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 4) (TraceTypes.combine ProofEntryT.internal))
-instance: TraceInvariant.HasStep (PersistentLocalState.CompromisableState.ProofEntryT Test.ServerFinishState) ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 5) (TraceTypes.combine ProofEntryT.internal))
+instance: TraceInvariant.HasStep (ProtocolEvent.ProofEntryT SignedDH.SignedDHEvent) ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 2) (TraceTypes.combine ProofEntryT.internal))
+instance: TraceInvariant.HasStep (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState) ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 3) (TraceTypes.combine ProofEntryT.internal))
+instance: TraceInvariant.HasStep (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState) ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 4) (TraceTypes.combine ProofEntryT.internal))
+instance: TraceInvariant.HasStep (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState) ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 5) (TraceTypes.combine ProofEntryT.internal))
 instance: TraceInvariant.HasStep (LongTermKeys.ProofEntryT "SignedDH") ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 6) (TraceTypes.combine ProofEntryT.internal))
 
 example: TraceInvariant.Has Network.ProofEntryT := inferInstance
 example: TraceInvariant.Has Random.ProofEntryT := inferInstance
-example: TraceInvariant.Has (ProtocolEvent.ProofEntryT Test.SignedDHEvent) := inferInstance
-example: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT Test.ClientInitiateState) := inferInstance
-example: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT Test.ClientFinishState) := inferInstance
-example: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT Test.ServerFinishState) := inferInstance
+example: TraceInvariant.Has (ProtocolEvent.ProofEntryT SignedDH.SignedDHEvent) := inferInstance
+example: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState) := inferInstance
+example: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState) := inferInstance
+example: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState) := inferInstance
 example: TraceInvariant.Has (LongTermKeys.ProofEntryT "SignedDH") := inferInstance
 
 instance : ∀ id, SubBaseAttackerKnowledgeTheorem (ProofEntryT.internal id) (baseAttackerKnowledge.internal id)
