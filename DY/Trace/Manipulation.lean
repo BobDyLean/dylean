@@ -7,89 +7,111 @@ public import DY.Trace.Basic
 public import DY.Trace.Invariant
 public import DY.Label
 
-@[expose] public section
-
 namespace DY
 
-abbrev Traceful [ExecTraceTypes] := OptionT (StateT ExecTrace Id)
-abbrev Err := OptionT Id
+@[expose]
+public
+def Traceful [ExecTraceTypes] (a: Type) := (trIn: ExecTrace) → Option a × { trOut: ExecTrace // trIn ≤ trOut }
 
+public
+instance [ExecTraceTypes]: Monad Traceful where
+  pure x := fun tr => (some x, ⟨ tr, by grind ⟩)
+  bind x f := fun tr =>
+    let (xOptVal, trMid) := x tr
+    match xOptVal with
+    | none => (none, trMid)
+    | some xVal =>
+      let (optRes, trOut) := f xVal trMid.val
+      (optRes, ⟨ trOut.val, by grind [Trace.le_trans] ⟩)
+
+public
+instance [ExecTraceTypes]: Alternative Traceful where
+  failure := fun tr => (none, ⟨ tr, by grind ⟩)
+  orElse x y := fun tr =>
+    let (xOptVal, trMid) := x tr
+    match xOptVal with
+    | some xVal => (some xVal, trMid)
+    | none =>
+      let (optRes, trOut) := y () trMid.val
+      (optRes, ⟨ trOut.val, by grind [Trace.le_trans] ⟩)
+
+@[expose]
+public
+def Err := OptionT Id
+deriving Monad, Alternative
+
+public
 instance [ExecTraceTypes]: MonadLift Err Traceful := {
-  monadLift := fun x => StateT.pure x.run
+  monadLift x := fun tr => (x, ⟨ tr, by grind ⟩ )
 }
 
-def Traceful.run [ExecTraceTypes] (x: Traceful a) (tr: ExecTrace): (Option a × ExecTrace) :=
-  Id.run (StateT.run (OptionT.run x) tr)
+public
+def Traceful.run [ExecTraceTypes] (x: Traceful a) (tr: ExecTrace): (Option a × { trOut: ExecTrace // tr ≤ trOut}) :=
+  x tr
 
-def Traceful.mk [ExecTraceTypes] {α: Type} (f: ExecTrace → (Option α × ExecTrace)): Traceful α :=
-  OptionT.mk (StateT.mk f)
+public
+def Traceful.mk [ExecTraceTypes] {α: Type} (f: (tr: ExecTrace) → (Option α × { trOut: ExecTrace // tr ≤ trOut})): Traceful α :=
+  f
 
-def Traceful.run_mk
+public
+theorem Traceful.run_mk
   [ExecTraceTypes] {α: Type}
-  (f: ExecTrace → (Option α × ExecTrace))
+  (f: (tr: ExecTrace) → (Option α × { trOut: ExecTrace // tr ≤ trOut}))
   : Traceful.run (Traceful.mk f) = f
 := by
   rfl
 
--- This is missing from Lean's standard library??
-theorem OptionT.run_pure {m : Type u → Type v} [Monad m] {α : Type u} (x : α) :
-  OptionT.run (pure x) = some (pure x)
-  := rfl
-
--- This is missing from Lean's standard library??
-theorem OptionT.run_bind {m : Type u → Type v} [Monad m] {α β : Type u} (x : OptionT m α) (f : α → OptionT m β) :
-  (x >>= f).run = (do
-    match (← x.run) with
-    | some a => (f a).run
-    | none   => pure none
-  )
-  := rfl
-
+public
 theorem Traceful.run_pure
   [ExecTraceTypes]
   (x: a) (tr: ExecTrace)
-  : Traceful.run (pure x) tr = (some x, tr)
+  : Traceful.run (pure x) tr = (some x, ⟨ tr, by grind ⟩)
 := by
   rfl
 
+public
 theorem Traceful.run_bind
   [ExecTraceTypes]
   (x: Traceful a) (f: a → Traceful b) (tr: ExecTrace)
   : Traceful.run (x >>= f) tr = (
     let (opt_x, tr) := x.run tr
     match opt_x with
-    | some x => (f x).run tr
+    | some x =>
+      let (opt_y, tr) := (f x).run tr
+      (opt_y, ⟨ tr.val, by grind [Trace.le_trans]⟩)
     | none => (none, tr)
   )
 := by
-  simp only [Traceful.run, OptionT.run_bind, StateT.run_bind, Id.run_bind]
-  split
-  · simp_all
-  · simp_all
+  simp [Traceful.run, Bind.bind]
+  grind
 
+public
 theorem Traceful.run_failure
   [ExecTraceTypes]
   (tr: ExecTrace)
-  : Traceful.run (failure: Traceful a) tr = (none, tr)
+  : Traceful.run (failure: Traceful a) tr = (none, ⟨ tr, by grind ⟩)
 := by
   rfl
 
-
+public
 class WP [ExecTraceTypes] [ProofTraceTypes] (m: Type u → Type v) where
   wp: m a → (a → ProofTrace → Prop) → (ProofTrace → Prop)
 
 export WP (wp)
 
+public
 instance [ExecTraceTypes] [ProofTraceTypes]: WP Id where
   wp f post tr_proof :=
     post f.run tr_proof
 
+public
 instance [ExecTraceTypes] [ProofTraceTypes]: WP Err where
   wp f post tr_proof :=
     match f.run with
     | .none => True
     | .some x => post x tr_proof
 
+public
 instance [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]: WP Traceful where
   wp f post tr_proof :=
     let (opt_x, tr_exec') := f.run tr_proof.erase
@@ -103,6 +125,8 @@ instance [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]: WP Traceful where
       tr_exec' = tr_proof'.erase ∧
       tr_proof ≤ tr_proof'
 
+@[expose]
+public
 def hoareTriple [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [WP m] (f: m a) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop): Prop :=
   ∀ tr,
     pre tr →
@@ -115,6 +139,7 @@ def hoareTriple [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [WP m] (f: m
   Knowing this type is crucial to provide useful error message
   when a user provides a ghost parameter with the wrong type.
 -/
+public
 class HasGhostArgumentType (x: a) (g: outParam (Type u_g)) where
   dummy: Unit
 
@@ -126,6 +151,7 @@ class HasGhostArgumentType (x: a) (g: outParam (Type u_g)) where
   and the expression corresponding to the hoare triple that requires the ghost parameter.
   It is expected to assign the ghost parameter metavariable.
 -/
+public
 structure GhostParameterFinder where
   findGhost: Lean.MVarId → Lean.Expr → Lean.MetaM Unit
 
@@ -137,6 +163,7 @@ structure GhostParameterFinder where
   it cannot be written inline in the declaration.
   This is to prevent it to depend on local variables specific to this instance.
 -/
+public
 class HasGhostMetaprogram {a: Sort u_1} (x: a) (metaprog: outParam GhostParameterFinder) where
   dummy: Unit
 
@@ -152,19 +179,24 @@ class HasGhostMetaprogram {a: Sort u_1} (x: a) (metaprog: outParam GhostParamete
   that `metaprog` is expected to be called with the expression of `y`
   instead of the expression of `x`.
 -/
+public
 class HasIndirectGhostMetaprogram {a: Sort u_1} {b: outParam (Sort u_2)} (x: a) (metaprog: outParam GhostParameterFinder) (y: outParam b) where
   dummy: Unit
 
+public
 instance [HasGhostMetaprogram x metaprog]: HasIndirectGhostMetaprogram x metaprog x
 where
   dummy := ()
 
+public
 class HoareTripleGhost [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [WP m] (f: m a) [HasGhostArgumentType f g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: hoareTriple f pre post
 
+public
 class HoareTriple [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [WP m] (f: m a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: hoareTriple f pre post
 
+public
 instance
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   {m :Type u → Type v} [WP m]
@@ -176,6 +208,7 @@ instance
 where
   dummy := ()
 
+public
 instance
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   {m :Type u → Type v} [WP m]
@@ -187,6 +220,7 @@ instance
 where
   pf := HoareTriple.pf
 
+public
 class WPLift
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   (m: Type u → Type v) (n : Type u → Type w)
@@ -197,6 +231,7 @@ where
     wp x post tr →
     wp (liftM x: n a) post tr
 
+public
 instance
   {m: Type u → Type v} {n: Type u → Type w} [MonadLift m n]
   {a: Type u} {g: Type u_g}
@@ -206,6 +241,7 @@ instance
 where
   dummy := ()
 
+public
 instance
   {m: Type u → Type v} {n: Type u → Type w} [MonadLift m n]
   {a: Type u} {b: Type z}
@@ -216,6 +252,7 @@ instance
 where
   dummy := ()
 
+public
 instance
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   {m: Type u → Type v} {n: Type u → Type w} [MonadLift m n] [WP m] [WP n] [wplift: WPLift m n]
@@ -230,14 +267,14 @@ where
     have := wplift.pf x
     grind [hoareTriple]
 
+public
 instance [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]: WPLift Err Traceful where
   pf := by
     -- ugh
     simp only [wp, liftM, monadLift, MonadLift.monadLift, Traceful.run, OptionT.run]
-    unfold StateT.pure
-    simp only [StateT.run, Id.run_pure]
     grind
 
+public
 theorem Traceful.bind_wp
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   {a b g}
@@ -263,6 +300,7 @@ theorem Traceful.bind_wp
     simp_all only [WP.wp, hoareTriple, Traceful.run_bind]
     grind [Trace.le_trans]
 
+public
 theorem Traceful.finish_wp
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   {a g}
@@ -288,12 +326,15 @@ theorem Traceful.finish_wp
     simp_all only [WP.wp, hoareTriple]
     grind
 
+public
 class HoareTriplePureGhost [ExecTraceTypes] [ProofTraceTypes] (x: a) [HasGhostArgumentType x g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: ∀ tr, pre tr → post x tr
 
+public
 class HoareTriplePure [ExecTraceTypes] [ProofTraceTypes] (x: a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: ∀ tr, pre tr → post x tr
 
+public
 instance
   [ExecTraceTypes] [ProofTraceTypes]
   (x: a)
@@ -303,9 +344,11 @@ instance
 where
   dummy := ()
 
+public
 instance [ExecTraceTypes] [ProofTraceTypes] (x: a) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop) [HoareTriplePure x pre post]: HoareTriplePureGhost x () pre post where
   pf := HoareTriplePure.pf
 
+public
 theorem apply_hoare_triple_pure
   [ExecTraceTypes] [ProofTraceTypes]
   {a g}
@@ -318,6 +361,7 @@ theorem apply_hoare_triple_pure
   : post x tr
   := ht.pf tr p
 
+public
 instance
   [ExecTraceTypes] [ProofTraceTypes]
   (b: Bool)
@@ -326,6 +370,7 @@ instance
 where
   dummy := ()
 
+public
 instance
   [ExecTraceTypes] [ProofTraceTypes]
   (b: Bool)
@@ -334,6 +379,7 @@ instance
 where
   dummy := ()
 
+public
 instance [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] (b: Bool) (pre: ProofTrace → Prop) (post: Bool → ProofTrace → Prop) [HasGhostArgumentType b g] [ht: HoareTriplePureGhost b ghost pre post]:
   HoareTripleGhost
     (guard (b = true): Traceful Unit)
@@ -352,6 +398,7 @@ where
     · simp_all [Traceful.run_pure]
       grind
 
+public
 instance (priority := low) [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] (b: Prop) [Decidable b]:
   HoareTriple
     (guard b: Traceful Unit)
@@ -368,6 +415,7 @@ where
     · simp_all [Traceful.run_failure]
       grind
 
+public
 instance
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   : HoareTriple
@@ -380,10 +428,11 @@ where
     intro tr h_inv
     exists tr
 
+public
 instance
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   : HoareTriple
-    (OptionT.fail: Traceful a)
+    (failure: Traceful a)
     (fun _ => True)
     (fun _ _ => True)
 where
@@ -399,9 +448,10 @@ def appendEntry
   : Traceful Nat
 :=
   Traceful.mk (fun tr =>
-    (some tr.length, tr.append entry)
+    (some tr.length, ⟨ tr.append entry, by simp [Trace.append_le] ⟩ )
   )
 
+public
 instance
   [ExecTraceTypes] [ProofTraceTypes]
   {ExecEntryT ProofEntryT: Type}
@@ -456,7 +506,7 @@ def getEntry
         ExecTraceTypes.Has.proj (tr.at timestamp h)
       else
         none
-    (result, tr)
+    (result, ⟨ tr, by grind ⟩ )
   )
 
 @[instance]
@@ -506,7 +556,7 @@ public
 def getTimestamp [ExecTraceTypes]: Traceful Nat
 :=
   Traceful.mk (fun tr =>
-    (some tr.length, tr)
+    (some tr.length, ⟨ tr, by grind ⟩)
   )
 
 @[instance]
@@ -523,5 +573,3 @@ theorem getTimestamp.spec [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]:
   exists tr
 
 end DY
-
-end
