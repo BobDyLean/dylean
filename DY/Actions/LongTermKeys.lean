@@ -489,4 +489,46 @@ theorem getPrivateKey.spec
 
 end Proof
 
+section Reachability
+
+variable
+ [BytesFunctor]
+ (name: String)
+ {skToPk: Bytes → Bytes}
+ [ExecConfig name skToPk]
+ [ExecTraceTypes]
+ [BytesFunctor.Has Random.SubF]
+ [ExecTraceTypes.Has Random.ExecEntryT]
+ [ExecTraceTypes.Has Network.ExecEntryT]
+ [ExecTraceTypes.Has <| ExecEntryT name]
+
+public
+abbrev reachability : ReachabilityConfig :=
+  .make (fun p => generateKeyPair name p)
+
+variable
+  [ProofTraceTypes]
+  [TraceInvariant]
+
+  [BytesInvariants] [BytesInvariantsProofs]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
+  {usage: Participant → Usage}
+
+  [ProofTraceTypes.Has <| Random.ProofEntryT]
+  [ProofTraceTypes.Has <| Network.ProofEntryT]
+  [ProofTraceTypes.Has <| ProofEntryT name]
+
+  [BytesInvariants.Has <| Random.invariants]
+
+  [ProofConfig name usage]
+  [TraceInvariant.Has <| Random.ProofEntryT]
+  [TraceInvariant.Has <| Network.ProofEntryT]
+  [TraceInvariant.Has <| ProofEntryT name]
+
+public
+instance: ReachableImpliesInvariant (reachability name) where
+  pf p := generateKeyPair.spec name p
+
+end Reachability
+
 end DY.LongTermKeys

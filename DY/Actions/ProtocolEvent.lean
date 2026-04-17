@@ -60,6 +60,45 @@ def _root_.DY.Trace.EventLoggedAt
   tr.at_is time (ExecEntryT.mk ev)
 
 public
+def _root_.DY.Trace.getEventAt
+  (EventT: Type)
+  [ExecTraceTypes]
+  [ExecTraceTypes.Has (ExecEntryT EventT)]
+  (i: Nat)
+  (tr: ExecTrace)
+  : Option EventT
+:=
+  if h_i: i < tr.length then
+    match (ExecTraceTypes.Has.proj (tr.at i h_i): Option (ExecEntryT EventT)) with
+    | none => none
+    | some entry => some entry.ev
+  else
+    none
+
+public
+theorem _root_.DY.Trace.EventLoggedAt_eq_getEventAt
+  {EventT: Type}
+  [ExecTraceTypes]
+  [ExecTraceTypes.Has (ExecEntryT EventT)]
+  (ev: EventT) (i: Nat) (tr: ExecTrace)
+  : tr.EventLoggedAt ev i = (tr.getEventAt EventT i = some ev)
+:= by
+  dsimp only [Trace.EventLoggedAt, Trace.getEventAt, Trace.at_is, IntoTraceEntry.make]
+  split
+  · simp only [eq_iff_iff]
+    constructor
+    · intro
+      have := ExecTraceTypes.Has.inj_proj_eq (ExecEntryT := ExecEntryT EventT) (ExecTraceTypes.Has.inj (ExecEntryT.mk ev))
+      grind
+    · split
+      · grind
+      · rename_i entry _
+        cases entry
+        have := ExecTraceTypes.Has.inj_proj_eq (ExecEntryT := ExecEntryT EventT) (tr.at i (by assumption)) (ExecEntryT.mk ev)
+        grind
+  · grind
+
+public
 theorem _root_.DY.Trace.EventLoggedAt_le
   {EventT: Type}
   [ExecTraceTypes]

@@ -68,6 +68,7 @@ theorem Trace.erase_le
 grind_pattern Trace.erase_le => tr1 ≤ tr2, tr1.erase
 grind_pattern [grind_later] Trace.erase_le => tr1 ≤ tr2, tr1.erase
 
+@[simp]
 public
 theorem Trace.erase_length
   [ExecTraceTypes] [ProofTraceTypes]
@@ -91,6 +92,28 @@ def Trace.erase_at
   · grind
   split <;>
   grind [Trace.erase_length]
+
+@[simp]
+public
+def Trace.prefix_erase
+  [ExecTraceTypes] [ProofTraceTypes]
+  (tr: ProofTrace)
+  (i: Nat)
+  : (tr.prefix i).erase = tr.erase.prefix i
+:= by
+  induction tr
+  · unfold Trace.prefix Trace.erase
+    simp
+  rename_i trBefore entry ih
+  unfold Trace.prefix Trace.erase
+  simp_all [Trace.length]
+  split
+  · split
+    · simp_all
+    · simp_all [Trace.erase]
+  · split
+    · simp_all
+    · simp_all [Trace.erase]
 
 -- TODO test coercion
 example [ExecTraceTypes] [ProofTraceTypes]: Coe ProofTrace ExecTrace where
@@ -290,7 +313,6 @@ theorem Trace.at_is_erase
   simp only [Trace.at_is, IntoTraceEntry.make]
   intro ⟨ h1, h2 ⟩
   simp_all [Trace.erase_at, ProofTraceTypes.Has.erase_commutes]
-  grind
 
 -- Invariant
 

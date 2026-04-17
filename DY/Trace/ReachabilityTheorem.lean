@@ -1,0 +1,68 @@
+module
+
+public import DY.Trace.Reachability
+import all DY.Trace.Reachability
+import all DY.Trace.Invariant
+
+namespace DY
+
+variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+
+public
+class ReachableImpliesInvariant (config: ReachabilityConfig) where
+  pf:
+    ∀ input,
+      HoareTriple
+        (config.step input).snd
+        (fun tr => config.PreCond input tr.erase)
+        (fun _ _ => True)
+
+public
+instance
+  {α: Type}
+  (configs: α → ReachabilityConfig)
+  [insts: ∀ id, ReachableImpliesInvariant (configs id)]
+  : ReachableImpliesInvariant (.combine configs)
+where
+  pf := fun ⟨ id, x ⟩ =>
+    (insts id).pf x
+
+public
+theorem Trace.Reachable_implies_Invariant
+  (config: ReachabilityConfig)
+  [inst: ReachableImpliesInvariant config]
+  (trExec: ExecTrace)
+  : trExec.Reachable config →
+    ∃ trProof: ProofTrace,
+      trProof.erase = trExec ∧
+      trProof.Invariant
+:= by
+  unfold Trace.Reachable
+  intro h_reach
+  induction h_reach
+  · exists Trace.nil
+  rename_i input h_pre h_reach ih
+  obtain ⟨ trProofMid, _ ⟩ := ih
+  have ⟨ trProofEnd, _ ⟩ := (inst.pf input).pf trProofMid (by simp_all) (by simp_all)
+  exists trProofEnd
+  grind
+
+public
+theorem Trace.apply_Reachable_implies_Invariant
+  {config: ReachabilityConfig}
+  [inst: ReachableImpliesInvariant config]
+  {p: ExecTrace → Prop}
+  : (
+      ∀ trProof: ProofTrace,
+        trProof.Invariant →
+        p trProof.erase
+    ) → (
+      ∀ trExec: ExecTrace,
+        trExec.Reachable config →
+        p trExec
+    )
+:= by
+  intro h trExec h_reach
+  grind [Trace.Reachable_implies_Invariant config trExec h_reach]
+
+end DY

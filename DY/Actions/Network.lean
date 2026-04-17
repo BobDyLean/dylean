@@ -107,4 +107,31 @@ theorem receiveMessage.spec
 
 end Proof
 
+section Reachability
+
+variable [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT]
+variable [BaseAttackerKnowledge] [AttackerKnowledge]
+
+public
+abbrev reachability : ReachabilityConfig where
+  Input := Bytes
+  PreCond b tr := b.AttackerKnows tr
+  step b := ⟨ _, sendMessage b ⟩
+
+variable [ProofTraceTypes] [TraceInvariant]
+variable [BytesInvariants] [BytesInvariantsProofs]
+variable [ProofTraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
+variable [BaseAttackerKnowledgeTheorem] [AttackerKnowledgeTheorem]
+
+public
+instance: ReachableImpliesInvariant reachability
+where
+  pf b := by
+    apply HoareTriple.mk
+    have := (sendMessage.spec b).pf
+    unfold hoareTriple at *
+    grind [Bytes.AttackerKnows_implies_Publishable]
+
+end Reachability
+
 end DY.Network

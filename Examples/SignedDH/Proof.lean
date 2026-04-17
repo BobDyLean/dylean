@@ -235,8 +235,6 @@ where
       grind
     grind [canFlowTrans]
 
-instance: LongTermKeys.ExecConfig "SignedDH" Signature.vk where
-
 @[grind]
 instance : LongTermKeys.ProofConfig "SignedDH" mk_long_term_usage
 where
@@ -354,7 +352,7 @@ attribute [local grind] LongTermKeys.IsLongTermPublicKey
 attribute [local grind] LongTermKeys.IsLongTermSecretKey
 
 @[instance]
-theorem client_initiate.spec:
+theorem client_initiate.spec (me: Participant):
   HoareTriple
     (client_initiate me)
     (fun _ => True)
@@ -373,7 +371,7 @@ theorem client_initiate.spec:
   grind
 
 @[instance]
-theorem server_receive.spec:
+theorem server_receive.spec (me: Participant) (sk_ts: Nat) (msg_ts: Nat):
   HoareTriple
     (server_receive me sk_ts msg_ts)
     (fun _ => True)
@@ -406,7 +404,7 @@ theorem server_receive.spec:
   grind
 
 @[instance]
-theorem client_finish.spec:
+theorem client_finish.spec (me: Participant) (server: Participant) (pk_ts: Nat) (msg_ts: Nat) (sid: Nat):
   HoareTriple
     (client_finish me server pk_ts msg_ts sid)
     (fun _ => True)
@@ -438,5 +436,18 @@ theorem client_finish.spec:
   grind
 
 end Proofs
+
+section ReachabilityImpliesInvariant
+
+instance: ∀ id, ReachableImpliesInvariant (reachability.internal id)
+  | 0 => inferInstanceAs <| ReachableImpliesInvariant Network.reachability
+  | 1 => inferInstanceAs <| ReachableImpliesInvariant (LongTermKeys.reachability "SignedDH")
+  | 2 => .mk (fun me => client_initiate.spec me)
+  | 3 => .mk (fun (me, sk_ts, msg_ts) => server_receive.spec me sk_ts msg_ts)
+  | 4 => .mk (fun (me, server, pk_ts, msg_ts, sid) => client_finish.spec me server pk_ts msg_ts sid)
+
+instance: ReachableImpliesInvariant reachability := inferInstanceAs (ReachableImpliesInvariant (.combine reachability.internal))
+
+end ReachabilityImpliesInvariant
 
 end DY.Example.SignedDH

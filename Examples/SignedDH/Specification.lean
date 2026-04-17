@@ -141,6 +141,7 @@ inductive SignedDHEvent where
   | ClientInitiateEvent (client: Participant) (xPk: Bytes)
   | ServerFinishEvent (server: Participant) (xPk: Bytes) (yPk: Bytes) (kS: Bytes)
   | ClientFinishEvent (client server: Participant) (xPk: Bytes) (yPk: Bytes) (kC: Bytes)
+deriving DecidableEq
 
 end Structures
 
@@ -301,6 +302,8 @@ end ExecTraceConfig
 
 public section Specification
 
+instance: LongTermKeys.ExecConfig "SignedDH" Signature.vk where
+
 def client_initiate (me: Participant): Traceful (Nat × Nat) := do
   let xSk ← Random.genRand 32
   let xPk := DiffieHellman.dh_pk xSk
@@ -384,5 +387,26 @@ theorem ServerEphemeralStateCompromised_le
 grind_pattern ServerEphemeralStateCompromised_le => tr1 ≤ tr2, ServerEphemeralStateCompromised me yPk tr1
 
 end SecurityPredicates
+
+public section Reachability
+
+@[expose]
+def reachability.internal: Fin 5 → ReachabilityConfig
+  | 0 => Network.reachability
+  | 1 => LongTermKeys.reachability "SignedDH"
+  | 2 => .make (fun me => client_initiate me)
+  | 3 => .make (fun (me, sk_ts, msg_ts) => server_receive me sk_ts msg_ts)
+  | 4 => .make (fun (me, server, pk_ts, msg_ts, sid) => client_finish me server pk_ts msg_ts sid)
+
+@[expose]
+def reachability: ReachabilityConfig := .combine reachability.internal
+
+instance: ReachabilityConfig.HasStep (Network.reachability) reachability := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal 0) (.combine reachability.internal)
+instance: ReachabilityConfig.HasStep (LongTermKeys.reachability "SignedDH") reachability := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal 1) (.combine reachability.internal)
+instance: ReachabilityConfig.HasStep (.make (fun me => client_initiate me)) reachability := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal 2) (.combine reachability.internal)
+instance: ReachabilityConfig.HasStep (.make (fun (me, sk_ts, msg_ts) => server_receive me sk_ts msg_ts)) reachability := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal 3) (.combine reachability.internal)
+instance: ReachabilityConfig.HasStep (.make (fun (me, server, pk_ts, msg_ts, sid) => client_finish me server pk_ts msg_ts sid)) reachability := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal 4) (.combine reachability.internal)
+
+end Reachability
 
 end DY.Example.SignedDH
