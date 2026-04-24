@@ -4,6 +4,7 @@ import DY.Step
 import DY.Step.Utils
 import Examples.SignedDH.Specification
 import Examples.SignedDH.Proof
+import Examples.SignedDH.Instance
 
 namespace DY.Example.SignedDH
 

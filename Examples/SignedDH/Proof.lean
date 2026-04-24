@@ -12,54 +12,30 @@ open DY.Comparse
 -- TODO: this whole section should be meta-programmable
 public section ProofTraceConfig
 
-@[expose]
-public
-def ProofEntryT.internal: Fin 7 → Type
-  | 0 => Network.ProofEntryT
-  | 1 => Random.ProofEntryT
-  | 2 => ProtocolEvent.ProofEntryT SignedDH.SignedDHEvent
-  | 3 => PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState
-  | 4 => PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState
-  | 5 => PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState
-  | 6 => LongTermKeys.ProofEntryT "SignedDH"
+class HasProofTrace extends HasExecTrace where
+  [traceProof: ProofTraceTypes]
+  [traceProof0: ProofTraceTypes.Has Network.ProofEntryT]
+  [traceProof1: ProofTraceTypes.Has Random.ProofEntryT]
+  [traceProof2: ProofTraceTypes.Has (ProtocolEvent.ProofEntryT SignedDH.SignedDHEvent)]
+  [traceProof3: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState)]
+  [traceProof4: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState)]
+  [traceProof5: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState)]
+  [traceProof6: ProofTraceTypes.Has (LongTermKeys.ProofEntryT "SignedDH")]
 
-public
-abbrev ProofEntryT: Type :=
-  ProofTraceTypes.combine ProofEntryT.internal
-
-public
-instance: ∀ id, ErasableProofEntry (ExecEntryT.internal id) (ProofEntryT.internal id)
-  | 0 | 1 | 2 | 3 | 4 | 5 | 6 => by dsimp only [ExecEntryT.internal, ProofEntryT.internal]; infer_instance
-
-public
-instance: ErasableProofEntry ExecEntryT ProofEntryT :=
-  (inferInstance: ErasableProofEntry (ExecTraceTypes.combine ExecEntryT.internal) (ProofTraceTypes.combine ProofEntryT.internal))
-
-instance: ProofTraceTypes.HasStep Network.ProofEntryT ProofEntryT := inferInstanceAs (ProofTraceTypes.HasStep (ProofEntryT.internal 0) (ProofTraceTypes.combine ProofEntryT.internal))
-instance: ProofTraceTypes.HasStep Random.ProofEntryT ProofEntryT := inferInstanceAs (ProofTraceTypes.HasStep (ProofEntryT.internal 1) (ProofTraceTypes.combine ProofEntryT.internal))
-instance: ProofTraceTypes.HasStep (ProtocolEvent.ProofEntryT SignedDH.SignedDHEvent) ProofEntryT := inferInstanceAs (ProofTraceTypes.HasStep (ProofEntryT.internal 2) (ProofTraceTypes.combine ProofEntryT.internal))
-instance: ProofTraceTypes.HasStep (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState) ProofEntryT := inferInstanceAs (ProofTraceTypes.HasStep (ProofEntryT.internal 3) (ProofTraceTypes.combine ProofEntryT.internal))
-instance: ProofTraceTypes.HasStep (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState) ProofEntryT := inferInstanceAs (ProofTraceTypes.HasStep (ProofEntryT.internal 4) (ProofTraceTypes.combine ProofEntryT.internal))
-instance: ProofTraceTypes.HasStep (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState) ProofEntryT := inferInstanceAs (ProofTraceTypes.HasStep (ProofEntryT.internal 5) (ProofTraceTypes.combine ProofEntryT.internal))
-instance: ProofTraceTypes.HasStep (LongTermKeys.ProofEntryT "SignedDH") ProofEntryT := inferInstanceAs (ProofTraceTypes.HasStep (ProofEntryT.internal 6) (ProofTraceTypes.combine ProofEntryT.internal))
-
-instance: ProofTraceTypes where
-  ProofT := ProofEntryT
-  tc := inferInstance
-
-instance: ProofTraceTypes.Has ProofEntryT := inferInstanceAs (ProofTraceTypes.Has ProofTrace.Entry)
-
-example: ProofTraceTypes.Has Network.ProofEntryT := inferInstance
-example: ProofTraceTypes.Has Random.ProofEntryT := inferInstance
-example: ProofTraceTypes.Has (ProtocolEvent.ProofEntryT SignedDH.SignedDHEvent) := inferInstance
-example: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState) := inferInstance
-example: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState) := inferInstance
-example: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState) := inferInstance
-example: ProofTraceTypes.Has (LongTermKeys.ProofEntryT "SignedDH") := inferInstance
+attribute [reducible, scoped instance] HasProofTrace.traceProof
+attribute [reducible, scoped instance] HasProofTrace.traceProof0
+attribute [reducible, scoped instance] HasProofTrace.traceProof1
+attribute [reducible, scoped instance] HasProofTrace.traceProof2
+attribute [reducible, scoped instance] HasProofTrace.traceProof3
+attribute [reducible, scoped instance] HasProofTrace.traceProof4
+attribute [reducible, scoped instance] HasProofTrace.traceProof5
+attribute [reducible, scoped instance] HasProofTrace.traceProof6
 
 end ProofTraceConfig
 
 public section BytesInvariants
+
+variable [HasProofTrace]
 
 def client_label
   (me: Participant) (xPk: Bytes)
@@ -130,51 +106,30 @@ end BytesInvariants
 -- TODO: this whole section should be meta-programmable
 public section BytesInvariantsConfig
 
-def invariants.internal: (id: Fin 6) → Bytes.PartialInvariants (SubF.internal id)
-  | 0 => Literal.invariants
-  | 1 => Concat.invariants
-  | 2 => Hash.invariants
-  | 3 => Signature.invariants
-  | 4 => DiffieHellman.invariants
-  | 5 => Random.invariants
+class HasBytesInvariants extends HasProofTrace where
+  [bytesInv: BytesInvariants]
+  [bytesInv0: BytesInvariantsProofs]
+  [bytesInv1: BytesInvariants.Has Literal.invariants]
+  [bytesInv2: BytesInvariants.Has Concat.invariants]
+  [bytesInv3: BytesInvariants.Has Hash.invariants]
+  [bytesInv4: BytesInvariants.Has Signature.invariants]
+  [bytesInv5: BytesInvariants.Has DiffieHellman.invariants]
+  [bytesInv6: BytesInvariants.Has Random.invariants]
 
-abbrev invariants: Bytes.PartialInvariants SubF :=
-  Bytes.PartialInvariants.combine invariants.internal
-
-instance [BytesInvariants]: BytesInvariants.HasStep Literal.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 0) invariants)
-instance [BytesInvariants]: BytesInvariants.HasStep Concat.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 1) invariants)
-instance [BytesInvariants]: BytesInvariants.HasStep Hash.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 2) invariants)
-instance [BytesInvariants]: BytesInvariants.HasStep Signature.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 3) invariants)
-instance [BytesInvariants]: BytesInvariants.HasStep DiffieHellman.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 4) invariants)
-instance [BytesInvariants]: BytesInvariants.HasStep Random.invariants invariants := inferInstanceAs (BytesInvariants.HasStep (invariants.internal 5) invariants)
-
-instance: BytesInvariants where
-  invs := invariants
-
-instance: BytesInvariants.Has invariants := inferInstance
-
-example: BytesInvariants.Has Hash.invariants := inferInstance
-example: BytesInvariants.Has Signature.invariants := inferInstance
-example: BytesInvariants.Has DiffieHellman.invariants := inferInstance
-example: BytesInvariants.Has Random.invariants := inferInstance
-
-def invariantsProofs.internal: (id: Fin 6) → Bytes.PartialInvariantsProofs (invariants.internal id)
-  | 0 => Literal.invariantsProofs
-  | 1 => Concat.invariantsProofs
-  | 2 => Hash.invariantsProofs
-  | 3 => Signature.invariantsProofs
-  | 4 => DiffieHellman.invariantsProofs
-  | 5 => Random.invariantsProofs
-
-abbrev invariantsProofs: Bytes.PartialInvariantsProofs invariants :=
-  Bytes.PartialInvariantsProofs.combine invariantsProofs.internal
-
-instance: BytesInvariantsProofs where
-  pfs := invariantsProofs
+attribute [reducible, scoped instance] HasBytesInvariants.bytesInv
+attribute [           scoped instance] HasBytesInvariants.bytesInv0
+attribute [           scoped instance] HasBytesInvariants.bytesInv1
+attribute [           scoped instance] HasBytesInvariants.bytesInv2
+attribute [           scoped instance] HasBytesInvariants.bytesInv3
+attribute [           scoped instance] HasBytesInvariants.bytesInv4
+attribute [           scoped instance] HasBytesInvariants.bytesInv5
+attribute [           scoped instance] HasBytesInvariants.bytesInv6
 
 end BytesInvariantsConfig
 
 public section TraceInvariant
+
+variable [HasBytesInvariants]
 
 instance ClientInitiateStateInv : PersistentLocalState.CompromisableLocalStateInv ClientInitiateState
 where
@@ -273,71 +228,34 @@ end TraceInvariant
 -- TODO: this whole section should be meta-programmable
 public section TraceInvariantConfig
 
-public
-instance: ∀ id, SubTraceInvariant (ProofEntryT.internal id)
-  | 0 | 1 | 2 | 3 | 4 | 5 | 6 => by dsimp only [ProofEntryT.internal]; infer_instance
+class HasTraceInvariant extends HasBytesInvariants where
+  [traceInv: TraceInvariant]
+  [traceInv0: TraceInvariant.Has Network.ProofEntryT]
+  [traceInv1: TraceInvariant.Has Random.ProofEntryT]
+  [traceInv2: TraceInvariant.Has (ProtocolEvent.ProofEntryT SignedDH.SignedDHEvent)]
+  [traceInv3: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState)]
+  [traceInv4: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState)]
+  [traceInv5: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState)]
+  [traceInv6: TraceInvariant.Has (LongTermKeys.ProofEntryT "SignedDH")]
+  [attBaseThm: BaseAttackerKnowledgeTheorem]
+  [attThm: AttackerKnowledgeTheorem]
 
-public
-instance: SubTraceInvariant ProofEntryT :=
-  (inferInstance: SubTraceInvariant (ProofTraceTypes.combine ProofEntryT.internal))
-
-instance : TraceInvariant where
-  tc_inv := by dsimp only [ProofTrace.Entry, ProofTraceTypes.ProofT]; infer_instance
-
-instance: TraceInvariant.Has ProofEntryT := inferInstanceAs (TraceInvariant.Has ProofTrace.Entry)
-
-instance: TraceInvariant.HasStep Network.ProofEntryT ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 0) (ProofTraceTypes.combine ProofEntryT.internal))
-instance: TraceInvariant.HasStep Random.ProofEntryT ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 1) (ProofTraceTypes.combine ProofEntryT.internal))
-instance: TraceInvariant.HasStep (ProtocolEvent.ProofEntryT SignedDH.SignedDHEvent) ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 2) (ProofTraceTypes.combine ProofEntryT.internal))
-instance: TraceInvariant.HasStep (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState) ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 3) (ProofTraceTypes.combine ProofEntryT.internal))
-instance: TraceInvariant.HasStep (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState) ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 4) (ProofTraceTypes.combine ProofEntryT.internal))
-instance: TraceInvariant.HasStep (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState) ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 5) (ProofTraceTypes.combine ProofEntryT.internal))
-instance: TraceInvariant.HasStep (LongTermKeys.ProofEntryT "SignedDH") ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 6) (ProofTraceTypes.combine ProofEntryT.internal))
-
-example: TraceInvariant.Has Network.ProofEntryT := inferInstance
-example: TraceInvariant.Has Random.ProofEntryT := inferInstance
-example: TraceInvariant.Has (ProtocolEvent.ProofEntryT SignedDH.SignedDHEvent) := inferInstance
-example: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState) := inferInstance
-example: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState) := inferInstance
-example: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState) := inferInstance
-example: TraceInvariant.Has (LongTermKeys.ProofEntryT "SignedDH") := inferInstance
-
-instance : ∀ id, SubBaseAttackerKnowledgeTheorem (ProofEntryT.internal id) (baseAttackerKnowledge.internal id)
-  -- TODO: investigate why infer_instance doesn't work
-  | 0 => by dsimp only [ProofEntryT.internal, baseAttackerKnowledge.internal]; apply Network.baseAttackerKnowledgeTheorem
-  | 1 => by dsimp only [ProofEntryT.internal, baseAttackerKnowledge.internal]; apply Random.baseAttackerKnowledgeTheorem
-  | 2 => by dsimp only [ProofEntryT.internal, baseAttackerKnowledge.internal]; apply ProtocolEvent.baseAttackerKnowledgeTheorem
-  | 3 => by dsimp only [ProofEntryT.internal, baseAttackerKnowledge.internal]; apply PersistentLocalState.CompromisableState.baseAttackerKnowledgeTheorem
-  | 4 => by dsimp only [ProofEntryT.internal, baseAttackerKnowledge.internal]; apply PersistentLocalState.CompromisableState.baseAttackerKnowledgeTheorem
-  | 5 => by dsimp only [ProofEntryT.internal, baseAttackerKnowledge.internal]; apply PersistentLocalState.CompromisableState.baseAttackerKnowledgeTheorem
-  | 6 => by dsimp only [ProofEntryT.internal, baseAttackerKnowledge.internal]; apply LongTermKeys.baseAttackerKnowledgeTheorem "SignedDH"
-
-instance: SubBaseAttackerKnowledgeTheorem (ProofEntryT) (baseAttackerKnowledge) := by
-  dsimp only [ProofEntryT, baseAttackerKnowledge]
-  infer_instance
-
-instance: BaseAttackerKnowledgeTheorem where
-  pf := by
-    dsimp only [ProofTrace.Entry, ProofTraceTypes.ProofT, BaseAttackerKnowledge.attackerKnows]
-    -- TODO infer_instance
-    exact instSubBaseAttackerKnowledgeTheoremExecEntryTProofEntryTBaseAttackerKnowledge
-
-instance: (id: Fin 6) → SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)
-  | 0 => inferInstanceAs (SubAttackerKnowledgeTheorem Literal.attackerKnowledge)
-  | 1 => inferInstanceAs (SubAttackerKnowledgeTheorem Concat.attackerKnowledge)
-  | 2 => inferInstanceAs (SubAttackerKnowledgeTheorem Hash.attackerKnowledge)
-  | 3 => inferInstanceAs (SubAttackerKnowledgeTheorem Signature.attackerKnowledge)
-  | 4 => inferInstanceAs (SubAttackerKnowledgeTheorem DiffieHellman.attackerKnowledge)
-  | 5 => inferInstanceAs (SubAttackerKnowledgeTheorem Random.attackerKnowledge)
-
-instance: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstanceAs (SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine attackerKnowledge.internal))
-
-instance: AttackerKnowledgeTheorem where
-  inst := inferInstanceAs (SubAttackerKnowledgeTheorem attackerKnowledge)
+attribute [reducible, scoped instance] HasTraceInvariant.traceInv
+attribute [           scoped instance] HasTraceInvariant.traceInv0
+attribute [           scoped instance] HasTraceInvariant.traceInv1
+attribute [           scoped instance] HasTraceInvariant.traceInv2
+attribute [           scoped instance] HasTraceInvariant.traceInv3
+attribute [           scoped instance] HasTraceInvariant.traceInv4
+attribute [           scoped instance] HasTraceInvariant.traceInv5
+attribute [           scoped instance] HasTraceInvariant.traceInv6
+attribute [           scoped instance] HasTraceInvariant.attBaseThm
+attribute [           scoped instance] HasTraceInvariant.attThm
 
 end TraceInvariantConfig
 
 public section Proofs
+
+variable [HasTraceInvariant]
 
 attribute [local grind] ProtocolEvent.EventInv.invariant
 attribute [local grind] SignedDHEventInv
@@ -438,6 +356,8 @@ theorem client_finish.spec (me: Participant) (server: Participant) (pk_ts: Nat) 
 end Proofs
 
 section ReachabilityImpliesInvariant
+
+variable [HasTraceInvariant]
 
 instance: ∀ id, ReachableImpliesInvariant (reachability.internal id)
   | 0 => inferInstanceAs <| ReachableImpliesInvariant Network.reachability

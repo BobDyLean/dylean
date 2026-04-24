@@ -18,101 +18,59 @@ namespace DY.Example.SignedDH
 
 open DY.Comparse
 
--- TODO: most of this section should be meta-programmable from the SubF.internal list
+-- TODO: meta-program could divide this section length by 6 (=2*3)
 public section ExecBytesConfig
 
-abbrev SubF.internal: (id: Fin 6) → (Type → Type)
-  | 0 => Literal.SubF
-  | 1 => Concat.SubF
-  | 2 => Hash.SubF
-  | 3 => Signature.SubF
-  | 4 => DiffieHellman.SubF
-  | 5 => Random.SubF
+class HasExecBytes where
+  [bytesFunc: BytesFunctor]
+  [bytesFunc0: BytesFunctor.Has Literal.SubF]
+  [bytesFunc1: BytesFunctor.Has Concat.SubF]
+  [bytesFunc2: BytesFunctor.Has Hash.SubF]
+  [bytesFunc3: BytesFunctor.Has Signature.SubF]
+  [bytesFunc4: BytesFunctor.Has DiffieHellman.SubF]
+  [bytesFunc5: BytesFunctor.Has Random.SubF]
+  [bytesLen: BytesLength]
+  [bytesLen0: BytesLength.Has Literal.SubF.length]
+  [bytesLen1: BytesLength.Has Concat.SubF.length]
+  [bytesLen2: BytesLength.Has Hash.SubF.length]
+  [bytesLen3: BytesLength.Has Signature.SubF.length]
+  [bytesLen4: BytesLength.Has DiffieHellman.SubF.length]
+  [bytesLen5: BytesLength.Has Random.SubF.length]
+  [att: AttackerKnowledge]
+  [att0: AttackerKnowledge.Has Literal.attackerKnowledge]
+  [att1: AttackerKnowledge.Has Concat.attackerKnowledge]
+  [att2: AttackerKnowledge.Has Hash.attackerKnowledge]
+  [att3: AttackerKnowledge.Has Signature.attackerKnowledge]
+  [att4: AttackerKnowledge.Has DiffieHellman.attackerKnowledge]
+  [att5: AttackerKnowledge.Has Random.attackerKnowledge]
 
-abbrev SubF := BytesFunctor.combine SubF.internal
-
-instance: ∀ id, SubBytesFunctor (SubF.internal id)
-  | 0 | 1 | 2 | 3 | 4 | 5 => inferInstance
-
-instance: BytesFunctor.HasStep Literal.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 0) SubF)
-instance: BytesFunctor.HasStep Concat.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 1) SubF)
-instance: BytesFunctor.HasStep Hash.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 2) SubF)
-instance: BytesFunctor.HasStep Signature.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 3) SubF)
-instance: BytesFunctor.HasStep DiffieHellman.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 4) SubF)
-instance: BytesFunctor.HasStep Random.SubF SubF := inferInstanceAs (BytesFunctor.HasStep (SubF.internal 5) SubF)
-
-instance: BytesFunctor where
-  BytesF := SubF
-
-instance: BytesFunctor.Has SubF := inferInstanceAs (BytesFunctor.Has BytesF)
-
-example: BytesFunctor.Has Hash.SubF := inferInstance
-example: BytesFunctor.Has Signature.SubF := inferInstance
-example: BytesFunctor.Has DiffieHellman.SubF := inferInstance
-example: BytesFunctor.Has Random.SubF := inferInstance
-
-def SubF.length.internal [BytesFunctor]: ∀ id, Bytes.PartialLength (SubF.internal id)
-  | 0 => Literal.SubF.length
-  | 1 => Concat.SubF.length
-  | 2 => Hash.SubF.length
-  | 3 => Signature.SubF.length
-  | 4 => DiffieHellman.SubF.length
-  | 5 => Random.SubF.length
-
-abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
-  Bytes.PartialLength.combine SubF.length.internal
-
-instance: BytesLength where
-  funs := SubF.length
-
-instance: BytesLength.HasStep Literal.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 0) SubF.length)
-instance: BytesLength.HasStep Concat.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 1) SubF.length)
-instance: BytesLength.HasStep Hash.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 2) SubF.length)
-instance: BytesLength.HasStep Signature.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 3) SubF.length)
-instance: BytesLength.HasStep DiffieHellman.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 4) SubF.length)
-instance: BytesLength.HasStep Random.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 5) SubF.length)
-
-instance: BytesLength.Has SubF.length := inferInstanceAs (BytesLength.Has SubF.length)
-
-example: BytesLength.Has Literal.SubF.length := inferInstance
-example: BytesLength.Has Concat.SubF.length := inferInstance
-example: BytesLength.Has Hash.SubF.length := inferInstance
-example: BytesLength.Has Signature.SubF.length := inferInstance
-example: BytesLength.Has DiffieHellman.SubF.length := inferInstance
-example: BytesLength.Has Random.SubF.length := inferInstance
-
-def attackerKnowledge.internal (id: Fin 6): SubAttackerKnowledge (SubF.internal id) :=
-  match id with
-  | 0 => Literal.attackerKnowledge
-  | 1 => Concat.attackerKnowledge
-  | 2 => Hash.attackerKnowledge
-  | 3 => Signature.attackerKnowledge
-  | 4 => DiffieHellman.attackerKnowledge
-  | 5 => Random.attackerKnowledge
-
-def attackerKnowledge: SubAttackerKnowledge SubF :=
-  SubAttackerKnowledge.combine attackerKnowledge.internal
-
-instance: AttackerKnowledge.HasStep Literal.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 0) (SubAttackerKnowledge.combine attackerKnowledge.internal))
-instance: AttackerKnowledge.HasStep Concat.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 1) (SubAttackerKnowledge.combine attackerKnowledge.internal))
-instance: AttackerKnowledge.HasStep Hash.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 2) (SubAttackerKnowledge.combine attackerKnowledge.internal))
-instance: AttackerKnowledge.HasStep Signature.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 3) (SubAttackerKnowledge.combine attackerKnowledge.internal))
-instance: AttackerKnowledge.HasStep DiffieHellman.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 4) (SubAttackerKnowledge.combine attackerKnowledge.internal))
-instance: AttackerKnowledge.HasStep Random.attackerKnowledge attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 5) (SubAttackerKnowledge.combine attackerKnowledge.internal))
-
-instance: AttackerKnowledge where
-  attackerKnowledge
-
-instance: AttackerKnowledge.Has attackerKnowledge := inferInstanceAs (AttackerKnowledge.Has AttackerKnowledge.attackerKnowledge)
-
-example: AttackerKnowledge.Has Hash.attackerKnowledge := inferInstance
-example: AttackerKnowledge.Has Signature.attackerKnowledge := inferInstance
-example: AttackerKnowledge.Has DiffieHellman.attackerKnowledge := inferInstance
-example: AttackerKnowledge.Has Random.attackerKnowledge := inferInstance
+attribute [reducible, scoped instance] HasExecBytes.bytesFunc
+attribute [reducible, scoped instance] HasExecBytes.bytesFunc0
+attribute [reducible, scoped instance] HasExecBytes.bytesFunc1
+attribute [reducible, scoped instance] HasExecBytes.bytesFunc2
+attribute [reducible, scoped instance] HasExecBytes.bytesFunc3
+attribute [reducible, scoped instance] HasExecBytes.bytesFunc4
+attribute [reducible, scoped instance] HasExecBytes.bytesFunc5
+attribute [reducible, scoped instance] HasExecBytes.bytesLen
+attribute [           scoped instance] HasExecBytes.bytesLen0
+attribute [           scoped instance] HasExecBytes.bytesLen1
+attribute [           scoped instance] HasExecBytes.bytesLen2
+attribute [           scoped instance] HasExecBytes.bytesLen3
+attribute [           scoped instance] HasExecBytes.bytesLen4
+attribute [           scoped instance] HasExecBytes.bytesLen5
+attribute [reducible, scoped instance] HasExecBytes.att
+attribute [           scoped instance] HasExecBytes.att0
+attribute [           scoped instance] HasExecBytes.att1
+attribute [           scoped instance] HasExecBytes.att2
+attribute [           scoped instance] HasExecBytes.att3
+attribute [           scoped instance] HasExecBytes.att4
+attribute [           scoped instance] HasExecBytes.att5
 
 end ExecBytesConfig
 
 public section Structures
+
+variable [HasExecBytes]
 
 structure ClientMessage where
   xPk: Bytes
@@ -147,6 +105,8 @@ end Structures
 
 -- TODO: this section should be meta-programmable
 public section Formats
+
+variable [HasExecBytes]
 
 instance: ParseableSerializeable ClientMessage := .make <|
   .triviallyIsomorphic
@@ -243,64 +203,36 @@ grind_pattern ServerFinishState.IsWellFormed_eq => IsWellFormed pre x tr
 
 end Formats
 
--- TODO: most of this section should be meta-programmable from the ExecEntryT.internal list
+-- TODO: a meta-program could divide this section length by 2
 public section ExecTraceConfig
 
-public
-abbrev ExecEntryT.internal: Fin 7 → Type
-  | 0 => Network.ExecEntryT
-  | 1 => Random.ExecEntryT
-  | 2 => ProtocolEvent.ExecEntryT SignedDH.SignedDHEvent
-  | 3 => PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientInitiateState
-  | 4 => PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientFinishState
-  | 5 => PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ServerFinishState
-  | 6 => LongTermKeys.ExecEntryT "SignedDH"
+class HasExecTrace extends HasExecBytes where
+  [traceExec: ExecTraceTypes]
+  [traceExec0: ExecTraceTypes.Has Network.ExecEntryT]
+  [traceExec1: ExecTraceTypes.Has Random.ExecEntryT]
+  [traceExec2: ExecTraceTypes.Has (ProtocolEvent.ExecEntryT SignedDH.SignedDHEvent)]
+  [traceExec3: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientInitiateState)]
+  [traceExec4: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientFinishState)]
+  [traceExec5: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ServerFinishState)]
+  [traceExec6: ExecTraceTypes.Has (LongTermKeys.ExecEntryT "SignedDH")]
+  [attBase: BaseAttackerKnowledge]
+  -- no has :thinking_face:
 
-public
-abbrev ExecEntryT: Type :=
-  ExecTraceTypes.combine ExecEntryT.internal
-
-instance: ExecTraceTypes.HasStep Network.ExecEntryT ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 0) (ExecTraceTypes.combine ExecEntryT.internal))
-instance: ExecTraceTypes.HasStep Random.ExecEntryT ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 1) (ExecTraceTypes.combine ExecEntryT.internal))
-instance: ExecTraceTypes.HasStep (ProtocolEvent.ExecEntryT SignedDH.SignedDHEvent) ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 2) (ExecTraceTypes.combine ExecEntryT.internal))
-instance: ExecTraceTypes.HasStep (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientInitiateState) ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 3) (ExecTraceTypes.combine ExecEntryT.internal))
-instance: ExecTraceTypes.HasStep (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientFinishState) ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 4) (ExecTraceTypes.combine ExecEntryT.internal))
-instance: ExecTraceTypes.HasStep (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ServerFinishState) ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 5) (ExecTraceTypes.combine ExecEntryT.internal))
-instance: ExecTraceTypes.HasStep (LongTermKeys.ExecEntryT "SignedDH") ExecEntryT := inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal 6) (ExecTraceTypes.combine ExecEntryT.internal))
-
-instance: ExecTraceTypes where
-  ExecT := ExecEntryT
-
-instance: ExecTraceTypes.Has ExecEntryT := inferInstanceAs (ExecTraceTypes.Has ExecTrace.Entry)
-
-example: ExecTraceTypes.Has Network.ExecEntryT := inferInstance
-example: ExecTraceTypes.Has Random.ExecEntryT := inferInstance
-example: ExecTraceTypes.Has (ProtocolEvent.ExecEntryT SignedDH.SignedDHEvent) := inferInstance
-example: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientInitiateState) := inferInstance
-example: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientFinishState) := inferInstance
-example: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ServerFinishState) := inferInstance
-example: ExecTraceTypes.Has (LongTermKeys.ExecEntryT "SignedDH") := inferInstance
-
-public
-def baseAttackerKnowledge.internal: (id: Fin 7) → SubBaseAttackerKnowledge (ExecEntryT.internal id)
-  | 0 => Network.baseAttackerKnowledge
-  | 1 => Random.baseAttackerKnowledge
-  | 2 => ProtocolEvent.baseAttackerKnowledge SignedDH.SignedDHEvent
-  | 3 => PersistentLocalState.CompromisableState.baseAttackerKnowledge SignedDH.ClientInitiateState
-  | 4 => PersistentLocalState.CompromisableState.baseAttackerKnowledge SignedDH.ClientFinishState
-  | 5 => PersistentLocalState.CompromisableState.baseAttackerKnowledge SignedDH.ServerFinishState
-  | 6 => LongTermKeys.baseAttackerKnowledge "SignedDH"
-
-public
-def baseAttackerKnowledge: SubBaseAttackerKnowledge ExecEntryT :=
-  SubBaseAttackerKnowledge.combine baseAttackerKnowledge.internal
-
-instance: BaseAttackerKnowledge where
-  attackerKnows := baseAttackerKnowledge
+attribute [reducible, scoped instance] HasExecTrace.traceExec
+attribute [reducible, scoped instance] HasExecTrace.traceExec0
+attribute [reducible, scoped instance] HasExecTrace.traceExec1
+attribute [reducible, scoped instance] HasExecTrace.traceExec2
+attribute [reducible, scoped instance] HasExecTrace.traceExec3
+attribute [reducible, scoped instance] HasExecTrace.traceExec4
+attribute [reducible, scoped instance] HasExecTrace.traceExec5
+attribute [reducible, scoped instance] HasExecTrace.traceExec6
+attribute [reducible, scoped instance] HasExecTrace.attBase
 
 end ExecTraceConfig
 
 public section Specification
+
+variable [HasExecTrace]
 
 instance: LongTermKeys.ExecConfig "SignedDH" Signature.vk where
 
@@ -347,6 +279,8 @@ end Specification
 
 public section SecurityPredicates
 
+variable [HasExecTrace]
+
 def ClientEphemeralStateCompromised
   (me: Participant) (xPk: Bytes)
   (tr: ExecTrace)
@@ -389,6 +323,8 @@ grind_pattern ServerEphemeralStateCompromised_le => tr1 ≤ tr2, ServerEphemeral
 end SecurityPredicates
 
 public section Reachability
+
+variable [HasExecTrace]
 
 @[expose]
 def reachability.internal: Fin 5 → ReachabilityConfig
