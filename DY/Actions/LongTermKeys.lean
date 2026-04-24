@@ -79,7 +79,7 @@ variable (name: String)
 variable {skToPk: Bytes → Bytes}
 variable [ExecConfig name skToPk]
 
-@[expose, implicit_reducible]
+@[expose]
 public
 def ExecEntryT.internal: Fin 2 → Type
   | 0 => PersistentLocalState.CompromisableState.ExecEntryT (SecretKeyState name)
@@ -298,7 +298,7 @@ instance: PersistentGlobalState.CompromisableGlobalStateInv (PublicKeyState name
     have := ProofConfig.IsLongTermPublicKey_implies name state.p state.pk tr h
     grind [canFlowTrans]
 
-@[expose, implicit_reducible]
+@[expose]
 public
 def ProofEntryT.internal: Fin 2 → Type
   | 0 => PersistentLocalState.CompromisableState.ProofEntryT (SecretKeyState name)
@@ -363,8 +363,8 @@ instance
   [TraceInvariant.Has (ProofEntryT name)]
   : ∀ id, SubBaseAttackerKnowledgeTheorem (ProofEntryT.internal name id) (baseAttackerKnowledge.internal name id)
   -- TODO: investigate why infer_instance doesn't work
-  | 0 => by dsimp only [ProofEntryT.internal, baseAttackerKnowledge.internal]; apply PersistentLocalState.CompromisableState.baseAttackerKnowledgeTheorem
-  | 1 => by dsimp only [ProofEntryT.internal, baseAttackerKnowledge.internal]; apply PersistentGlobalState.CompromisableState.baseAttackerKnowledgeTheorem
+  | 0 => PersistentLocalState.CompromisableState.baseAttackerKnowledgeTheorem (SecretKeyState name)
+  | 1 => PersistentGlobalState.CompromisableState.baseAttackerKnowledgeTheorem (PublicKeyState name)
 
 public
 instance baseAttackerKnowledgeTheorem

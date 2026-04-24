@@ -49,7 +49,7 @@ grind_pattern LocalState.IsWellFormed_eq => Comparse.IsWellFormed pre x tr
 
 namespace State
 
-@[expose, reducible]
+@[expose]
 public
 def ExecEntryT.internal (StateT: Type): Fin 1 → Type
   | 0 => PersistentGlobalState.State.ExecEntryT (LocalState StateT)
@@ -115,8 +115,9 @@ public
 def ProofEntryT.internal (StateT: Type): Fin 1 → Type
   | 0 => PersistentGlobalState.State.ProofEntryT (LocalState StateT)
 
+@[expose, implicit_reducible]
 public
-abbrev ProofEntryT (StateT: Type): Type :=
+def ProofEntryT (StateT: Type): Type :=
   ProofTraceTypes.combine (ProofEntryT.internal StateT)
 
 public
