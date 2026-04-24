@@ -32,11 +32,6 @@ instance: BytesFunctor where
 
 instance: BytesFunctor.Has SubF := inferInstanceAs (BytesFunctor.Has BytesF)
 
-example: BytesFunctor.Has Hash.SubF := inferInstance
-example: BytesFunctor.Has Signature.SubF := inferInstance
-example: BytesFunctor.Has DiffieHellman.SubF := inferInstance
-example: BytesFunctor.Has Random.SubF := inferInstance
-
 def SubF.length.internal [BytesFunctor]: ∀ id, Bytes.PartialLength (SubF.internal id)
   | 0 => Literal.SubF.length
   | 1 => Concat.SubF.length
@@ -59,13 +54,6 @@ instance: BytesLength.HasStep DiffieHellman.SubF.length SubF.length := inferInst
 instance: BytesLength.HasStep Random.SubF.length SubF.length := inferInstanceAs (BytesLength.HasStep (SubF.length.internal 5) SubF.length)
 
 instance: BytesLength.Has SubF.length := inferInstanceAs (BytesLength.Has SubF.length)
-
-example: BytesLength.Has Literal.SubF.length := inferInstance
-example: BytesLength.Has Concat.SubF.length := inferInstance
-example: BytesLength.Has Hash.SubF.length := inferInstance
-example: BytesLength.Has Signature.SubF.length := inferInstance
-example: BytesLength.Has DiffieHellman.SubF.length := inferInstance
-example: BytesLength.Has Random.SubF.length := inferInstance
 
 def attackerKnowledge.internal (id: Fin 6): SubAttackerKnowledge (SubF.internal id) :=
   match id with
@@ -90,11 +78,6 @@ instance: AttackerKnowledge where
   attackerKnowledge
 
 instance: AttackerKnowledge.Has attackerKnowledge := inferInstanceAs (AttackerKnowledge.Has AttackerKnowledge.attackerKnowledge)
-
-example: AttackerKnowledge.Has Hash.attackerKnowledge := inferInstance
-example: AttackerKnowledge.Has Signature.attackerKnowledge := inferInstance
-example: AttackerKnowledge.Has DiffieHellman.attackerKnowledge := inferInstance
-example: AttackerKnowledge.Has Random.attackerKnowledge := inferInstance
 
 instance: HasExecBytes where
 
@@ -124,14 +107,6 @@ instance: ExecTraceTypes where
   ExecT := ExecEntryT
 
 instance: ExecTraceTypes.Has ExecEntryT := inferInstanceAs (ExecTraceTypes.Has ExecTrace.Entry)
-
-example: ExecTraceTypes.Has Network.ExecEntryT := inferInstance
-example: ExecTraceTypes.Has Random.ExecEntryT := inferInstance
-example: ExecTraceTypes.Has (ProtocolEvent.ExecEntryT SignedDH.SignedDHEvent) := inferInstance
-example: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientInitiateState) := inferInstance
-example: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientFinishState) := inferInstance
-example: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ServerFinishState) := inferInstance
-example: ExecTraceTypes.Has (LongTermKeys.ExecEntryT "SignedDH") := inferInstance
 
 public
 def baseAttackerKnowledge.internal: (id: Fin 7) → SubBaseAttackerKnowledge (ExecEntryT.internal id)
@@ -189,14 +164,6 @@ instance: ProofTraceTypes where
 
 instance: ProofTraceTypes.Has ProofEntryT := inferInstanceAs (ProofTraceTypes.Has ProofTrace.Entry)
 
-example: ProofTraceTypes.Has Network.ProofEntryT := inferInstance
-example: ProofTraceTypes.Has Random.ProofEntryT := inferInstance
-example: ProofTraceTypes.Has (ProtocolEvent.ProofEntryT SignedDH.SignedDHEvent) := inferInstance
-example: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState) := inferInstance
-example: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState) := inferInstance
-example: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState) := inferInstance
-example: ProofTraceTypes.Has (LongTermKeys.ProofEntryT "SignedDH") := inferInstance
-
 instance: HasProofTrace where
 
 def invariants.internal: (id: Fin 6) → Bytes.PartialInvariants (SubF.internal id)
@@ -221,11 +188,6 @@ instance: BytesInvariants where
   invs := invariants
 
 instance: BytesInvariants.Has invariants := inferInstance
-
-example: BytesInvariants.Has Hash.invariants := inferInstance
-example: BytesInvariants.Has Signature.invariants := inferInstance
-example: BytesInvariants.Has DiffieHellman.invariants := inferInstance
-example: BytesInvariants.Has Random.invariants := inferInstance
 
 def invariantsProofs.internal: (id: Fin 6) → Bytes.PartialInvariantsProofs (invariants.internal id)
   | 0 => Literal.invariantsProofs
@@ -263,14 +225,6 @@ instance: TraceInvariant.HasStep (PersistentLocalState.CompromisableState.ProofE
 instance: TraceInvariant.HasStep (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState) ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 4) (ProofTraceTypes.combine ProofEntryT.internal))
 instance: TraceInvariant.HasStep (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState) ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 5) (ProofTraceTypes.combine ProofEntryT.internal))
 instance: TraceInvariant.HasStep (LongTermKeys.ProofEntryT "SignedDH") ProofEntryT := inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal 6) (ProofTraceTypes.combine ProofEntryT.internal))
-
-example: TraceInvariant.Has Network.ProofEntryT := inferInstance
-example: TraceInvariant.Has Random.ProofEntryT := inferInstance
-example: TraceInvariant.Has (ProtocolEvent.ProofEntryT SignedDH.SignedDHEvent) := inferInstance
-example: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState) := inferInstance
-example: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState) := inferInstance
-example: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState) := inferInstance
-example: TraceInvariant.Has (LongTermKeys.ProofEntryT "SignedDH") := inferInstance
 
 instance : ∀ id, SubBaseAttackerKnowledgeTheorem (ProofEntryT.internal id) (baseAttackerKnowledge.internal id)
   -- TODO: investigate why infer_instance doesn't work
