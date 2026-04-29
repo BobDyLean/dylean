@@ -1,7 +1,7 @@
 module
 
-public import DY.Step
-import DY.Step.Utils
+import DY.Meta.Step
+import DY.Meta.Utils
 public import Examples.SignedDH.Specification
 import all Examples.SignedDH.Specification
 

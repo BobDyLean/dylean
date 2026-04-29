@@ -1,11 +1,11 @@
 module
 
 import Lean
-import DY.Step.Trace
-public meta import DY.Step.Options
-public meta import DY.Step.LetUtils
+import DY.Meta.Step.Trace
+public meta import DY.Meta.Step.Options
+public meta import DY.Meta.LetUtils
 import DY.Trace
-import DY.Step.GrindAttribute
+import DY.Meta.GrindAttribute
 public meta import DY.Trace.Grind
 
 open Lean Elab Term Meta Tactic Sym Grind

@@ -2,7 +2,7 @@ module
 
 public import DY.Trace
 public import DY.Bytes
-import DY.Step.Init
+import DY.Meta.Step
 
 namespace DY.ProtocolEvent
 

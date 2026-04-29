@@ -1,6 +1,6 @@
 module
 
-public import DY.Step.GrindAttribute
+public import DY.Meta.GrindAttribute
 
 namespace DY
 

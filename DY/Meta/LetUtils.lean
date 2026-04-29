@@ -2,7 +2,7 @@ module
 
 public import Lean
 import DY.Trace
-public meta import DY.Step.Utils
+public meta import DY.Meta.Utils
 
 open Lean Elab Term Meta Tactic
 

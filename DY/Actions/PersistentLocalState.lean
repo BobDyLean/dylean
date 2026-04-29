@@ -3,7 +3,7 @@ module
 public import DY.Trace
 public import DY.Bytes
 public import DY.Actions.PersistentGlobalState
-import DY.Step.Init
+import DY.Meta.Step
 
 namespace DY
 

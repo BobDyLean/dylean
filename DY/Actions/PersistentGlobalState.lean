@@ -5,7 +5,7 @@ public import DY.Bytes
 public import DY.Actions.Network -- for compromise
 public import DY.Actions.ProtocolEvent -- for compromise
 public import DY.Comparse -- for compromise
-import DY.Step.Init
+import DY.Meta.Step
 
 namespace DY.PersistentGlobalState
 

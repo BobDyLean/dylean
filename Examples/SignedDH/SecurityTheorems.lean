@@ -1,7 +1,7 @@
 -- module -- no module to use `#print axioms`
 
-import DY.Step
-import DY.Step.Utils
+import DY.Meta
+import DY.Meta.Utils
 import Examples.SignedDH.Specification
 import Examples.SignedDH.Proof
 import Examples.SignedDH.Instance
