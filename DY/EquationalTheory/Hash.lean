@@ -15,16 +15,18 @@ export CanHash (hash)
 
 section Constructors
 
+namespace Hash
+
 public
-structure Hash (Bytes: Type) where
+structure SubF (Bytes: Type) where
   input: Bytes
 
 public
-instance: ALaCarte.FunctorSizeOf Hash where
+instance: ALaCarte.FunctorSizeOf SubF where
   sizeOf | {input} => sizeOf input
 
 public
-instance: ALaCarte.Representable Hash where
+instance: ALaCarte.Representable SubF where
   CtorId := Unit
   ctors | () => { Data := Unit, nRec := 1 }
 
@@ -43,29 +45,28 @@ instance: ALaCarte.Representable Hash where
     simp_all <;> grind
   sizeOf_eq | {input} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-public instance: ALaCarte.RepresentableDecidableEq Hash where
-public instance: ALaCarte.RepresentableOrd Hash where
-public instance: SubBytesFunctor Hash where
+public instance: ALaCarte.RepresentableDecidableEq SubF where
+public instance: ALaCarte.RepresentableOrd SubF where
+public instance: SubBytesFunctor SubF where
 
 public
-abbrev SubF := Hash
-
-public
-def Hash.length [BytesFunctor]: Bytes.PartialLength Hash :=
+def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
   fun _ _ =>
     32
 
-public
-abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF := Hash.length
+end Hash
+
+#combine into BytesFunctor, BytesLength from
+  Hash,
 
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
-abbrev Hash.pack (x: Hash Bytes) := BytesView.pack x
+abbrev Hash.SubF.pack (x: Hash.SubF Bytes) := BytesView.pack x
 
 public
 instance: CanHash Bytes where
-  hash input := ({input}: Hash Bytes).pack
+  hash input := ({input}: Hash.SubF Bytes).pack
 
 public
 theorem hash_inj
@@ -81,18 +82,17 @@ end Constructors
 
 section AttackerKnowledge
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
-
 public
-def attKnowsHash: SubAttackerKnowledge Hash where
+def hash.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
   pred p out :=
     ∃ inp,
       out = hash inp ∧
       p inp
 
-public
-abbrev attackerKnowledge := attKnowsHash
+#combine [BytesFunctor.Has SubF] into attackerKnowledge' from
+  hash,
 
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 variable [ExecTraceTypes] [BaseAttackerKnowledge]
 variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
@@ -103,8 +103,8 @@ theorem attacker_knows_hash
     (hash inp).AttackerKnows tr
 := by
   intro h_inp
-  apply Bytes.AttackerKnows.prove attKnowsHash
-  simp only [attKnowsHash]
+  apply Bytes.AttackerKnows.prove hash.attackerKnowledge
+  simp only [hash.attackerKnowledge]
   grind
 
 end AttackerKnowledge
@@ -115,7 +115,7 @@ variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
-def Hash.invariants: Bytes.PartialInvariants Hash where
+def Hash.invariants: Bytes.PartialInvariants Hash.SubF where
   well_formed := fun {input := input} rec tr =>
     (rec input) tr
 
@@ -128,13 +128,13 @@ def Hash.invariants: Bytes.PartialInvariants Hash where
     (rec input) tr
 
 public
-abbrev invariants: Bytes.PartialInvariants SubF := Hash.Hash.invariants
-
-public
 def Hash.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Hash.invariants where
 
-public
-abbrev invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs invariants := Hash.Hash.invariantsProofs
+#combine into
+  BytesInvariants,
+  BytesInvariantsProofs
+from
+  Hash,
 
 variable [BytesInvariants] [BytesInvariants.Has invariants]
 
@@ -171,9 +171,9 @@ section HoareTriples
 
 public
 instance
-  [BytesFunctor] [BytesFunctor.Has Hash.SubF]
+  [BytesFunctor] [BytesFunctor.Has SubF]
   [ExecTraceTypes] [ProofTraceTypes]
-  [BytesInvariants] [BytesInvariants.Has Hash.invariants]
+  [BytesInvariants] [BytesInvariants.Has invariants]
   (b: Bytes)
   : HoareTriplePure
     (hash b)
@@ -196,15 +196,18 @@ variable [BytesFunctor.Has SubF]
 variable [BytesInvariants.Has invariants]
 
 public
-instance: SubAttackerKnowledgeTheorem attKnowsHash where
+instance: SubAttackerKnowledgeTheorem hash.attackerKnowledge where
   pf := by
-    simp only [attKnowsHash]
+    simp only [hash.attackerKnowledge]
     intro out tr h_tr ⟨inp, ⟨ h_out, h_inp ⟩⟩
     subst h_out
     simp_all [Bytes.Publishable]
 
-public
-example: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstance
+end AttackerKnowledgeTheorem
+section AttackerKnowledgeTheorem
+
+#combine [BytesFunctor.Has SubF] [BytesInvariants.Has invariants] into SubAttackerKnowledgeTheorem' from
+  hash,
 
 end AttackerKnowledgeTheorem
 

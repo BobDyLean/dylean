@@ -74,38 +74,17 @@ theorem PublicKeyState.IsWellFormed_eq
 
 grind_pattern PublicKeyState.IsWellFormed_eq => Comparse.IsWellFormed pre x tr
 
+#combine [BytesFunctor] (name: String) into
+  ExecEntryT,
+  baseAttackerKnowledge,
+from
+  PersistentLocalState.CompromisableState (SecretKeyState name),
+  PersistentGlobalState.CompromisableState (PublicKeyState name)
+
 variable [BytesFunctor]
 variable (name: String)
 variable {skToPk: Bytes → Bytes}
 variable [ExecConfig name skToPk]
-
-@[expose]
-public
-def ExecEntryT.internal: Fin 2 → Type
-  | 0 => PersistentLocalState.CompromisableState.ExecEntryT (SecretKeyState name)
-  | 1 => PersistentGlobalState.CompromisableState.ExecEntryT (PublicKeyState name)
-
-@[expose, implicit_reducible]
-public
-def ExecEntryT: Type :=
-  ExecTraceTypes.combine (ExecEntryT.internal name)
-
-public
-instance: ExecTraceTypes.HasStep (PersistentLocalState.CompromisableState.ExecEntryT (SecretKeyState name)) (ExecEntryT name) :=
-  inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal name 0) (ExecTraceTypes.combine (ExecEntryT.internal name)))
-
-public
-instance: ExecTraceTypes.HasStep (PersistentGlobalState.CompromisableState.ExecEntryT (PublicKeyState name)) (ExecEntryT name) :=
-  inferInstanceAs (ExecTraceTypes.HasStep (ExecEntryT.internal name 1) (ExecTraceTypes.combine (ExecEntryT.internal name)))
-
-public
-def baseAttackerKnowledge.internal [ExecTraceTypes]: (id: Fin 2) → SubBaseAttackerKnowledge (ExecEntryT.internal name id)
-  | 0 => PersistentLocalState.CompromisableState.baseAttackerKnowledge (SecretKeyState name)
-  | 1 => PersistentGlobalState.CompromisableState.baseAttackerKnowledge (PublicKeyState name)
-
-public
-def baseAttackerKnowledge  [ExecTraceTypes]: SubBaseAttackerKnowledge (ExecEntryT name) :=
-  SubBaseAttackerKnowledge.combine (baseAttackerKnowledge.internal name)
 
 public
 def generateKeyPair
@@ -266,6 +245,7 @@ grind_pattern [grind_later] IsLongTermSecretKey_later => tr1 ≤ tr2, IsLongTerm
 
 section
 
+section
 variable [BytesFunctor] [BytesLength] [ExecTraceTypes] [ProofTraceTypes] [BytesInvariants] [BytesInvariantsProofs]
 variable [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
 variable [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
@@ -297,88 +277,28 @@ instance: PersistentGlobalState.CompromisableGlobalStateInv (PublicKeyState name
     intro state tr h
     have := ProofConfig.IsLongTermPublicKey_implies name state.p state.pk tr h
     grind [canFlowTrans]
-
-@[expose]
-public
-def ProofEntryT.internal: Fin 2 → Type
-  | 0 => PersistentLocalState.CompromisableState.ProofEntryT (SecretKeyState name)
-  | 1 => PersistentGlobalState.CompromisableState.ProofEntryT (PublicKeyState name)
-
-@[expose, implicit_reducible]
-public
-def ProofEntryT: Type :=
-  ProofTraceTypes.combine (ProofEntryT.internal name)
-
-public
-instance: ∀ id, ErasableProofEntry (ExecEntryT.internal name id) (ProofEntryT.internal name id)
-  | 0 | 1 => by dsimp only [ExecEntryT.internal, ProofEntryT.internal]; infer_instance
-
-public
-instance: ErasableProofEntry (ExecEntryT name) (ProofEntryT name) :=
-  (inferInstance: ErasableProofEntry (ExecTraceTypes.combine (ExecEntryT.internal name)) (ProofTraceTypes.combine (ProofEntryT.internal name)))
-
-public
-instance: ProofTraceTypes.HasStep (PersistentLocalState.CompromisableState.ProofEntryT (SecretKeyState name)) (ProofEntryT name) :=
-  inferInstanceAs (ProofTraceTypes.HasStep (ProofEntryT.internal name 0) (ProofTraceTypes.combine (ProofEntryT.internal name)))
-
-public
-instance: ProofTraceTypes.HasStep (PersistentGlobalState.CompromisableState.ProofEntryT (PublicKeyState name)) (ProofEntryT name) :=
-  inferInstanceAs (ProofTraceTypes.HasStep (ProofEntryT.internal name 1) (ProofTraceTypes.combine (ProofEntryT.internal name)))
-
-public
-instance
-  : ∀ id, SubTraceInvariant (ProofEntryT.internal name id)
-  | 0 | 1 => by dsimp only [ProofEntryT.internal]; infer_instance
-
-public
-instance
-  : SubTraceInvariant (ProofEntryT name)
-:=
-  (inferInstance: SubTraceInvariant (ProofTraceTypes.combine (ProofEntryT.internal name)))
-
-public
-instance
-  : TraceInvariant.HasStep (PersistentLocalState.CompromisableState.ProofEntryT (SecretKeyState name)) (ProofEntryT name)
-:=
-  inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal name 0) (ProofTraceTypes.combine (ProofEntryT.internal name)))
-
-public
-instance
-  : TraceInvariant.HasStep (PersistentGlobalState.CompromisableState.ProofEntryT (PublicKeyState name)) (ProofEntryT name)
-:=
-  inferInstanceAs (TraceInvariant.HasStep (ProofEntryT.internal name 1) (ProofTraceTypes.combine (ProofEntryT.internal name)))
-
 end
 
-section
+#combine [BytesFunctor] (name: String) into ProofEntryT
+from
+  PersistentLocalState.CompromisableState (SecretKeyState name),
+  PersistentGlobalState.CompromisableState (PublicKeyState name)
 
-public
-instance
-  [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [BytesInvariants] [BytesInvariantsProofs]
-  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
-  [ExecTraceTypes.Has (ExecEntryT name)]
-  [ProofTraceTypes.Has (ProofEntryT name)]
+#combine
+  [BytesFunctor] (name: String)
+  [BytesLength] [BytesInvariants] [BytesInvariantsProofs]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+  [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
+  [ExecTraceTypes.Has <| ExecEntryT name]
   {skToPk: Bytes → Bytes} {usage: Participant → Usage}
   [ExecConfig name skToPk] [ProofConfig name usage]
-  [TraceInvariant.Has (ProofEntryT name)]
-  : ∀ id, SubBaseAttackerKnowledgeTheorem (ProofEntryT.internal name id) (baseAttackerKnowledge.internal name id)
-  -- TODO: investigate why infer_instance doesn't work
-  | 0 => PersistentLocalState.CompromisableState.baseAttackerKnowledgeTheorem (SecretKeyState name)
-  | 1 => PersistentGlobalState.CompromisableState.baseAttackerKnowledgeTheorem (PublicKeyState name)
-
-public
-instance baseAttackerKnowledgeTheorem
-  [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [BytesInvariants] [BytesInvariantsProofs]
-  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
-  (name: String) {skToPk: Bytes → Bytes} {usage: Participant → Usage}
-  [ExecTraceTypes.Has (ExecEntryT name)]
-  [ProofTraceTypes.Has (ProofEntryT name)]
-  [ExecConfig name skToPk] [ProofConfig name usage]
-  [TraceInvariant.Has (ProofEntryT name)]
-  : SubBaseAttackerKnowledgeTheorem (ProofEntryT name) (baseAttackerKnowledge name)
-:= by
-  dsimp only [ProofEntryT, baseAttackerKnowledge]
-  apply instSubBaseAttackerKnowledgeTheoremCombine -- infer_instance?
+into
+  SubTraceInvariant,
+  SubBaseAttackerKnowledgeTheorem__noExecHas,
+from
+  PersistentLocalState.CompromisableState (SecretKeyState name),
+  PersistentGlobalState.CompromisableState (PublicKeyState name)
 
 end
 

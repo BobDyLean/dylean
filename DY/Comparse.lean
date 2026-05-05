@@ -151,7 +151,8 @@ public
 instance
   [ExecTraceTypes] [ProofTraceTypes]
   [BytesWellFormed]
-  [BytesWellFormed.Has Literal.invariants.well_formed] [BytesWellFormed.Has Concat.invariants.well_formed]
+  -- TODO: BytesWellFormed does not have Has + HasStep lemma, hence the `Literal.Literal` or `Concat.Concat`
+  [BytesWellFormed.Has Literal.Literal.invariants.well_formed] [BytesWellFormed.Has Concat.Concat.invariants.well_formed]
   : BytesCompatibleTracePred Bytes.WellFormed
 where
   pf tr := {

@@ -15,6 +15,7 @@ module
 public import DY.ALaCarte.Basic
 public import DY.ALaCarte.DecidableEq
 public import DY.ALaCarte.Ordering
+public meta import DY.Meta.CombineMacro
 
 namespace DY
 
@@ -337,7 +338,6 @@ def Bytes.PartialLength [BytesFunctor] (SubF: Type → Type) [SubBytesFunctor Su
 
 public
 class BytesLength.HasStep
-  [BytesLength]
   {SubF1 SubF2: Type → Type}
   [SubBytesFunctor SubF1] [SubBytesFunctor SubF2]
   [BytesFunctor.HasStep SubF1 SubF2]
@@ -384,7 +384,6 @@ where
 
 public
 instance
-  [BytesLength]
   {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
   (SubFs: t → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]
   (invs: ∀ id, Bytes.PartialLength (SubFs id))
@@ -408,5 +407,67 @@ theorem Bytes.length.eq
   apply Bytes.rec_eq
 
 grind_pattern Bytes.length.eq => b.pack.length
+
+namespace Meta.CombineMacro
+
+macro_rules
+  | `(command| #combine_one $options* BytesFunctor $params* from $sources,*) => do
+    let options := parseOptions options
+    let sources := sources.getElems
+
+    let combined ← combineExplicit params sources {
+      name := `SubF
+      combineName := ``DY.BytesFunctor.combine
+      internalOutTypeStx := fun _ _ => `(term| Type → Type)
+      outTypeStx := fun _ => `(term| Type → Type)
+    }
+
+    let typeclass ← combineTypeclass params sources <| .makeSimple {
+      refereeName := `SubF
+      combineName := ``DY.BytesFunctor.combine
+      outTypeName := ``DY.SubBytesFunctor
+    }
+
+    let hasStep ← mkHasStep params sources <| .makeSimple {
+      name := `SubF
+      combineName := ``DY.BytesFunctor.combine
+      hasStepName := ``DY.BytesFunctor.HasStep
+    }
+
+    let subfStx := Lean.mkIdent `SubF
+    let topLevelInst ← `(command| public instance: DY.BytesFunctor where BytesF := $subfStx)
+    let topLevelHas ← `(command| public instance: DY.BytesFunctor.Has $subfStx := inferInstanceAs (DY.BytesFunctor.Has DY.BytesFunctor.BytesF))
+    let topLevel := if options.toplevel then #[topLevelInst, topLevelHas] else #[]
+
+    return Lean.mkNullNode (combined ++ typeclass ++ hasStep ++ topLevel)
+
+macro_rules
+  | `(command| #combine_one $options* BytesLength $params* from $sources,*) => do
+    let options := parseOptions options
+    let baseParams := #[(← `(bracketedBinder| [DY.BytesFunctor]))]
+    let params := if options.toplevel then params else baseParams ++ params
+    let sources := sources.getElems
+
+    let combined ← combineExplicit params sources  <| .makeSimple {
+      name := `SubF.length
+      refereeName := `SubF
+      combineName := ``DY.Bytes.PartialLength.combine
+      outTypeName := `DY.Bytes.PartialLength
+    }
+
+    let hasStep ← mkHasStep params sources <| .makeSimple {
+      name := `SubF.length
+      combineName := ``DY.Bytes.PartialLength.combine
+      hasStepName := ``DY.BytesLength.HasStep
+    }
+
+    let lengthStx := Lean.mkIdent `SubF.length
+    let topLevelInst ← `(command| public instance: DY.BytesLength where funs := $lengthStx)
+    let topLevelHas ← `(command| public instance: DY.BytesLength.Has $lengthStx := inferInstanceAs (DY.BytesLength.Has DY.BytesLength.funs))
+    let topLevel := if options.toplevel then #[topLevelInst, topLevelHas] else #[]
+
+    return Lean.mkNullNode (combined ++ hasStep ++ topLevel)
+
+end Meta.CombineMacro
 
 end DY

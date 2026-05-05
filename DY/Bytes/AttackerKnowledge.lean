@@ -9,6 +9,7 @@ public import DY.Kleene
 public import DY.Bytes.Basic
 public import DY.Trace.Basic
 public import DY.Trace.BaseAttackerKnowledge
+public meta import DY.Meta.CombineMacro
 
 namespace DY
 
@@ -271,5 +272,58 @@ theorem Bytes.AttackerKnows.is_least_fixpoint
     have := pf2 b
     grind
   ) b
+
+namespace Meta.CombineMacro
+
+macro_rules
+  | `(command| #combine_one $options* attackerKnowledge $params* from $sources,*) => do
+    let options := parseOptions options
+    let baseParams := #[(← `(bracketedBinder| [DY.BytesFunctor]))]
+    let params := if options.toplevel then params else baseParams ++ params
+    let sources := sources.getElems
+
+    let combined ← combineExplicit params sources <| .makeSimple {
+      name := `attackerKnowledge
+      refereeName := `SubF
+      combineName := ``DY.SubAttackerKnowledge.combine
+      outTypeName := ``DY.SubAttackerKnowledge
+    }
+
+    let hasStep ← mkHasStep params sources <| .makeSimple {
+      name := `attackerKnowledge
+      combineName := ``DY.SubAttackerKnowledge.combine
+      hasStepName := ``DY.AttackerKnowledge.HasStep
+    }
+
+    let attStx := Lean.mkIdent `attackerKnowledge
+    let topLevelInst ← `(command| public instance: DY.AttackerKnowledge where attackerKnowledge := $attStx)
+    let topLevelHas ← `(command| public instance: DY.AttackerKnowledge.Has $attStx := inferInstanceAs (DY.AttackerKnowledge.Has DY.AttackerKnowledge.attackerKnowledge))
+    let topLevel := if options.toplevel then #[topLevelInst, topLevelHas] else #[]
+
+    return Lean.mkNullNode (combined ++ hasStep ++ topLevel)
+
+macro_rules
+  | `(command| #combine_one $_options* attackerKnowledge' $params* from $sources,*) => do
+    -- options.toplevel does not make sense in this case, hence we ignore it
+    let params := #[(← `(bracketedBinder| [DY.BytesFunctor]))] ++ params
+    let sources := sources.getElems
+
+    let subfStx := Lean.mkIdent `SubF
+    let combined ← combineExplicit params sources {
+      name := `attackerKnowledge
+      combineName := ``DY.SubAttackerKnowledge.combine'
+      internalOutTypeStx := fun args _ => `(term| DY.SubAttackerKnowledge ($subfStx $args*))
+      outTypeStx := fun args => `(term| DY.SubAttackerKnowledge ($subfStx $args*))
+    }
+
+    let hasStep ← mkHasStep params sources <| .makeSimple {
+      name := `attackerKnowledge
+      combineName := ``DY.SubAttackerKnowledge.combine'
+      hasStepName := ``DY.AttackerKnowledge.HasStep
+    }
+
+    return Lean.mkNullNode (combined ++ hasStep)
+
+end Meta.CombineMacro
 
 end DY

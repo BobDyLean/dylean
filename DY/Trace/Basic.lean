@@ -1,6 +1,7 @@
 module
 
 meta import DY.Trace.Grind
+public meta import DY.Meta.CombineMacro
 
 namespace DY
 
@@ -253,5 +254,41 @@ instance instExecTraceTypesCombineHasStep
   inj_proj_eq x y := by
     cases x
     grind
+
+namespace Meta.CombineMacro
+
+macro_rules
+  | `(command| #combine_one $options* ExecEntryT $params* from $sources,*) => do
+    let options := parseOptions options
+    let sources := sources.getElems
+
+    let combined ← combineExplicit params sources {
+      name := `ExecEntryT
+      combineName := ``DY.ExecTraceTypes.combine
+      internalOutTypeStx := fun _ _ => `(term| Type)
+      outTypeStx := fun _ => `(term| Type)
+    }
+
+    let hasStep ← mkHasStep params sources <| .makeSimple {
+      name := `ExecEntryT
+      combineName := ``DY.ExecTraceTypes.combine
+      hasStepName := ``DY.ExecTraceTypes.HasStep
+    }
+
+    let execInternalStx := Lean.mkIdent `ExecEntryT.internal
+    let execStx := Lean.mkIdent `ExecEntryT
+    let topLevelInst ← `(command| public instance: DY.ExecTraceTypes where ExecT := $execStx)
+    let topLevelHas ← `(command| public instance: DY.ExecTraceTypes.Has $execStx := inferInstanceAs (DY.ExecTraceTypes.Has DY.ExecTrace.Entry))
+    let topLevel := if options.toplevel then #[topLevelInst, topLevelHas] else #[]
+
+    let hasCombine ← mkHasCombine params {
+      hasCombineStx args := `(term| DY.ExecTraceTypes.Has (DY.ExecTraceTypes.combine ($execInternalStx $args*)))
+      hasStx args := `(term| DY.ExecTraceTypes.Has ($execStx $args*))
+    }
+    let hasCombine := if options.toplevel then hasCombine else #[]
+
+    return Lean.mkNullNode (combined ++ hasStep ++ topLevel ++ hasCombine)
+
+end Meta.CombineMacro
 
 end DY

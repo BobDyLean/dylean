@@ -3,6 +3,7 @@ module
 public import DY.Trace.Basic
 import all DY.Trace.Basic
 public meta import DY.Trace.Grind
+public meta import DY.Meta.CombineMacro
 
 namespace DY
 
@@ -20,7 +21,7 @@ class ExecEntryAssociatedWithProofEntry (ExecEntryT: Type) (ProofEntryT: outPara
 public
 class ProofTraceTypes [ExecTraceTypes] where
   ProofT: Type
-  tc: ErasableProofEntry ExecTraceTypes.ExecT ProofT
+  [tc: ErasableProofEntry ExecTraceTypes.ExecT ProofT]
 
 @[expose]
 public
@@ -212,7 +213,7 @@ structure ProofTraceTypes.combine {n: Nat} (ProofTypes: Fin n → Type): Type wh
   entry: ProofTypes id
 
 public
-instance
+instance instErasableProofEntryCombine
   {n: Nat}
   (ExecTypes: Fin n → Type)
   (ProofTypes: Fin n → Type)
@@ -456,5 +457,87 @@ theorem Trace.invariant_at
 := by
   fun_induction Trace.at <;>
   grind [Trace.Invariant, Trace.prefix, Trace.length]
+
+namespace Meta.CombineMacro
+
+macro_rules
+  | `(command| #combine_one $options* ProofEntryT $params* from $sources,*) => do
+    let options := parseOptions options
+    let sources := sources.getElems
+
+    let combined ← combineExplicit params sources {
+      name := `ProofEntryT
+      combineName := ``DY.ProofTraceTypes.combine
+      internalOutTypeStx := fun _ _ => `(term| Type)
+      outTypeStx := fun _ => `(term| Type)
+    }
+
+    let execInternalStx := Lean.mkIdent `ExecEntryT.internal
+    let execStx := Lean.mkIdent `ExecEntryT
+    let proofInternalStx := Lean.mkIdent `ProofEntryT.internal
+    let proofStx := Lean.mkIdent `ProofEntryT
+    let erasable ← combineTypeclass params sources {
+      internalIdStx args id := `(term| ErasableProofEntry ($execInternalStx $args* $id) ($proofInternalStx $args* $id))
+      internalStx name args := do
+        let internalExecStx := Lean.mkIdentFrom name <| name.getId.modifyBase (. ++ `ExecEntryT)
+        let internalProofStx := Lean.mkIdentFrom name <| name.getId.modifyBase (. ++ `ProofEntryT)
+        `(term| DY.ErasableProofEntry ($internalExecStx $args*) ($internalProofStx $args*))
+      combineStx args := `(term| DY.ErasableProofEntry (DY.ExecTraceTypes.combine ($execInternalStx $args*)) (DY.ProofTraceTypes.combine ($proofInternalStx $args*)))
+      finalStx args := `(term| DY.ErasableProofEntry ($execStx $args*) ($proofStx $args*))
+    }
+
+    let hasStep ← mkHasStep params sources <| .makeSimple {
+      name := `ProofEntryT
+      combineName := ``DY.ProofTraceTypes.combine
+      hasStepName := ``DY.ProofTraceTypes.HasStep
+    }
+
+    let topLevelInst ← `(command| public instance: DY.ProofTraceTypes where ProofT := $proofStx)
+    let topLevelHas ← `(command| public instance: DY.ProofTraceTypes.Has $proofStx := inferInstanceAs (DY.ProofTraceTypes.Has ProofTrace.Entry))
+    let topLevel := if options.toplevel then #[topLevelInst, topLevelHas] else #[]
+
+    let hasCombine ← mkHasCombine params {
+      hasCombineStx args := `(term| DY.ProofTraceTypes.Has (DY.ProofTraceTypes.combine ($proofInternalStx $args*)))
+      hasStx args := `(term| DY.ProofTraceTypes.Has ($proofStx $args*))
+    }
+    let hasCombine := if options.toplevel then hasCombine else #[]
+
+    return Lean.mkNullNode (combined ++ erasable ++ hasStep ++ topLevel ++ hasCombine)
+
+macro_rules
+  | `(command| #combine_one $options* SubTraceInvariant $params* from $sources,*) => do
+    let options := parseOptions options
+    let baseParams := #[(← `(bracketedBinder| [DY.ExecTraceTypes])), (← `(bracketedBinder| [DY.ProofTraceTypes]))]
+    let params := if options.toplevel then params else baseParams ++ params
+    let sources := sources.getElems
+
+    let combined ← combineTypeclass params sources  <| .makeSimple {
+      refereeName := `ProofEntryT
+      combineName := ``DY.ProofTraceTypes.combine
+      outTypeName := ``DY.SubTraceInvariant
+    }
+
+    let hasStep ← mkHasStep params sources <| .makeSimple {
+      name := `ProofEntryT
+      combineName := ``DY.ProofTraceTypes.combine
+      hasStepName := ``DY.TraceInvariant.HasStep
+    }
+
+    let proofInternalStx := Lean.mkIdent `ProofEntryT.internal
+    let proofStx := Lean.mkIdent `ProofEntryT
+    let topLevelInst1 ← `(command| public instance: DY.SubTraceInvariant $proofStx := (inferInstanceAs (DY.SubTraceInvariant (DY.ProofTraceTypes.combine $proofInternalStx))))
+    let topLevelInst2 ← `(command| public instance : DY.TraceInvariant where tc_inv := inferInstanceAs (DY.SubTraceInvariant $proofStx))
+    let topLevelHas ← `(command| public instance: DY.TraceInvariant.Has $proofStx := inferInstanceAs (DY.TraceInvariant.Has DY.ProofTrace.Entry))
+    let topLevel := if options.toplevel then #[topLevelInst1, topLevelInst2, topLevelHas] else #[]
+
+    let hasCombine ← mkHasCombine params {
+      hasCombineStx args := `(term| DY.TraceInvariant.Has (DY.ProofTraceTypes.combine ($proofInternalStx $args*)))
+      hasStx args := `(term| DY.TraceInvariant.Has ($proofStx $args*))
+    }
+    let hasCombine := if options.toplevel then hasCombine else #[]
+
+    return Lean.mkNullNode (combined ++ hasStep ++ topLevel ++ hasCombine)
+
+end Meta.CombineMacro
 
 end DY

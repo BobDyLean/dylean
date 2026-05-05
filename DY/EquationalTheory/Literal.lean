@@ -18,16 +18,18 @@ export CanMkLiteral (bytesToLiteral)
 
 section Constructors
 
+namespace Literal
+
 public
-structure Literal (Bytes: Type) where
+structure SubF (Bytes: Type) where
   lit: ByteArray
 
 public
-instance: ALaCarte.FunctorSizeOf Literal where
+instance: ALaCarte.FunctorSizeOf SubF where
   sizeOf | {lit := _} => 0
 
 public
-instance: ALaCarte.Representable Literal where
+instance: ALaCarte.Representable SubF where
   CtorId := Unit
   ctors | () => { Data := ByteArray, nRec := 0 }
 
@@ -45,32 +47,32 @@ instance: ALaCarte.Representable Literal where
     simp_all <;> grind
   sizeOf_eq | {lit := _} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-public instance: ALaCarte.RepresentableDecidableEq Literal where
-public instance: ALaCarte.RepresentableOrd Literal where
+public instance: ALaCarte.RepresentableDecidableEq SubF where
+public instance: ALaCarte.RepresentableOrd SubF where
 
-public instance: SubBytesFunctor Literal where
-
-public
-abbrev SubF := Literal
+public instance: SubBytesFunctor SubF where
 
 public
-def Literal.length [BytesFunctor]: Bytes.PartialLength Literal :=
+def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
   fun { lit := lit } _ =>
     lit.size
 
-public
-abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF := Literal.length
+
+end Literal
+
+#combine into BytesFunctor, BytesLength from
+  Literal,
 
 public
-abbrev Literal.pack [BytesFunctor] [BytesFunctor.Has SubF] (x: Literal Bytes) := BytesView.pack x
+abbrev Literal.SubF.pack [BytesFunctor] [BytesFunctor.Has SubF] (x: Literal.SubF Bytes) := BytesView.pack x
 
 public
 instance [BytesFunctor] [BytesFunctor.Has SubF]: CanMkLiteral Bytes where
   literalToBytes lit :=
-    ({ lit }: Literal Bytes).pack
+    ({ lit }: Literal.SubF Bytes).pack
 
   bytesToLiteral buf :=
-    match buf.view? Literal with
+    match buf.view? Literal.SubF with
     | some { lit } =>
       some lit
     | none => none
@@ -105,23 +107,22 @@ theorem length_literalToBytes
   : Bytes.length (literalToBytes buf) = buf.size
 := by
   simp only [literalToBytes]
-  grind [Literal.length]
+  grind [Literal.SubF.length]
 
 end Constructors
 
 section AttackerKnowledge
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
-
 public
-def attKnowsLit: SubAttackerKnowledge Literal where
+def literalToBytes.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
   pred p out :=
     ∃ lit,
       out = literalToBytes lit
 
-public
-abbrev attackerKnowledge := attKnowsLit
+#combine [BytesFunctor.Has SubF] into attackerKnowledge' from
+  literalToBytes,
 
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 variable [ExecTraceTypes] [BaseAttackerKnowledge]
 variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
@@ -130,8 +131,8 @@ theorem attacker_knows_literalToBytes
   (lit: ByteArray) (tr: ExecTrace)
   : (literalToBytes lit: Bytes).AttackerKnows tr
 := by
-  apply Bytes.AttackerKnows.prove attKnowsLit
-  simp only [attKnowsLit]
+  apply Bytes.AttackerKnows.prove literalToBytes.attackerKnowledge
+  simp only [literalToBytes.attackerKnowledge]
   exists lit
 
 end AttackerKnowledge
@@ -142,7 +143,7 @@ variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
-def Literal.invariants: Bytes.PartialInvariants Literal where
+def Literal.invariants: Bytes.PartialInvariants Literal.SubF where
   well_formed := fun {lit := _} _rec _tr =>
     True
 
@@ -155,18 +156,18 @@ def Literal.invariants: Bytes.PartialInvariants Literal where
     True
 
 public
-abbrev invariants: Bytes.PartialInvariants SubF := Literal.Literal.invariants
-
-public
 def Literal.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Literal.invariants where
 
-public
-abbrev invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs invariants := Literal.Literal.invariantsProofs
+#combine into
+  BytesInvariants,
+  BytesInvariantsProofs
+from
+  Literal,
 
 @[simp]
 public
 theorem literalToBytes.WellFormed
-  [BytesWellFormed] [BytesWellFormed.Has invariants.well_formed]
+  [BytesWellFormed] [BytesWellFormed.Has Literal.invariants.well_formed]
   (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).WellFormed tr
 := by
@@ -200,15 +201,19 @@ variable [BytesFunctor.Has SubF]
 variable [BytesInvariants.Has invariants]
 
 public
-instance: SubAttackerKnowledgeTheorem attKnowsLit where
+instance: SubAttackerKnowledgeTheorem literalToBytes.attackerKnowledge where
   pf := by
-    simp only [attKnowsLit]
+    simp only [literalToBytes.attackerKnowledge]
     intro out tr h_tr ⟨lit, h_out⟩
     subst h_out
     simp [Bytes.Publishable]
     grind
 
-example: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstance
+end AttackerKnowledgeTheorem
+section AttackerKnowledgeTheorem
+
+#combine [BytesFunctor.Has SubF] [BytesInvariants.Has invariants] into SubAttackerKnowledgeTheorem' from
+  literalToBytes,
 
 end AttackerKnowledgeTheorem
 

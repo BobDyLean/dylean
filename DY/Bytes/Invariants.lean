@@ -10,6 +10,7 @@ public import DY.Trace.Basic
 public import DY.Trace.Invariant
 public import DY.Label
 public meta import DY.Trace.Grind
+public meta import DY.Meta.CombineMacro
 
 namespace DY
 
@@ -698,5 +699,59 @@ theorem Bytes.HasUsage_later_fast
   grind [Bytes.HasUsage]
 
 grind_pattern [grind_later] Bytes.HasUsage_later_fast => b.HasUsage usg tr1, tr1 ≤ tr2
+
+namespace Meta.CombineMacro
+
+macro_rules
+  | `(command| #combine_one $options* BytesInvariants $params* from $sources,*) => do
+    let options := parseOptions options
+    let baseParams := #[(← `(bracketedBinder| [DY.BytesFunctor])), (← `(bracketedBinder| [DY.ExecTraceTypes])), (← `(bracketedBinder| [DY.ProofTraceTypes]))]
+    let hasStepBaseParams := #[(← `(bracketedBinder| [DY.BytesInvariants]))]
+    let hasStepParams := if options.toplevel then params else baseParams ++ hasStepBaseParams ++ params
+    let params := if options.toplevel then params else baseParams ++ params
+    let sources := sources.getElems
+
+    let combined ← combineExplicit params sources <| .makeSimple {
+      name := `invariants
+      refereeName := `SubF
+      combineName := ``DY.Bytes.PartialInvariants.combine
+      outTypeName := ``DY.Bytes.PartialInvariants
+    }
+
+    let hasStep ← mkHasStep hasStepParams sources <| .makeSimple {
+      name := `invariants
+      combineName := ``DY.Bytes.PartialInvariants.combine
+      hasStepName := ``DY.BytesInvariants.HasStep
+    }
+
+    let invariantsStx := Lean.mkIdent `invariants
+    let topLevelInst ← `(command| public instance: DY.BytesInvariants where invs := $invariantsStx)
+    let topLevelHas ← `(command| public instance: DY.BytesInvariants.Has $invariantsStx := inferInstanceAs (DY.BytesInvariants.Has DY.BytesInvariants.invs))
+    let topLevel := if options.toplevel then #[topLevelInst, topLevelHas] else #[]
+
+    return Lean.mkNullNode (combined ++ topLevel ++ hasStep)
+
+macro_rules
+  | `(command| #combine_one $options* BytesInvariantsProofs $params* from $sources,*) => do
+    let options := parseOptions options
+    let baseParams := #[(← `(bracketedBinder| [DY.BytesFunctor])), (← `(bracketedBinder| [DY.ExecTraceTypes])), (← `(bracketedBinder| [DY.ProofTraceTypes])), (← `(bracketedBinder| [DY.BytesInvariants]))]
+    let params := if options.toplevel then params else baseParams ++ params
+    let sources := sources.getElems
+
+    let combined ← combineExplicit params sources <| .makeSimple {
+      name := `invariantsProofs
+      refereeName := `invariants
+      combineName := ``DY.Bytes.PartialInvariantsProofs.combine
+      outTypeName := ``DY.Bytes.PartialInvariantsProofs
+    }
+
+    let invariantsProofsStx := Lean.mkIdent `invariantsProofs
+    let topLevelInst ← `(command| public instance: DY.BytesInvariantsProofs where pfs := $invariantsProofsStx)
+    let topLevel := if options.toplevel then #[topLevelInst] else #[]
+
+    return Lean.mkNullNode (combined ++ topLevel)
+
+
+end Meta.CombineMacro
 
 end DY

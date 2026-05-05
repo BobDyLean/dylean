@@ -3,6 +3,7 @@ module
 public import DY.Bytes.Basic
 public import DY.Trace.Basic
 import all DY.Trace.Basic
+public meta import DY.Meta.CombineMacro
 
 namespace DY
 
@@ -29,7 +30,6 @@ where
 public
 class BaseAttackerKnowledge.HasStep
   [BytesFunctor] [ExecTraceTypes]
-  [BaseAttackerKnowledge]
   {ExecEntryT1: Type} {ExecEntryT2: semiOutParam Type}
   [ExecTraceTypes.HasStep ExecEntryT1 ExecEntryT2]
   (sub1: SubBaseAttackerKnowledge ExecEntryT1)
@@ -80,7 +80,6 @@ where
 public
 instance instBaseAttackerKnowledgeCombineHasStep
   [BytesFunctor] [ExecTraceTypes]
-  [BaseAttackerKnowledge]
   {n: Nat}
   {Types: Fin n → Type}
   (subs: (id: Fin n) → SubBaseAttackerKnowledge (Types id))
@@ -121,5 +120,37 @@ def Trace.prove_BaseAttackerKnows
   have := BaseAttackerKnowledge.Has.pf (sub := sub) tr entry b
   simp_all [Trace.prefix, Trace.length, Trace.at_is, Trace.at, IntoTraceEntry.make, Trace.BaseAttackerKnows]
   grind
+
+namespace Meta.CombineMacro
+
+macro_rules
+  | `(command| #combine_one $options* baseAttackerKnowledge $params* from $sources,*) => do
+    let options := parseOptions options
+    let baseParams := #[(← `(bracketedBinder| [DY.BytesFunctor])), (← `(bracketedBinder| [DY.ExecTraceTypes]))]
+    let params := if options.toplevel then params else baseParams ++ params
+    let sources := sources.getElems
+
+    let combined ← combineExplicit params sources <| .makeSimple {
+      name := `baseAttackerKnowledge
+      refereeName := `ExecEntryT
+      combineName := ``DY.SubBaseAttackerKnowledge.combine
+      outTypeName := ``DY.SubBaseAttackerKnowledge
+    }
+
+
+    let hasStep ← mkHasStep params sources <| .makeSimple {
+      name := `baseAttackerKnowledge
+      combineName := ``DY.SubBaseAttackerKnowledge.combine
+      hasStepName := ``DY.BaseAttackerKnowledge.HasStep
+    }
+
+    let baseAttStx := Lean.mkIdent `baseAttackerKnowledge
+    let topLevelInst ← `(command| public instance: DY.BaseAttackerKnowledge where attackerKnows := $baseAttStx)
+    let topLevelHas ← `(command| public instance: DY.BaseAttackerKnowledge.Has $baseAttStx := inferInstanceAs (DY.BaseAttackerKnowledge.Has DY.BaseAttackerKnowledge.attackerKnows))
+    let topLevel := if options.toplevel then #[topLevelInst, topLevelHas] else #[]
+
+    return Lean.mkNullNode (combined ++ hasStep ++ topLevel)
+
+end Meta.CombineMacro
 
 end DY

@@ -16,17 +16,19 @@ export CanConcat (split)
 
 section Constructors
 
+namespace Concat
+
 public
-structure Concat (Bytes: Type) where
+structure SubF (Bytes: Type) where
   lhs: Bytes
   rhs: Bytes
 
 public
-instance: ALaCarte.FunctorSizeOf Concat where
+instance: ALaCarte.FunctorSizeOf SubF where
   sizeOf | {lhs, rhs} => sizeOf lhs + sizeOf rhs
 
 public
-instance: ALaCarte.Representable Concat where
+instance: ALaCarte.Representable SubF where
   CtorId := Unit
   ctors | () => { Data := Unit, nRec := 2 }
 
@@ -46,33 +48,32 @@ instance: ALaCarte.Representable Concat where
     simp_all <;> grind
   sizeOf_eq | {lhs, rhs} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-public instance: ALaCarte.RepresentableDecidableEq Concat where
-public instance: ALaCarte.RepresentableOrd Concat where
-public instance: SubBytesFunctor Concat where
+public instance: ALaCarte.RepresentableDecidableEq SubF where
+public instance: ALaCarte.RepresentableOrd SubF where
+public instance: SubBytesFunctor SubF where
 
 public
-abbrev SubF := Concat
-
-public
-def Concat.length [BytesFunctor]: Bytes.PartialLength Concat :=
+def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
   fun { lhs, rhs } rec =>
     rec lhs + rec rhs
 
-public
-abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF := Concat.length
+end Concat
+
+#combine into BytesFunctor, BytesLength from
+  Concat,
 
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 variable [BytesLength]
 
 public
-abbrev Concat.pack (x: Concat Bytes) := BytesView.pack x
+abbrev Concat.SubF.pack (x: Concat.SubF Bytes) := BytesView.pack x
 
 public
 instance: CanConcat Bytes where
-  concat lhs rhs := ({lhs, rhs}: Concat Bytes).pack
+  concat lhs rhs := ({lhs, rhs}: Concat.SubF Bytes).pack
 
   split buf i :=
-    match buf.view? Concat with
+    match buf.view? Concat.SubF with
     | some ({ lhs, rhs }) =>
       if lhs.length = i then
         some (lhs, rhs)
@@ -104,7 +105,7 @@ theorem length_concat
   : Bytes.length (concat lhs rhs) = Bytes.length lhs + Bytes.length rhs
 := by
   simp only [concat]
-  grind [Concat.length]
+  grind [Concat.SubF.length]
 
 @[simp]
 public
@@ -115,50 +116,40 @@ theorem length_split
     (Bytes.length lhs = i ∧ i+Bytes.length rhs = Bytes.length buf)
 := by
   simp only [split]
-  grind [Concat.length]
+  grind [Concat.SubF.length]
 
 end Constructors
 
 section AttackerKnowledge
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
-variable [BytesLength]
-
 public
-def attKnowsConcat: SubAttackerKnowledge Concat where
+def concat.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF] [BytesLength]: SubAttackerKnowledge SubF where
   pred p out :=
     ∃ lhs rhs,
       out = concat lhs rhs ∧
       DY.Kleene.Forall p [lhs, rhs]
 
 public
-def attKnowsSplitLeft: SubAttackerKnowledge Concat where
+def splitLeft.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF] [BytesLength]: SubAttackerKnowledge SubF where
   pred p out :=
     ∃ inp rhs i,
       some (out, rhs) = split inp i ∧
       DY.Kleene.Forall p [inp]
 
 public
-def attKnowsSplitRight: SubAttackerKnowledge Concat where
+def splitRight.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF] [BytesLength]: SubAttackerKnowledge SubF where
   pred p out :=
     ∃ inp lhs i,
       some (lhs, out) = split inp i ∧
       DY.Kleene.Forall p [inp]
 
-def attackerKnowledge.internal (id: Fin 3): SubAttackerKnowledge Concat :=
-  match id with
-  | 0 => attKnowsConcat
-  | 1 => attKnowsSplitLeft
-  | 2 => attKnowsSplitRight
+#combine [BytesFunctor.Has SubF] [BytesLength] into attackerKnowledge' from
+  concat,
+  splitLeft,
+  splitRight
 
-public
-def attackerKnowledge: SubAttackerKnowledge Concat :=
-  SubAttackerKnowledge.combine' attackerKnowledge.internal
 
-public instance: AttackerKnowledge.HasStep attKnowsConcat attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 0) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
-public instance: AttackerKnowledge.HasStep attKnowsSplitLeft attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 1) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
-public instance: AttackerKnowledge.HasStep attKnowsSplitRight attackerKnowledge := inferInstanceAs (AttackerKnowledge.HasStep (attackerKnowledge.internal 2) (SubAttackerKnowledge.combine' attackerKnowledge.internal))
-
+variable [BytesFunctor] [BytesFunctor.Has SubF] [BytesLength]
 variable [ExecTraceTypes] [BaseAttackerKnowledge]
 variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
 
@@ -170,8 +161,8 @@ theorem attacker_knows_concat
     (concat lhs rhs).AttackerKnows tr
 := by
   intro h_lhs h_rhs
-  apply Bytes.AttackerKnows.prove attKnowsConcat
-  simp only [attKnowsConcat, Kleene.Forall]
+  apply Bytes.AttackerKnows.prove concat.attackerKnowledge
+  simp only [concat.attackerKnowledge, Kleene.Forall]
   grind
 
 public
@@ -189,11 +180,11 @@ theorem attacker_knows_split
   · trivial
   rename_i lhs rhs _
   constructor
-  · apply Bytes.AttackerKnows.prove attKnowsSplitLeft
-    simp only [attKnowsSplitLeft, Kleene.Forall]
+  · apply Bytes.AttackerKnows.prove splitLeft.attackerKnowledge
+    simp only [splitLeft.attackerKnowledge, Kleene.Forall]
     grind
-  · apply Bytes.AttackerKnows.prove attKnowsSplitRight
-    simp only [attKnowsSplitRight, Kleene.Forall]
+  · apply Bytes.AttackerKnows.prove splitRight.attackerKnowledge
+    simp only [splitRight.attackerKnowledge, Kleene.Forall]
     grind
 
 end AttackerKnowledge
@@ -204,7 +195,7 @@ variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 public
-def Concat.invariants: Bytes.PartialInvariants Concat where
+def Concat.invariants: Bytes.PartialInvariants Concat.SubF where
   well_formed := fun {lhs, rhs} rec tr =>
     (rec lhs) tr ∧ (rec rhs) tr
 
@@ -217,20 +208,20 @@ def Concat.invariants: Bytes.PartialInvariants Concat where
     (rec lhs) tr ∧ (rec rhs) tr
 
 public
-abbrev invariants: Bytes.PartialInvariants SubF := Concat.Concat.invariants
-
-public
 def Concat.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Concat.invariants where
 
-public
-abbrev invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs invariants := Concat.Concat.invariantsProofs
+#combine into
+  BytesInvariants,
+  BytesInvariantsProofs
+from
+  Concat,
 
 variable [BytesLength]
 
 @[simp]
 public
 theorem concat.WellFormed
-  [BytesWellFormed] [BytesWellFormed.Has invariants.well_formed]
+  [BytesWellFormed] [BytesWellFormed.Has Concat.invariants.well_formed]
   (lhs rhs: Bytes) (tr: ProofTrace)
   : (concat lhs rhs).WellFormed tr = (lhs.WellFormed tr ∧ rhs.WellFormed tr)
 := by
@@ -257,7 +248,7 @@ theorem concat.Invariant
 @[simp]
 public
 theorem split.WellFormed
-  [BytesWellFormed] [BytesWellFormed.Has invariants.well_formed]
+  [BytesWellFormed] [BytesWellFormed.Has Concat.invariants.well_formed]
   (buf: Bytes) (i: Nat) (tr: ProofTrace)
   : match split buf i with
     | none => True
@@ -314,18 +305,20 @@ variable [BytesFunctor.Has SubF]
 variable [BytesLength]
 variable [BytesInvariants.Has invariants]
 
-instance: SubAttackerKnowledgeTheorem attKnowsConcat where
+public
+instance: SubAttackerKnowledgeTheorem concat.attackerKnowledge where
   pf := by
-    simp only [attKnowsConcat]
+    simp only [concat.attackerKnowledge]
     intro out tr h_tr ⟨lhs, rhs, ⟨ h_out, h_inputs ⟩⟩
     subst h_out
     simp [Kleene.Forall] at h_inputs
     simp [Bytes.Publishable]
     grind
 
-instance: SubAttackerKnowledgeTheorem attKnowsSplitLeft where
+public
+instance: SubAttackerKnowledgeTheorem splitLeft.attackerKnowledge where
   pf := by
-    simp only [attKnowsSplitLeft]
+    simp only [splitLeft.attackerKnowledge]
     intro out tr h_tr ⟨inp, rhs, i, ⟨ h_out, h_inputs ⟩⟩
     simp [Kleene.Forall] at h_inputs
     simp [Bytes.Publishable]
@@ -333,9 +326,10 @@ instance: SubAttackerKnowledgeTheorem attKnowsSplitLeft where
     have := split.Invariant inp i tr
     grind
 
-instance: SubAttackerKnowledgeTheorem attKnowsSplitRight where
+public
+instance: SubAttackerKnowledgeTheorem splitRight.attackerKnowledge where
   pf := by
-    simp only [attKnowsSplitRight]
+    simp only [splitRight.attackerKnowledge]
     intro out tr h_tr ⟨inp, lhs, i, ⟨ h_out, h_inputs ⟩⟩
     simp [Kleene.Forall] at h_inputs
     simp [Bytes.Publishable]
@@ -343,13 +337,13 @@ instance: SubAttackerKnowledgeTheorem attKnowsSplitRight where
     have := split.Invariant inp i tr
     grind
 
-instance: ∀ id, SubAttackerKnowledgeTheorem (attackerKnowledge.internal id)
-  | 0 => inferInstanceAs (SubAttackerKnowledgeTheorem attKnowsConcat)
-  | 1 => inferInstanceAs (SubAttackerKnowledgeTheorem attKnowsSplitLeft)
-  | 2 => inferInstanceAs (SubAttackerKnowledgeTheorem attKnowsSplitRight)
+end AttackerKnowledgeTheorem
+section AttackerKnowledgeTheorem
 
-public
-instance: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstanceAs (SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine' attackerKnowledge.internal))
+#combine [BytesLength] [BytesFunctor.Has SubF] [BytesInvariants.Has invariants] into SubAttackerKnowledgeTheorem' from
+  concat,
+  splitLeft,
+  splitRight,
 
 end AttackerKnowledgeTheorem
 
