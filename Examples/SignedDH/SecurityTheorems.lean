@@ -22,26 +22,26 @@ theorem honest_PreservesReachability
   unfold honest
   apply Traceful.PreservesReachabilityFrom_bind
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (LongTermKeys.reachability "SignedDH")
-    simp
+  · apply Traceful.PreservesReachabilityFrom_base (LongTermKeys.generateKeyPair.reachability "SignedDH")
+    simp [LongTermKeys.generateKeyPair.reachability]
   intro ⟨ _, tsPk, tsSk ⟩ tr h_tr h_le
   dsimp only
   apply Traceful.PreservesReachabilityFrom_bind
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (.make (fun me => client_initiate me))
-    simp
+  · apply Traceful.PreservesReachabilityFrom_base (client_initiate.reachability)
+    simp [client_initiate.reachability]
   intro ⟨ tsClientSt, tsMsgClient ⟩ tr h_tr h_le
   dsimp only
   apply Traceful.PreservesReachabilityFrom_bind
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (.make (fun (me, sk_ts, msg_ts) => server_receive me sk_ts msg_ts)) _ ("Bob", tsSk, tsMsgClient)
-    simp
+  · apply Traceful.PreservesReachabilityFrom_base (server_receive.reachability) _ ("Bob", tsSk, tsMsgClient)
+    simp [server_receive.reachability]
   intro ⟨ _, tsMsgServer ⟩ tr h_tr h_le
   dsimp only
   apply Traceful.PreservesReachabilityFrom_bind
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (.make (fun (me, server, pk_ts, msg_ts, sid) => client_finish me server pk_ts msg_ts sid)) _ ("Alice", "Bob", tsPk, tsMsgServer, tsClientSt)
-    simp
+  · apply Traceful.PreservesReachabilityFrom_base (client_finish.reachability) _ ("Alice", "Bob", tsPk, tsMsgServer, tsClientSt)
+    simp [client_finish.reachability]
   intro _ tr h_tr h_le
   apply Traceful.PreservesReachabilityFrom_pure
 

@@ -1,6 +1,7 @@
 module
 
 public import DY.Trace.Manipulation
+public meta import DY.Meta.CombineMacro
 
 namespace DY
 
@@ -163,5 +164,28 @@ theorem Traceful.PreservesReachabilityFrom_pure
 := by
   simp only [Traceful.PreservesReachabilityFrom, Traceful.run_pure]
   apply Trace.ReachableFrom.Base
+
+namespace Meta.CombineMacro
+
+macro_rules
+  | `(command| #combine_one $_options* ReachabilityConfig $params* from $sources,*) => do
+    let sources := sources.getElems
+
+    let combined ← combineExplicit params sources {
+      name := `reachability
+      combineName := ``DY.ReachabilityConfig.combine
+      internalOutTypeStx := fun _ _ => `(term| ReachabilityConfig)
+      outTypeStx := fun _ => `(term| ReachabilityConfig)
+    }
+
+    let hasStep ← mkHasStep params sources <| .makeSimple {
+      name := `reachability
+      combineName := ``DY.ReachabilityConfig.combine
+      hasStepName := ``DY.ReachabilityConfig.HasStep
+    }
+
+    return Lean.mkNullNode (combined ++ hasStep)
+
+end Meta.CombineMacro
 
 end DY

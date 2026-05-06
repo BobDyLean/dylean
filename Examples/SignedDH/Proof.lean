@@ -353,20 +353,40 @@ theorem client_finish.spec (me: Participant) (server: Participant) (pk_ts: Nat) 
   step
   grind
 
+@[instance]
+theorem ClientInitiateState.compromise.spec (sid: Nat): HoareTriple (ClientInitiateState.compromise sid) (fun _ => True) (fun _ _ => True)
+:= by unfold ClientInitiateState.compromise; step; grind
+
+@[instance]
+theorem ClientFinishState.compromise.spec (sid: Nat): HoareTriple (ClientFinishState.compromise sid) (fun _ => True) (fun _ _ => True)
+:= by unfold ClientFinishState.compromise; step; grind
+
+@[instance]
+theorem ServerFinishState.compromise.spec (sid: Nat): HoareTriple (ServerFinishState.compromise sid) (fun _ => True) (fun _ _ => True)
+:= by unfold ServerFinishState.compromise; step; grind
+
 end Proofs
 
 section ReachabilityImpliesInvariant
 
 variable [HasTraceInvariant]
 
-instance: ∀ id, ReachableImpliesInvariant (reachability.internal id)
-  | 0 => inferInstanceAs <| ReachableImpliesInvariant Network.reachability
-  | 1 => inferInstanceAs <| ReachableImpliesInvariant (LongTermKeys.reachability "SignedDH")
-  | 2 => .mk (fun me => client_initiate.spec me)
-  | 3 => .mk (fun (me, sk_ts, msg_ts) => server_receive.spec me sk_ts msg_ts)
-  | 4 => .mk (fun (me, server, pk_ts, msg_ts, sid) => client_finish.spec me server pk_ts msg_ts sid)
+public instance: ReachableImpliesInvariant client_initiate.reachability := .mk (fun me => client_initiate.spec me)
+public instance: ReachableImpliesInvariant server_receive.reachability := .mk (fun (me, sk_ts, msg_ts) => server_receive.spec me sk_ts msg_ts)
+public instance: ReachableImpliesInvariant client_finish.reachability := .mk (fun (me, server, pk_ts, msg_ts, sid) => client_finish.spec me server pk_ts msg_ts sid)
+public instance: ReachableImpliesInvariant ClientInitiateState.compromise.reachability := .mk (fun (sid) => ClientInitiateState.compromise.spec sid)
+public instance: ReachableImpliesInvariant ClientFinishState.compromise.reachability := .mk (fun (sid) => ClientFinishState.compromise.spec sid)
+public instance: ReachableImpliesInvariant ServerFinishState.compromise.reachability := .mk (fun (sid) => ServerFinishState.compromise.spec sid)
 
-instance: ReachableImpliesInvariant reachability := inferInstanceAs (ReachableImpliesInvariant (.combine reachability.internal))
+#combine into ReachabilityTheorem from
+  Network,
+  LongTermKeys "SignedDH",
+  client_initiate,
+  server_receive,
+  client_finish,
+  ClientInitiateState.compromise,
+  ClientFinishState.compromise,
+  ServerFinishState.compromise,
 
 end ReachabilityImpliesInvariant
 

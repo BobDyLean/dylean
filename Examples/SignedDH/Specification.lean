@@ -275,6 +275,15 @@ def client_finish (me: Participant) (server: Participant) (pk_ts: Nat) (msg_ts: 
   ProtocolEvent.logEvent (SignedDHEvent.ClientFinishEvent me server xPk msg.yPk kC)
   let _ ← PersistentLocalState.storeLocalState me ({ xPk, kC }: ClientFinishState)
 
+def ClientInitiateState.compromise (sid: Nat): Traceful Nat := do
+  PersistentLocalState.compromise ClientInitiateState sid
+
+def ClientFinishState.compromise (sid: Nat): Traceful Nat := do
+  PersistentLocalState.compromise ClientFinishState sid
+
+def ServerFinishState.compromise (sid: Nat): Traceful Nat := do
+  PersistentLocalState.compromise ServerFinishState sid
+
 end Specification
 
 public section SecurityPredicates
@@ -326,22 +335,24 @@ public section Reachability
 
 variable [HasExecTrace]
 
-@[expose]
-def reachability.internal: Fin 5 → ReachabilityConfig
-  | 0 => Network.reachability
-  | 1 => LongTermKeys.reachability "SignedDH"
-  | 2 => .make (fun me => client_initiate me)
-  | 3 => .make (fun (me, sk_ts, msg_ts) => server_receive me sk_ts msg_ts)
-  | 4 => .make (fun (me, server, pk_ts, msg_ts, sid) => client_finish me server pk_ts msg_ts sid)
+@[expose] public section
+def client_initiate.reachability: ReachabilityConfig := .make (fun me => client_initiate me)
+def server_receive.reachability: ReachabilityConfig := .make (fun (me, sk_ts, msg_ts) => server_receive me sk_ts msg_ts)
+def client_finish.reachability: ReachabilityConfig := .make (fun (me, server, pk_ts, msg_ts, sid) => client_finish me server pk_ts msg_ts sid)
+def ClientInitiateState.compromise.reachability: ReachabilityConfig := .make (fun sid => ClientInitiateState.compromise sid)
+def ServerFinishState.compromise.reachability: ReachabilityConfig := .make (fun sid => ServerFinishState.compromise sid)
+def ClientFinishState.compromise.reachability: ReachabilityConfig := .make (fun sid => ClientFinishState.compromise sid)
+end
 
-@[expose]
-def reachability: ReachabilityConfig := .combine reachability.internal
-
-instance: ReachabilityConfig.HasStep (Network.reachability) reachability := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal 0) (.combine reachability.internal)
-instance: ReachabilityConfig.HasStep (LongTermKeys.reachability "SignedDH") reachability := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal 1) (.combine reachability.internal)
-instance: ReachabilityConfig.HasStep (.make (fun me => client_initiate me)) reachability := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal 2) (.combine reachability.internal)
-instance: ReachabilityConfig.HasStep (.make (fun (me, sk_ts, msg_ts) => server_receive me sk_ts msg_ts)) reachability := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal 3) (.combine reachability.internal)
-instance: ReachabilityConfig.HasStep (.make (fun (me, server, pk_ts, msg_ts, sid) => client_finish me server pk_ts msg_ts sid)) reachability := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal 4) (.combine reachability.internal)
+#combine into ReachabilityConfig from
+  Network,
+  LongTermKeys "SignedDH",
+  client_initiate,
+  server_receive,
+  client_finish,
+  ClientInitiateState.compromise,
+  ClientFinishState.compromise,
+  ServerFinishState.compromise,
 
 end Reachability
 

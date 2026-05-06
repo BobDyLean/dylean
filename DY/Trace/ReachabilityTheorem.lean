@@ -3,6 +3,7 @@ module
 public import DY.Trace.Reachability
 import all DY.Trace.Reachability
 import all DY.Trace.Invariant
+public meta import DY.Meta.CombineMacro
 
 namespace DY
 
@@ -64,5 +65,21 @@ theorem Trace.apply_Reachable_implies_Invariant
 := by
   intro h trExec h_reach
   grind [Trace.Reachable_implies_Invariant config trExec h_reach]
+
+namespace Meta.CombineMacro
+
+macro_rules
+  | `(command| #combine_one $_options* ReachabilityTheorem $params* from $sources,*) => do
+    let sources := sources.getElems
+
+    let combined ← combineTypeclass params sources  <| .makeSimple {
+      refereeName := `reachability
+      combineName := ``DY.ReachabilityConfig.combine
+      outTypeName := ``DY.ReachableImpliesInvariant
+    }
+
+    return Lean.mkNullNode (combined)
+
+end Meta.CombineMacro
 
 end DY

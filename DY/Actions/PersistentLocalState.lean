@@ -163,7 +163,6 @@ namespace Compromise
 end Compromise
 
 public
-noncomputable
 def compromise
   (StateT: Type)
   [BytesFunctor] [BytesLength]

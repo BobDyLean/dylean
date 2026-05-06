@@ -128,6 +128,19 @@ def getPrivateKey
   pure st.sk
 
 public
+def compromisePrivateKey
+  [ExecTraceTypes]
+  [ExecTraceTypes.Has <| ExecEntryT name]
+  [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+  [ExecTraceTypes.Has Network.ExecEntryT]
+  (tsSk: Nat)
+  : Traceful Nat
+:= do
+  PersistentLocalState.compromise (SecretKeyState name) tsSk
+
+public
 def LongTermKeyCompromised
   [ExecConfig name skToPk] [ExecTraceTypes] [ExecTraceTypes.Has (ExecEntryT name)]
   (participant: Participant) (pk: Bytes)
@@ -407,6 +420,35 @@ theorem getPrivateKey.spec
   step
   simp_all [PersistentLocalState.LocalStateInv.invariant, IsLongTermSecretKey]
 
+@[instance]
+public
+theorem compromisePrivateKey.spec
+  [BytesFunctor]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [BytesInvariants] [BytesInvariantsProofs]
+  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
+
+  (name: String)
+  {skToPk: Bytes → Bytes} {usage: Participant → Usage}
+
+  [BytesFunctor.Has Random.SubF]
+  [ExecTraceTypes.Has <| ExecEntryT name]
+  [ProofTraceTypes.Has <| ProofEntryT name]
+  [ExecConfig name skToPk] [ProofConfig name usage]
+  [TraceInvariant.Has <| ProofEntryT name]
+  [ExecTraceTypes.Has <| Network.ExecEntryT]
+  [ProofTraceTypes.Has <| Network.ProofEntryT]
+  [TraceInvariant.Has <| Network.ProofEntryT]
+  (tsSk: Nat)
+  : HoareTriple
+    (compromisePrivateKey name tsSk)
+    (fun _ => True)
+    (fun _ _ => True)
+:= by
+  unfold compromisePrivateKey
+  step
+  trivial
+
 end Proof
 
 section Reachability
@@ -422,9 +464,35 @@ variable
  [ExecTraceTypes.Has Network.ExecEntryT]
  [ExecTraceTypes.Has <| ExecEntryT name]
 
+@[expose]
 public
-abbrev reachability : ReachabilityConfig :=
+def generateKeyPair.reachability : ReachabilityConfig :=
   .make (fun p => generateKeyPair name p)
+
+variable
+  [BytesLength]
+  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
+  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+
+@[expose]
+public
+def compromisePrivateKey.reachability : ReachabilityConfig :=
+  .make (fun tsSk => compromisePrivateKey name tsSk)
+
+@[expose]
+public
+def reachability.internal : Fin 2 → ReachabilityConfig
+  | 0 => generateKeyPair.reachability name
+  | 1 => compromisePrivateKey.reachability name
+
+@[expose]
+public
+def reachability : ReachabilityConfig
+:=
+  .combine (reachability.internal name)
+
+instance: ReachabilityConfig.HasStep (generateKeyPair.reachability name) (reachability name) := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal name 0) (.combine (reachability.internal name))
+instance: ReachabilityConfig.HasStep (compromisePrivateKey.reachability name) (reachability name) := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal name 1) (.combine (reachability.internal name))
 
 variable
   [ProofTraceTypes]
@@ -446,8 +514,18 @@ variable
   [TraceInvariant.Has <| ProofEntryT name]
 
 public
-instance: ReachableImpliesInvariant (reachability name) where
+instance: ReachableImpliesInvariant (generateKeyPair.reachability name) where
   pf p := generateKeyPair.spec name p
+
+public
+instance: ReachableImpliesInvariant (compromisePrivateKey.reachability name) where
+  pf p := compromisePrivateKey.spec name p
+
+public instance: ∀ id, ReachableImpliesInvariant (reachability.internal name id)
+  | 0 => inferInstanceAs <| ReachableImpliesInvariant (generateKeyPair.reachability name)
+  | 1 => inferInstanceAs <| ReachableImpliesInvariant (compromisePrivateKey.reachability name)
+
+public instance: ReachableImpliesInvariant (reachability name) := inferInstanceAs (ReachableImpliesInvariant (.combine (reachability.internal name)))
 
 end Reachability
 
