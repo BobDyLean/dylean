@@ -289,9 +289,9 @@ theorem client_initiate.spec (me: Participant):
   grind
 
 @[instance]
-theorem server_receive.spec (me: Participant) (sk_ts: Nat) (msg_ts: Nat):
+theorem server_receive.spec (me: Participant) (skHandle: Nat) (msgHandle: Nat):
   HoareTriple
-    (server_receive me sk_ts msg_ts)
+    (server_receive me skHandle msgHandle)
     (fun _ => True)
     (fun _ _ => True)
 := by
@@ -322,9 +322,9 @@ theorem server_receive.spec (me: Participant) (sk_ts: Nat) (msg_ts: Nat):
   grind
 
 @[instance]
-theorem client_finish.spec (me: Participant) (server: Participant) (pk_ts: Nat) (msg_ts: Nat) (sid: Nat):
+theorem client_finish.spec (me: Participant) (server: Participant) (pkHandle: Nat) (msgHandle: Nat) (stHandle: Nat):
   HoareTriple
-    (client_finish me server pk_ts msg_ts sid)
+    (client_finish me server pkHandle msgHandle stHandle)
     (fun _ => True)
     (fun _ _ => True)
 := by
@@ -354,15 +354,15 @@ theorem client_finish.spec (me: Participant) (server: Participant) (pk_ts: Nat) 
   grind
 
 @[instance]
-theorem ClientInitiateState.compromise.spec (sid: Nat): HoareTriple (ClientInitiateState.compromise sid) (fun _ => True) (fun _ _ => True)
+theorem ClientInitiateState.compromise.spec (stHandle: Nat): HoareTriple (ClientInitiateState.compromise stHandle) (fun _ => True) (fun _ _ => True)
 := by unfold ClientInitiateState.compromise; step; grind
 
 @[instance]
-theorem ClientFinishState.compromise.spec (sid: Nat): HoareTriple (ClientFinishState.compromise sid) (fun _ => True) (fun _ _ => True)
+theorem ClientFinishState.compromise.spec (stHandle: Nat): HoareTriple (ClientFinishState.compromise stHandle) (fun _ => True) (fun _ _ => True)
 := by unfold ClientFinishState.compromise; step; grind
 
 @[instance]
-theorem ServerFinishState.compromise.spec (sid: Nat): HoareTriple (ServerFinishState.compromise sid) (fun _ => True) (fun _ _ => True)
+theorem ServerFinishState.compromise.spec (stHandle: Nat): HoareTriple (ServerFinishState.compromise stHandle) (fun _ => True) (fun _ _ => True)
 := by unfold ServerFinishState.compromise; step; grind
 
 end Proofs
@@ -372,11 +372,11 @@ section ReachabilityImpliesInvariant
 variable [HasTraceInvariant]
 
 public instance: ReachableImpliesInvariant client_initiate.reachability := .mk (fun me => client_initiate.spec me)
-public instance: ReachableImpliesInvariant server_receive.reachability := .mk (fun (me, sk_ts, msg_ts) => server_receive.spec me sk_ts msg_ts)
-public instance: ReachableImpliesInvariant client_finish.reachability := .mk (fun (me, server, pk_ts, msg_ts, sid) => client_finish.spec me server pk_ts msg_ts sid)
-public instance: ReachableImpliesInvariant ClientInitiateState.compromise.reachability := .mk (fun (sid) => ClientInitiateState.compromise.spec sid)
-public instance: ReachableImpliesInvariant ClientFinishState.compromise.reachability := .mk (fun (sid) => ClientFinishState.compromise.spec sid)
-public instance: ReachableImpliesInvariant ServerFinishState.compromise.reachability := .mk (fun (sid) => ServerFinishState.compromise.spec sid)
+public instance: ReachableImpliesInvariant server_receive.reachability := .mk (fun (me, skHandle, msgHandle) => server_receive.spec me skHandle msgHandle)
+public instance: ReachableImpliesInvariant client_finish.reachability := .mk (fun (me, server, pkHandle, msgHandle, stHandle) => client_finish.spec me server pkHandle msgHandle stHandle)
+public instance: ReachableImpliesInvariant ClientInitiateState.compromise.reachability := .mk (fun (stHandle) => ClientInitiateState.compromise.spec stHandle)
+public instance: ReachableImpliesInvariant ClientFinishState.compromise.reachability := .mk (fun (stHandle) => ClientFinishState.compromise.spec stHandle)
+public instance: ReachableImpliesInvariant ServerFinishState.compromise.reachability := .mk (fun (stHandle) => ServerFinishState.compromise.spec stHandle)
 
 #combine into ReachabilityTheorem from
   Network,

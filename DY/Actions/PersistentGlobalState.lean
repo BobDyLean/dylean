@@ -39,10 +39,10 @@ public
 def getGlobalState
   {StateT: Type}
   [ExecTraceTypes] [ExecTraceTypes.Has (State.ExecEntryT StateT)]
-  (i: Nat)
+  (handle: Nat)
   : Traceful StateT
 := do
-  let e: State.ExecEntryT StateT ← getEntry i
+  let e: State.ExecEntryT StateT ← getEntry handle
   return e.st
 
 end Execution
@@ -122,9 +122,9 @@ theorem getGlobalState.spec
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [GlobalStateInv StateT]
   [ExecTraceTypes.Has (State.ExecEntryT StateT)] [ProofTraceTypes.Has (State.ProofEntryT StateT)] [TraceInvariant.Has (State.ProofEntryT StateT)]
-  (i: Nat)
+  (handle: Nat)
   : HoareTriple
-    (getGlobalState i: Traceful StateT)
+    (getGlobalState handle: Traceful StateT)
     (fun _ => True)
     (fun st tr => GlobalStateInv.invariant st tr)
 := by
@@ -165,10 +165,10 @@ def compromise
   [ExecTraceTypes.Has Network.ExecEntryT]
   [ExecTraceTypes.Has (State.ExecEntryT StateT)]
   [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
-  (i: Nat)
+  (handle: Nat)
   : Traceful Nat
 := do
-  let state: StateT ← getGlobalState i
+  let state: StateT ← getGlobalState handle
   ProtocolEvent.logEvent ({ state }: Compromise.CompromiseEvent StateT)
   Network.sendMessage (Comparse.serialize state)
 
@@ -280,9 +280,9 @@ theorem compromise.spec
   [TraceInvariant.Has Network.ProofEntryT]
   [TraceInvariant.Has (State.ProofEntryT StateT)]
   [TraceInvariant.Has (Compromise.ProofEntryT StateT)]
-  (i: Nat)
+  (handle: Nat)
   : HoareTriple
-    (compromise StateT i)
+    (compromise StateT handle)
     (fun _ => True)
     (fun _ _ => True)
 := by

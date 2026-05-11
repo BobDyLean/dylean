@@ -25,9 +25,9 @@ def sendMessage [BytesFunctor] [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] 
   appendEntry entry
 
 public
-def receiveMessage [BytesFunctor] [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] (timestamp: Nat): Traceful Bytes :=
+def receiveMessage [BytesFunctor] [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] (handle: Nat): Traceful Bytes :=
   do
-  let msg: ExecEntryT ← getEntry timestamp
+  let msg: ExecEntryT ← getEntry handle
   return msg.msg
 
 end Execution
@@ -91,9 +91,9 @@ theorem receiveMessage.spec
   [ExecTraceTypes.Has ExecEntryT]
   [ProofTraceTypes.Has ProofEntryT]
   [TraceInvariant.Has ProofEntryT]
-  (timestamp: Nat)
+  (handle: Nat)
   : HoareTriple
-    (receiveMessage timestamp)
+    (receiveMessage handle)
     (fun _ => True)
     (fun msg tr => msg.Publishable tr)
 := by

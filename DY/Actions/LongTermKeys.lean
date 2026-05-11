@@ -99,20 +99,20 @@ def generateKeyPair
 := do
   let sk ← Random.genRand 32
   let pk := skToPk sk
-  let tsMsg ← Network.sendMessage pk
-  let tsPk ← PersistentGlobalState.storeGlobalState ({p, pk}: PublicKeyState name)
-  let tsSk ← PersistentLocalState.storeLocalState p ({sk}: SecretKeyState name)
-  pure (tsMsg, tsPk, tsSk)
+  let msgHandle ← Network.sendMessage pk
+  let pkHandle ← PersistentGlobalState.storeGlobalState ({p, pk}: PublicKeyState name)
+  let skHandle ← PersistentLocalState.storeLocalState p ({sk}: SecretKeyState name)
+  pure (msgHandle, pkHandle, skHandle)
 
 public
 def getPublicKey
   [ExecTraceTypes]
   [ExecTraceTypes.Has <| ExecEntryT name]
   (p: Participant)
-  (tsPk: Nat)
+  (pkHandle: Nat)
   : Traceful Bytes
 := do
-  let st: PublicKeyState name ← PersistentGlobalState.getGlobalState tsPk
+  let st: PublicKeyState name ← PersistentGlobalState.getGlobalState pkHandle
   guard (st.p = p)
   pure st.pk
 
@@ -121,10 +121,10 @@ def getPrivateKey
   [ExecTraceTypes]
   [ExecTraceTypes.Has <| ExecEntryT name]
   (p: Participant)
-  (tsSk: Nat)
+  (skHandle: Nat)
   : Traceful Bytes
 := do
-  let st: SecretKeyState name ← PersistentLocalState.getLocalState p tsSk
+  let st: SecretKeyState name ← PersistentLocalState.getLocalState p skHandle
   pure st.sk
 
 public
@@ -135,10 +135,10 @@ def compromisePrivateKey
   [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
   [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
   [ExecTraceTypes.Has Network.ExecEntryT]
-  (tsSk: Nat)
+  (skHandle: Nat)
   : Traceful Nat
 := do
-  PersistentLocalState.compromise (SecretKeyState name) tsSk
+  PersistentLocalState.compromise (SecretKeyState name) skHandle
 
 public
 def LongTermKeyCompromised
@@ -381,9 +381,9 @@ theorem getPublicKey.spec
   [ProofTraceTypes.Has <| ProofEntryT name]
   [ExecConfig name skToPk] [ProofConfig name usage]
   [TraceInvariant.Has <| ProofEntryT name]
-  (p: Participant)
+  (p: Participant) (pkHandle: Nat)
   : HoareTriple
-    (getPublicKey name p tsPk)
+    (getPublicKey name p pkHandle)
     (fun _ => True)
     (fun res tr => ProofConfig.IsLongTermPublicKey name p res tr)
 := by
@@ -409,9 +409,9 @@ theorem getPrivateKey.spec
   [ProofTraceTypes.Has <| ProofEntryT name]
   [ExecConfig name skToPk] [ProofConfig name usage]
   [TraceInvariant.Has <| ProofEntryT name]
-  (p: Participant)
+  (p: Participant) (skHandle: Nat)
   : HoareTriple
-    (getPrivateKey name p tsSk)
+    (getPrivateKey name p skHandle)
     (fun _ => True)
     (fun res tr => IsLongTermSecretKey name p res tr)
 := by
@@ -439,9 +439,9 @@ theorem compromisePrivateKey.spec
   [ExecTraceTypes.Has <| Network.ExecEntryT]
   [ProofTraceTypes.Has <| Network.ProofEntryT]
   [TraceInvariant.Has <| Network.ProofEntryT]
-  (tsSk: Nat)
+  (skHandle: Nat)
   : HoareTriple
-    (compromisePrivateKey name tsSk)
+    (compromisePrivateKey name skHandle)
     (fun _ => True)
     (fun _ _ => True)
 := by
@@ -477,7 +477,7 @@ variable
 @[expose]
 public
 def compromisePrivateKey.reachability : ReachabilityConfig :=
-  .make (fun tsSk => compromisePrivateKey name tsSk)
+  .make (fun skHandle => compromisePrivateKey name skHandle)
 
 @[expose]
 public

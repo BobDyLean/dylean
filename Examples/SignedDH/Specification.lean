@@ -241,15 +241,15 @@ def client_initiate (me: Participant): Traceful (Nat × Nat) := do
   let xPk := DiffieHellman.dh_pk xSk
 
   ProtocolEvent.logEvent (SignedDHEvent.ClientInitiateEvent me xPk)
-  let st_ts ← PersistentLocalState.storeLocalState me ({ xPk, xSk }: ClientInitiateState)
-  let msg_ts ← Network.sendMessage (serialize ({ xPk } : ClientMessage))
-  pure (st_ts, msg_ts)
+  let stHandle ← PersistentLocalState.storeLocalState me ({ xPk, xSk }: ClientInitiateState)
+  let msgHandle ← Network.sendMessage (serialize ({ xPk } : ClientMessage))
+  pure (stHandle, msgHandle)
 
-def server_receive (me: Participant) (sk_ts: Nat) (msg_ts: Nat): Traceful (Nat × Nat) := do
-  let msg_bytes ← Network.receiveMessage msg_ts
+def server_receive (me: Participant) (skHandle: Nat) (msgHandle: Nat): Traceful (Nat × Nat) := do
+  let msg_bytes ← Network.receiveMessage msgHandle
   let msg: ClientMessage ← parse msg_bytes
   let xPk := msg.xPk
-  let my_sig_key ← LongTermKeys.getPrivateKey "SignedDH" me sk_ts
+  let my_sig_key ← LongTermKeys.getPrivateKey "SignedDH" me skHandle
 
   let ySk ← Random.genRand 32
   let yPk := DiffieHellman.dh_pk ySk
@@ -258,16 +258,16 @@ def server_receive (me: Participant) (sk_ts: Nat) (msg_ts: Nat): Traceful (Nat �
   let sig := Signature.sign my_sig_key sig_nonce (serialize ({xPk, yPk}: SigInput))
 
   ProtocolEvent.logEvent (SignedDHEvent.ServerFinishEvent me xPk yPk kS)
-  let st_ts ← PersistentLocalState.storeLocalState me ({ yPk, kS }: ServerFinishState)
-  let msg_ts ← Network.sendMessage (serialize ({ yPk, sig } : ServerMessage))
-  pure (st_ts, msg_ts)
+  let stHandle ← PersistentLocalState.storeLocalState me ({ yPk, kS }: ServerFinishState)
+  let msgHandle ← Network.sendMessage (serialize ({ yPk, sig } : ServerMessage))
+  pure (stHandle, msgHandle)
 
-def client_finish (me: Participant) (server: Participant) (pk_ts: Nat) (msg_ts: Nat) (sid: Nat) : Traceful Unit := do
-  let msg_bytes ← Network.receiveMessage msg_ts
+def client_finish (me: Participant) (server: Participant) (pkHandle: Nat) (msgHandle: Nat) (stHandle: Nat) : Traceful Unit := do
+  let msg_bytes ← Network.receiveMessage msgHandle
   let msg: ServerMessage ← parse msg_bytes
 
-  let ({xPk, xSk}: ClientInitiateState) ← PersistentLocalState.getLocalState me sid
-  let server_vk ← LongTermKeys.getPublicKey "SignedDH" server pk_ts
+  let ({xPk, xSk}: ClientInitiateState) ← PersistentLocalState.getLocalState me stHandle
+  let server_vk ← LongTermKeys.getPublicKey "SignedDH" server pkHandle
 
   guard (Signature.verify server_vk (serialize ({ xPk, yPk := msg.yPk }: SigInput)) msg.sig)
   let kC := Hash.hash (DiffieHellman.dh msg.yPk xSk)
@@ -275,14 +275,14 @@ def client_finish (me: Participant) (server: Participant) (pk_ts: Nat) (msg_ts: 
   ProtocolEvent.logEvent (SignedDHEvent.ClientFinishEvent me server xPk msg.yPk kC)
   let _ ← PersistentLocalState.storeLocalState me ({ xPk, kC }: ClientFinishState)
 
-def ClientInitiateState.compromise (sid: Nat): Traceful Nat := do
-  PersistentLocalState.compromise ClientInitiateState sid
+def ClientInitiateState.compromise (stHandle: Nat): Traceful Nat := do
+  PersistentLocalState.compromise ClientInitiateState stHandle
 
-def ClientFinishState.compromise (sid: Nat): Traceful Nat := do
-  PersistentLocalState.compromise ClientFinishState sid
+def ClientFinishState.compromise (stHandle: Nat): Traceful Nat := do
+  PersistentLocalState.compromise ClientFinishState stHandle
 
-def ServerFinishState.compromise (sid: Nat): Traceful Nat := do
-  PersistentLocalState.compromise ServerFinishState sid
+def ServerFinishState.compromise (stHandle: Nat): Traceful Nat := do
+  PersistentLocalState.compromise ServerFinishState stHandle
 
 end Specification
 
@@ -337,11 +337,11 @@ variable [HasExecTrace]
 
 @[expose] public section
 def client_initiate.reachability: ReachabilityConfig := .make (fun me => client_initiate me)
-def server_receive.reachability: ReachabilityConfig := .make (fun (me, sk_ts, msg_ts) => server_receive me sk_ts msg_ts)
-def client_finish.reachability: ReachabilityConfig := .make (fun (me, server, pk_ts, msg_ts, sid) => client_finish me server pk_ts msg_ts sid)
-def ClientInitiateState.compromise.reachability: ReachabilityConfig := .make (fun sid => ClientInitiateState.compromise sid)
-def ServerFinishState.compromise.reachability: ReachabilityConfig := .make (fun sid => ServerFinishState.compromise sid)
-def ClientFinishState.compromise.reachability: ReachabilityConfig := .make (fun sid => ClientFinishState.compromise sid)
+def server_receive.reachability: ReachabilityConfig := .make (fun (me, skHandle, msgHandle) => server_receive me skHandle msgHandle)
+def client_finish.reachability: ReachabilityConfig := .make (fun (me, server, pkHandle, msgHandle, stHandle) => client_finish me server pkHandle msgHandle stHandle)
+def ClientInitiateState.compromise.reachability: ReachabilityConfig := .make (fun stHandle => ClientInitiateState.compromise stHandle)
+def ServerFinishState.compromise.reachability: ReachabilityConfig := .make (fun stHandle => ServerFinishState.compromise stHandle)
+def ClientFinishState.compromise.reachability: ReachabilityConfig := .make (fun stHandle => ClientFinishState.compromise stHandle)
 end
 
 #combine into ReachabilityConfig from

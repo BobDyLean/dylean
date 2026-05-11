@@ -9,10 +9,10 @@ import Examples.SignedDH.Instance
 namespace DY.Example.SignedDH
 
 def honest: Traceful Unit := do
-  let (_, tsPk, tsSk) ← LongTermKeys.generateKeyPair "SignedDH" "Bob" -- 4
-  let (tsClientSt, tsMsgClient) ← client_initiate "Alice" -- 4
-  let (_tsServerSt, tsMsgServer) ← server_receive "Bob" tsSk tsMsgClient -- 5
-  let _ ← client_finish "Alice" "Bob" tsPk tsMsgServer tsClientSt -- 2
+  let (_, pkHandle, skHandle) ← LongTermKeys.generateKeyPair "SignedDH" "Bob" -- 4
+  let (stClientHandle, msgClientHandle) ← client_initiate "Alice" -- 4
+  let (_stServerHandle, msgServerHandle) ← server_receive "Bob" skHandle msgClientHandle -- 5
+  let _ ← client_finish "Alice" "Bob" pkHandle msgServerHandle stClientHandle -- 2
 
 theorem honest_PreservesReachability
   : honest.PreservesReachability reachability

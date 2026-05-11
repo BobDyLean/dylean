@@ -67,10 +67,10 @@ public
 def getLocalState
   {StateT: Type}
   [ExecTraceTypes] [ExecTraceTypes.Has (State.ExecEntryT StateT)]
-  (participant: Participant) (i: Nat)
+  (participant: Participant) (handle: Nat)
   : Traceful StateT
 := do
-  let st: LocalState StateT ← PersistentGlobalState.getGlobalState i
+  let st: LocalState StateT ← PersistentGlobalState.getGlobalState handle
   guard (st.participant = participant)
   return st.state
 
@@ -134,9 +134,9 @@ theorem getLocalState.spec
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [LocalStateInv StateT]
   [ExecTraceTypes.Has (State.ExecEntryT StateT)] [ProofTraceTypes.Has (State.ProofEntryT StateT)] [TraceInvariant.Has (State.ProofEntryT StateT)]
-  (participant: Participant) (i: Nat)
+  (participant: Participant) (handle: Nat)
   : HoareTriple
-    (getLocalState participant i: Traceful StateT)
+    (getLocalState participant handle: Traceful StateT)
     (fun _ => True)
     (fun st tr => LocalStateInv.invariant participant st tr)
 := by
@@ -173,10 +173,10 @@ def compromise
   [ExecTraceTypes.Has Network.ExecEntryT]
   [ExecTraceTypes.Has (State.ExecEntryT StateT)]
   [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
-  (i: Nat)
+  (handle: Nat)
   : Traceful Nat
 := do
-  PersistentGlobalState.compromise (LocalState StateT) i
+  PersistentGlobalState.compromise (LocalState StateT) handle
 
 public
 def LocalStateCompromised
@@ -298,9 +298,9 @@ theorem compromise.spec
   [TraceInvariant.Has Network.ProofEntryT]
   [TraceInvariant.Has (State.ProofEntryT StateT)]
   [TraceInvariant.Has (Compromise.ProofEntryT StateT)]
-  (i: Nat)
+  (handle: Nat)
   : HoareTriple
-    (compromise StateT i)
+    (compromise StateT handle)
     (fun _ => True)
     (fun _ _ => True)
 := by
