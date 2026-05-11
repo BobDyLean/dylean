@@ -27,7 +27,7 @@ from
   PersistentLocalState.CompromisableState SignedDH.ClientInitiateState,
   PersistentLocalState.CompromisableState SignedDH.ClientFinishState,
   PersistentLocalState.CompromisableState SignedDH.ServerFinishState,
-  LongTermKeys "SignedDH",
+  LongTermKeys "SignedDH PKI",
 
 instance: HasExecTrace where
 
@@ -40,7 +40,7 @@ from
   PersistentLocalState.CompromisableState SignedDH.ClientInitiateState,
   PersistentLocalState.CompromisableState SignedDH.ClientFinishState,
   PersistentLocalState.CompromisableState SignedDH.ServerFinishState,
-  LongTermKeys "SignedDH",
+  LongTermKeys "SignedDH PKI",
 
 instance: HasProofTrace where
 
@@ -64,7 +64,7 @@ from
   PersistentLocalState.CompromisableState SignedDH.ClientInitiateState,
   PersistentLocalState.CompromisableState SignedDH.ClientFinishState,
   PersistentLocalState.CompromisableState SignedDH.ServerFinishState,
-  LongTermKeys "SignedDH",
+  LongTermKeys "SignedDH PKI",
 
 #combine +toplevel into SubAttackerKnowledgeTheorem from
   Literal,

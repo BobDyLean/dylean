@@ -20,7 +20,7 @@ class HasProofTrace extends HasExecTrace where
   [traceProof3: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState)]
   [traceProof4: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState)]
   [traceProof5: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState)]
-  [traceProof6: ProofTraceTypes.Has (LongTermKeys.ProofEntryT "SignedDH")]
+  [traceProof6: ProofTraceTypes.Has (LongTermKeys.ProofEntryT "SignedDH PKI")]
 
 attribute [reducible, scoped instance] HasProofTrace.traceProof
 attribute [reducible, scoped instance] HasProofTrace.traceProof0
@@ -62,7 +62,7 @@ instance : ParseableSerializeable LongTermKeyUsage := .make <|
 @[grind]
 def mk_long_term_usage (me: Participant): Usage := {
   type := "SigKey",
-  tag := "SignedDH",
+  tag := "SignedDH PKI",
   data := serialize ({ principal := me }: LongTermKeyUsage)
 }
 
@@ -191,11 +191,11 @@ where
     grind [canFlowTrans]
 
 @[grind]
-instance : LongTermKeys.ProofConfig "SignedDH" mk_long_term_usage
+instance : LongTermKeys.ProofConfig "SignedDH PKI" mk_long_term_usage
 where
   IsLongTermPublicKey who vk tr :=
     vk.Publishable tr ∧
-    vk.signkeyLabel tr = LongTermKeys.label "SignedDH" who vk ∧
+    vk.signkeyLabel tr = LongTermKeys.label "SignedDH PKI" who vk ∧
     vk.SignkeyHasUsage (mk_long_term_usage who) tr
 
   IsLongTermPublicKey_implied := by
@@ -220,7 +220,7 @@ where
         tr.erase.EventLogged (SignedDHEvent.ServerFinishEvent server xPk yPk kC) ∧
         kC.Invariant tr ∧
         kC.label tr = (client_label client xPk).join (server_label server yPk)
-      ) ∨ (∃ spk, (LongTermKeys.label "SignedDH" server spk).isCorrupt tr.erase)
+      ) ∨ (∃ spk, (LongTermKeys.label "SignedDH PKI" server spk).isCorrupt tr.erase)
     )
 
 end TraceInvariant
@@ -236,7 +236,7 @@ class HasTraceInvariant extends HasBytesInvariants where
   [traceInv3: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientInitiateState)]
   [traceInv4: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ClientFinishState)]
   [traceInv5: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT SignedDH.ServerFinishState)]
-  [traceInv6: TraceInvariant.Has (LongTermKeys.ProofEntryT "SignedDH")]
+  [traceInv6: TraceInvariant.Has (LongTermKeys.ProofEntryT "SignedDH PKI")]
   [attBaseThm: BaseAttackerKnowledgeTheorem]
   [attThm: AttackerKnowledgeTheorem]
 
@@ -379,7 +379,7 @@ public instance: ReachableImpliesInvariant ServerFinishState.compromise.reachabi
 
 #combine into ReachabilityTheorem from
   Network,
-  LongTermKeys "SignedDH",
+  LongTermKeys "SignedDH PKI",
   client_initiate,
   server_receive,
   client_finish,

@@ -214,7 +214,7 @@ class HasExecTrace extends HasExecBytes where
   [traceExec3: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientInitiateState)]
   [traceExec4: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ClientFinishState)]
   [traceExec5: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ServerFinishState)]
-  [traceExec6: ExecTraceTypes.Has (LongTermKeys.ExecEntryT "SignedDH")]
+  [traceExec6: ExecTraceTypes.Has (LongTermKeys.ExecEntryT "SignedDH PKI")]
   [attBase: BaseAttackerKnowledge]
   -- no has :thinking_face:
 
@@ -234,7 +234,7 @@ public section Specification
 
 variable [HasExecTrace]
 
-instance: LongTermKeys.ExecConfig "SignedDH" Signature.vk where
+instance: LongTermKeys.ExecConfig "SignedDH PKI" Signature.vk where
 
 def client_initiate (me: Participant): Traceful (Nat × Nat) := do
   let xSk ← Random.genRand 32
@@ -249,7 +249,7 @@ def server_receive (me: Participant) (skHandle: Nat) (msgHandle: Nat): Traceful 
   let msg_bytes ← Network.receiveMessage msgHandle
   let msg: ClientMessage ← parse msg_bytes
   let xPk := msg.xPk
-  let my_sig_key ← LongTermKeys.getPrivateKey "SignedDH" me skHandle
+  let my_sig_key ← LongTermKeys.getPrivateKey "SignedDH PKI" me skHandle
 
   let ySk ← Random.genRand 32
   let yPk := DiffieHellman.dh_pk ySk
@@ -267,7 +267,7 @@ def client_finish (me: Participant) (server: Participant) (pkHandle: Nat) (msgHa
   let msg: ServerMessage ← parse msg_bytes
 
   let ({xPk, xSk}: ClientInitiateState) ← PersistentLocalState.getLocalState me stHandle
-  let server_vk ← LongTermKeys.getPublicKey "SignedDH" server pkHandle
+  let server_vk ← LongTermKeys.getPublicKey "SignedDH PKI" server pkHandle
 
   guard (Signature.verify server_vk (serialize ({ xPk, yPk := msg.yPk }: SigInput)) msg.sig)
   let kC := Hash.hash (DiffieHellman.dh msg.yPk xSk)
@@ -347,7 +347,7 @@ end
 
 #combine into ReachabilityConfig from
   Network,
-  LongTermKeys "SignedDH",
+  LongTermKeys "SignedDH PKI",
   client_initiate,
   server_receive,
   client_finish,

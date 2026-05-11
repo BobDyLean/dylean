@@ -9,7 +9,7 @@ import Examples.SignedDH.Instance
 namespace DY.Example.SignedDH
 
 def honest: Traceful Unit := do
-  let (_, pkHandle, skHandle) ← LongTermKeys.generateKeyPair "SignedDH" "Bob" -- 4
+  let (_, pkHandle, skHandle) ← LongTermKeys.generateKeyPair "SignedDH PKI" "Bob" -- 4
   let (stClientHandle, msgClientHandle) ← client_initiate "Alice" -- 4
   let (_stServerHandle, msgServerHandle) ← server_receive "Bob" skHandle msgClientHandle -- 5
   let _ ← client_finish "Alice" "Bob" pkHandle msgServerHandle stClientHandle -- 2
@@ -22,7 +22,7 @@ theorem honest_PreservesReachability
   unfold honest
   apply Traceful.PreservesReachabilityFrom_bind
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (LongTermKeys.generateKeyPair.reachability "SignedDH")
+  · apply Traceful.PreservesReachabilityFrom_base (LongTermKeys.generateKeyPair.reachability "SignedDH PKI")
     simp [LongTermKeys.generateKeyPair.reachability]
   intro ⟨ _, tsPk, tsSk ⟩ tr h_tr h_le
   dsimp only
@@ -87,7 +87,7 @@ theorem client_auth
     (
       let tr_before := tr.prefix time
       tr_before.EventLogged (SignedDHEvent.ServerFinishEvent server xPk yPk k) ∨
-      (∃ spk, LongTermKeys.LongTermKeyCompromised "SignedDH" server spk tr_before)
+      (∃ spk, LongTermKeys.LongTermKeyCompromised "SignedDH PKI" server spk tr_before)
     )
 := by
   apply Trace.apply_Reachable_implies_Invariant
@@ -111,7 +111,7 @@ theorem client_secrecy
     tr.EventLoggedAt (SignedDHEvent.ClientFinishEvent client server xPk yPk k) time →
     (
       let tr_before := tr.prefix time
-      (∃ spk, LongTermKeys.LongTermKeyCompromised "SignedDH" server spk tr_before) ∨
+      (∃ spk, LongTermKeys.LongTermKeyCompromised "SignedDH PKI" server spk tr_before) ∨
       ClientEphemeralStateCompromised client xPk tr ∨
       ServerEphemeralStateCompromised server yPk tr
     )
