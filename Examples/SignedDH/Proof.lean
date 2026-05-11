@@ -349,7 +349,6 @@ theorem client_finish.spec (me: Participant) (server: Participant) (pkHandle: Na
   step by
     simp_all only [PersistentLocalState.LocalStateInv.invariant]
     grind
-  step_intro
   step
   grind
 

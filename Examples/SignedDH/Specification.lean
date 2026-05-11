@@ -243,7 +243,7 @@ def client_initiate (me: Participant): Traceful (Nat × Nat) := do
   ProtocolEvent.logEvent (SignedDHEvent.ClientInitiateEvent me xPk)
   let stHandle ← PersistentLocalState.storeLocalState me ({ xPk, xSk }: ClientInitiateState)
   let msgHandle ← Network.sendMessage (serialize ({ xPk } : ClientMessage))
-  pure (stHandle, msgHandle)
+  return (stHandle, msgHandle)
 
 def server_receive (me: Participant) (skHandle: Nat) (msgHandle: Nat): Traceful (Nat × Nat) := do
   let msg_bytes ← Network.receiveMessage msgHandle
@@ -260,9 +260,9 @@ def server_receive (me: Participant) (skHandle: Nat) (msgHandle: Nat): Traceful 
   ProtocolEvent.logEvent (SignedDHEvent.ServerFinishEvent me xPk yPk kS)
   let stHandle ← PersistentLocalState.storeLocalState me ({ yPk, kS }: ServerFinishState)
   let msgHandle ← Network.sendMessage (serialize ({ yPk, sig } : ServerMessage))
-  pure (stHandle, msgHandle)
+  return (stHandle, msgHandle)
 
-def client_finish (me: Participant) (server: Participant) (pkHandle: Nat) (msgHandle: Nat) (stHandle: Nat) : Traceful Unit := do
+def client_finish (me: Participant) (server: Participant) (pkHandle: Nat) (msgHandle: Nat) (stHandle: Nat) : Traceful Nat := do
   let msg_bytes ← Network.receiveMessage msgHandle
   let msg: ServerMessage ← parse msg_bytes
 
@@ -273,7 +273,8 @@ def client_finish (me: Participant) (server: Participant) (pkHandle: Nat) (msgHa
   let kC := Hash.hash (DiffieHellman.dh msg.yPk xSk)
 
   ProtocolEvent.logEvent (SignedDHEvent.ClientFinishEvent me server xPk msg.yPk kC)
-  let _ ← PersistentLocalState.storeLocalState me ({ xPk, kC }: ClientFinishState)
+  let finalStHandle ← PersistentLocalState.storeLocalState me ({ xPk, kC }: ClientFinishState)
+  return finalStHandle
 
 def ClientInitiateState.compromise (stHandle: Nat): Traceful Nat := do
   PersistentLocalState.compromise ClientInitiateState stHandle
