@@ -114,8 +114,9 @@ theorem _root_.DY.Trace.EventLoggedAt_le
 grind_pattern Trace.EventLoggedAt_le => tr1 ≤ tr2, tr1.EventLoggedAt ev time
 grind_pattern [grind_later] Trace.EventLoggedAt_le => tr1 ≤ tr2, tr1.EventLoggedAt ev time
 
+@[grind]
 public
-abbrev _root_.DY.Trace.EventLogged
+def _root_.DY.Trace.EventLogged
   {EventT: Type}
   [ExecTraceTypes]
   [ExecTraceTypes.Has (ExecEntryT EventT)]
@@ -124,6 +125,22 @@ abbrev _root_.DY.Trace.EventLogged
   : Prop
 :=
   ∃ i, tr.EventLoggedAt ev i
+
+public
+theorem _root_.DY.Trace.EventLogged_le
+  {EventT: Type}
+  [ExecTraceTypes]
+  [ExecTraceTypes.Has (ExecEntryT EventT)]
+  (ev: EventT)
+  (tr1 tr2: ExecTrace)
+  : tr1 ≤ tr2 →
+    tr1.EventLogged ev →
+    tr2.EventLogged ev
+:= by
+  grind [Trace.EventLoggedAt]
+
+grind_pattern Trace.EventLogged_le => tr1 ≤ tr2, tr1.EventLogged ev
+grind_pattern [grind_later] Trace.EventLogged_le => tr1 ≤ tr2, tr1.EventLogged ev
 
 public
 theorem _root_.DY.Trace.EventLoggedAt_imp_EventInv
@@ -178,7 +195,7 @@ theorem logEvent.spec
   mark_non_monotone h_pre
   step with ⟨ fun _ => ExecEntryT.mk ev ⟩ by simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]
   step
-  simp only [Trace.EventLoggedAt]
+  simp only [Trace.EventLogged, Trace.EventLoggedAt]
   exists _i
   have := Trace.at_is_erase tr _i (ExecEntryT.mk ev)
   simp_all [ErasableProofEntry.erase]
