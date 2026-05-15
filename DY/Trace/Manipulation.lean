@@ -572,4 +572,116 @@ theorem getTimestamp.spec [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]:
   intro tr h_inv
   exists tr
 
+public
+structure LoopInvariantAndProof'
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  {α : Type} {xs : List α} {β : Type}
+  (f: (a: α) → a ∈ xs → β → Traceful (ForInStep β))
+where
+  inv: List.Cursor xs × β → ProofTrace → Prop
+  step:
+    ∀ pref cur suff (h : xs = pref ++ cur :: suff) b,
+      HoareTriple
+        (f cur (by simp [h]) b)
+        (inv (⟨pref, cur::suff, h.symm⟩, b))
+        (fun r => match r with
+          | .yield b' => inv (⟨pref ++ [cur], suff, by simp [h]⟩, b')
+          | .done b' => inv (⟨xs, [], by simp⟩, b')
+        )
+
+public
+instance
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  {α β: Type}
+  (xs: List α) (init: β) (f : (a: α) → a ∈ xs → β → Traceful (ForInStep β))
+  : HasGhostArgumentType
+    (forIn' xs init f)
+    (LoopInvariantAndProof' f)
+where
+  dummy := ()
+
+@[instance]
+public
+theorem forIn'.spec
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  {α β: Type}
+  (xs: List α) (init: β) {f : (a: α) → a ∈ xs → β → Traceful (ForInStep β)}
+  (invAndProof : LoopInvariantAndProof' f)
+  : HoareTripleGhost
+    (forIn' xs init f)
+    (invAndProof)
+    (invAndProof.inv (⟨[], xs, rfl⟩, init))
+    (fun b => invAndProof.inv (⟨xs, [], by simp⟩, b))
+:= by
+  apply HoareTripleGhost.mk
+  suffices h : ∀ c,
+    hoareTriple
+      (forIn' (m:=Traceful) c.suffix init (fun a ha b => f a (by simp [←c.property, ha]) b))
+      (invAndProof.inv (c, init))
+      (fun b => invAndProof.inv (⟨xs, [], by simp⟩, b))
+  from h ⟨[], xs, rfl⟩
+  intro ⟨ pref, suff, h ⟩
+  induction suff generalizing pref init
+  · simp only [hoareTriple]
+    intro tr h h_inv
+    exists tr
+    grind
+  rename_i head tail ih
+  simp only [hoareTriple, List.forIn'_cons]
+  intro tr h h_inv
+  have := invAndProof.step pref head tail (by grind) init
+  apply Traceful.bind_wp ()
+  · assumption
+  · assumption
+  intro tr res h' h_inv h_le
+  split
+  · exists tr
+  rename_i x h
+  exact ih h (pref ++ [head]) (by grind) tr (by grind) (by grind)
+
+public
+structure LoopInvariantAndProof
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  {α : Type} (xs : List α) {β : Type}
+  (f: (a: α) → β → Traceful (ForInStep β))
+where
+  inv: List.Cursor xs × β → ProofTrace → Prop
+  step:
+    ∀ pref cur suff (h : xs = pref ++ cur :: suff) b,
+      HoareTriple
+        (f cur b)
+        (inv (⟨pref, cur::suff, h.symm⟩, b))
+        (fun r => match r with
+          | .yield b' => inv (⟨pref ++ [cur], suff, by simp [h]⟩, b')
+          | .done b' => inv (⟨xs, [], by simp⟩, b')
+        )
+
+public
+instance
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  {α β: Type}
+  (xs: List α) (init: β) (f : (a: α) → β → Traceful (ForInStep β))
+  : HasGhostArgumentType
+    (forIn xs init f)
+    (LoopInvariantAndProof xs f)
+where
+  dummy := ()
+
+@[instance]
+public
+theorem forIn.spec
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  {α β: Type}
+  (xs: List α) (init: β) {f : (a: α) → β → Traceful (ForInStep β)}
+  (invAndProof: LoopInvariantAndProof xs f)
+  : HoareTripleGhost
+    (forIn xs init f)
+    invAndProof
+    (invAndProof.inv (⟨[], xs, rfl⟩, init))
+    (fun b => invAndProof.inv (⟨xs, [], by simp⟩, b))
+:= by
+  apply HoareTripleGhost.mk
+  simp only [← forIn'_eq_forIn]
+  exact (forIn'.spec xs init ⟨ invAndProof.inv, invAndProof.step ⟩).pf
+
 end DY
