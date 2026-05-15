@@ -50,6 +50,19 @@ attribute [instance] ParseableSerializeable.mf_na
 attribute [instance] ParseableSerializeable.mf_ur
 
 public
+class ParseableSerializeableNE (a: Type) where
+  mf: Comparse.NonExtensibleMessageFormat Bytes a
+  [mf_na: mf.IsNonAmbiguous]
+  [mf_ur: mf.HasUniqueRepresentation]
+
+attribute [instance] ParseableSerializeableNE.mf_na
+attribute [instance] ParseableSerializeableNE.mf_ur
+
+public
+instance (a: Type) [inst: ParseableSerializeableNE a]: ParseableSerializeable a where
+  mf := inst.mf.toExtensible
+
+public
 def parse {a: Type} [ParseableSerializeable a] (buf: Bytes): Err a :=
   ParseableSerializeable.mf.parse buf
 
@@ -97,14 +110,14 @@ where
   mf := mf
 
 public
-abbrev ParseableSerializeable.makeNE
+abbrev ParseableSerializeableNE.make
   {a: Type}
   (mf: Comparse.NonExtensibleMessageFormat Bytes a)
   [mf.IsNonAmbiguous]
   [mf.HasUniqueRepresentation]
-  : ParseableSerializeable a
-:=
-  .make (mf.toExtensible)
+  : ParseableSerializeableNE a
+where
+  mf := mf
 
 public
 def FormatRel [ParseableSerializeable a] (buf: Bytes) (x: a): Prop :=
@@ -310,15 +323,5 @@ theorem IsWellFormed_FormatRel_IsPublishable [ExecTraceTypes] [ProofTraceTypes] 
   IsWellFormed_FormatRel Bytes.Publishable
 
 grind_pattern IsWellFormed_FormatRel_IsPublishable => FormatRel buf x, Bytes.Publishable buf tr
-
-public
-theorem IsWellFormedParse [ParseableSerializeable a] (pre: Bytes → τ → Prop) (buf: Bytes) (x: a) (tr: τ):
-  parse buf = some x →
-  pre buf tr →
-  IsWellFormed pre x tr
-:= by
-  have := serialize_parse_inv buf x
-  simp_all [serialize, IsWellFormed]
-  grind [Comparse.ExtensibleMessageFormat.wf_eq]
 
 end DY.Comparse
