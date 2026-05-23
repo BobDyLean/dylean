@@ -128,29 +128,21 @@ public
 def Random.invariants: Bytes.PartialInvariants Random where
   well_formed := fun {timestamp, size} _rec tr =>
     ∃ (label: Label) (usage: Usage),
-    tr.at_is timestamp ({length := size, label, usage}: ProofEntryT)
+    tr.at? timestamp = some ({length := size, label, usage}: ProofEntryT)
 
   usage := fun {timestamp, size := _} _rec tr =>
-    if h_timestamp: timestamp < tr.length then
-      match ProofTraceTypes.Has.proofProj (tr.at timestamp h_timestamp) with
-      | some (entry: ProofEntryT) =>
-        entry.usage
-      | none => Usage.nothing
-    else
-      Usage.nothing
+    match (tr.at? timestamp: Option ProofEntryT) with
+    | some entry => entry.usage
+    | none => Usage.nothing
 
   label := fun {timestamp, size := _} _rec tr =>
-    if h_timestamp: timestamp < tr.length then
-      match ProofTraceTypes.Has.proofProj (tr.at timestamp h_timestamp) with
-      | some (entry: ProofEntryT) =>
-        entry.label
-      | none => Label.pub
-    else
-      Label.pub
+    match (tr.at? timestamp: Option ProofEntryT) with
+    | some entry => entry.label
+    | none => Label.pub
 
   invariant := fun {timestamp, size} _rec tr =>
     ∃ (label: Label) (usage: Usage),
-    tr.at_is timestamp ({length := size, label, usage}: ProofEntryT)
+    tr.at? timestamp = some ({length := size, label, usage}: ProofEntryT)
 
 public
 abbrev invariants: Bytes.PartialInvariants SubF := Random.Random.invariants
@@ -159,15 +151,13 @@ public
 def Random.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Random.invariants where
   usage_later := by
     intro x rec tr1 tr2
-    let {timestamp, size} := x
-    simp_all [invariants, DY.ALaCarte.FunctorSizeOf.sizeOf, GetUsageLaterT, Trace.at_le tr1 tr2 timestamp]
-    grind [Trace.at_is_imp_proofProj_at]
+    simp only [invariants]
+    grind
 
   label_later := by
     intro _ x rec tr1 tr2
-    let {timestamp, size} := x
-    simp_all [invariants, DY.ALaCarte.FunctorSizeOf.sizeOf, GetLabelLaterT, Trace.at_le tr1 tr2 timestamp]
-    grind [Trace.at_is_imp_proofProj_at]
+    simp only [invariants]
+    grind
 
 public
 abbrev invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs invariants := Random.Random.invariantsProofs
@@ -177,14 +167,14 @@ variable [BytesInvariants] [BytesInvariants.Has invariants]
 theorem makeRand.Invariant
   (timestamp size: Nat) (tr: ProofTrace)
   (label: Label) (usage: Usage)
-  : Trace.at_is tr timestamp ({ length := size, label := label, usage := usage }: ProofEntryT) → (
+  : Trace.at? tr timestamp = some ({ length := size, label := label, usage := usage }: ProofEntryT) → (
       (makeRand timestamp size: Bytes).Invariant tr ∧
       (makeRand timestamp size: Bytes).label tr = label ∧
       (makeRand timestamp size: Bytes).HasUsage usage tr
     )
 := by
   simp [makeRand, Bytes.label.eq, Bytes.usage.eq, Bytes.HasUsage, Bytes.Invariant.eq, Random.invariants]
-  grind [Trace.at_is_imp_proofProj_at]
+  grind [Trace.at?_eq_some]
 
 end Invariants
 

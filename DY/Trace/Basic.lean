@@ -45,20 +45,22 @@ theorem Trace.le_trans
     exact (Trace.le.extend tr1 tr3 e ih)
 
 public
-class IntoTraceEntry (EntryT: Type) (α: Type) where
-  make: EntryT → α
+class TraceEntryHas (EntryT: Type) (α: Type) where
+  inj: EntryT → α
+  proj: α → Option EntryT
+  inj_proj_eq: ∀ x y, (proj x = some y) = (x = inj y)
 
 public
 def Trace.append
-  {EntryT α: Type} [IntoTraceEntry EntryT α]
+  {EntryT α: Type} [TraceEntryHas EntryT α]
   (tr: Trace α) (entry: EntryT)
   : Trace α
 :=
-  .snoc tr (IntoTraceEntry.make entry)
+  .snoc tr (TraceEntryHas.inj entry)
 
 public
 def Trace.append_le
-  {EntryT α: Type} [IntoTraceEntry EntryT α]
+  {EntryT α: Type} [TraceEntryHas EntryT α]
   (tr: Trace α) (entry: EntryT)
   : tr ≤ tr.append entry
 := by
@@ -140,35 +142,58 @@ grind_pattern [grind_later] Trace.at_le => tr1 ≤ tr2, tr1.at i h_i
 
 @[expose]
 public
-def Trace.at_is
-  {EntryT α: Type} [IntoTraceEntry EntryT α]
-  (tr: Trace α) (i: Nat) (entry: EntryT)
-  : Prop
+def Trace.at?
+  {EntryT α: Type} [TraceEntryHas EntryT α]
+  (tr: Trace α) (i: Nat)
+  : Option EntryT
 :=
-  exists h: i < tr.length,
-  tr.at i h = IntoTraceEntry.make entry
+  if h_i: i < tr.length then
+    TraceEntryHas.proj (tr.at i h_i)
+  else
+    none
 
 public
-theorem Trace.at_is_le
-  {EntryT α: Type} [IntoTraceEntry EntryT α]
-  (tr1 tr2: Trace α) (i: Nat) (entry: EntryT)
+theorem Trace.at?_le
+  {EntryT α: Type} [TraceEntryHas EntryT α]
+  (tr1 tr2: Trace α) (i: Nat)
   : tr1 ≤ tr2 →
-    tr1.at_is i entry →
-    tr2.at_is i entry
+    match (tr1.at? i: Option EntryT) with
+    | some res => tr2.at? i = some res
+    | none => True
 := by
-  simp only [Trace.at_is]
+  simp only [Trace.at?]
   grind
 
-grind_pattern Trace.at_is_le => tr1 ≤ tr2, tr1.at_is i entry
-grind_pattern [grind_later] Trace.at_is_le => tr1 ≤ tr2, tr1.at_is i entry
+grind_pattern Trace.at?_le => tr1 ≤ tr2, tr1.at? (EntryT := EntryT) i
+grind_pattern [grind_later] Trace.at?_le => tr1 ≤ tr2, tr1.at? (EntryT := EntryT) i
 
 public
-theorem Trace.at_is_append
-  {EntryT α: Type} [IntoTraceEntry EntryT α]
+theorem Trace.at?_append
+  {EntryT α: Type} [TraceEntryHas EntryT α]
   (tr: Trace α) (entry: EntryT)
-  : (tr.append entry).at_is tr.length entry
+  : (tr.append entry).at? tr.length = some entry
 := by
-  grind [Trace.append, Trace.at_is, Trace.at, Trace.length]
+  grind [Trace.append, Trace.at?, Trace.at, Trace.length, TraceEntryHas.inj_proj_eq]
+
+public
+theorem Trace.at?_eq_some
+  {EntryT α: Type} [TraceEntryHas EntryT α]
+  (tr: Trace α) (i: Nat) (entry: EntryT)
+  : (tr.at? i = some entry) = (∃ h_i: i < tr.length, tr.at i h_i = TraceEntryHas.inj entry)
+:= by
+  grind [Trace.at?, TraceEntryHas.inj_proj_eq]
+
+public
+theorem Trace.at?_eq_some_implies_length_le
+  {EntryT α: Type} [TraceEntryHas EntryT α]
+  (tr: Trace α) (i: Nat)
+  : match (tr.at? i: Option EntryT) with
+    | some _ => i < tr.length
+    | none => True
+:= by
+  grind [Trace.at?]
+
+grind_pattern Trace.at?_eq_some_implies_length_le => (tr.at? i: Option EntryT)
 
 -- Execution trace
 
@@ -184,10 +209,8 @@ public
 abbrev ExecTrace [ExecTraceTypes] := Trace ExecTrace.Entry
 
 public
-class ExecTraceTypes.Has [ExecTraceTypes] (ExecEntryT: Type) where
-  inj: ExecEntryT → ExecTrace.Entry
-  proj: ExecTrace.Entry → Option ExecEntryT
-  inj_proj_eq: ∀ x y, (proj x = some y) = (x = inj y)
+class ExecTraceTypes.Has [ExecTraceTypes] (ExecEntryT: Type)
+  extends TraceEntryHas ExecEntryT ExecTrace.Entry
 
 public
 class ExecTraceTypes.HasStep (ExecEntryT1: Type) (ExecEntryT2: semiOutParam Type) where
@@ -209,29 +232,32 @@ instance instExecTraceTypesHasStep
   [ExecTraceTypes.Has ExecEntryT2]
   : ExecTraceTypes.Has ExecEntryT1
 where
-  inj x := ExecTraceTypes.Has.inj (ExecTraceTypes.HasStep.inj (ExecEntryT2 := ExecEntryT2) x)
+  inj x := TraceEntryHas.inj (ExecTraceTypes.HasStep.inj (ExecEntryT2 := ExecEntryT2) x)
   proj x :=
-    match ExecTraceTypes.Has.proj (ExecEntryT := ExecEntryT2) x with
+    match TraceEntryHas.proj (EntryT := ExecEntryT2) x with
     | none => none
     | some y => ExecTraceTypes.HasStep.proj y
   inj_proj_eq x y := by
-    have := ExecTraceTypes.Has.inj_proj_eq (ExecEntryT := ExecEntryT2) x
+    have := TraceEntryHas.inj_proj_eq (EntryT := ExecEntryT2) x
     have := ExecTraceTypes.HasStep.inj_proj_eq (ExecEntryT1 := ExecEntryT1) (ExecEntryT2 := ExecEntryT2)
     grind
 
 public
-instance [ExecTraceTypes] (ExecEntryT: Type) [ExecTraceTypes.Has ExecEntryT]: IntoTraceEntry ExecEntryT ExecTrace.Entry where
-  make entry := ExecTraceTypes.Has.inj entry
+instance [ExecTraceTypes] (ExecEntryT: Type) [inst: ExecTraceTypes.Has ExecEntryT]: TraceEntryHas ExecEntryT ExecTrace.Entry where
+  inj := inst.inj
+  proj := inst.proj
+  inj_proj_eq := inst.inj_proj_eq
 
 @[grind inj]
 public
-theorem ExecTraceTypes.Has.inj_injective
-  [ExecTraceTypes] (ExecEntryT: Type) [ExecTraceTypes.Has ExecEntryT]
-  : Function.Injective (ExecTraceTypes.Has.inj (ExecEntryT := ExecEntryT))
+theorem TraceEntryHas.inj_injective
+  (EntryT: Type) (α: Type)
+  [TraceEntryHas EntryT α]
+  : Function.Injective (TraceEntryHas.inj (EntryT := EntryT) (α := α))
 := by
   intro x1 x2
-  have := ExecTraceTypes.Has.inj_proj_eq (ExecTraceTypes.Has.inj x1) x1
-  have := ExecTraceTypes.Has.inj_proj_eq (ExecTraceTypes.Has.inj x2) x2
+  have := TraceEntryHas.inj_proj_eq (EntryT := EntryT) (α := α) (TraceEntryHas.inj x1) x1
+  have := TraceEntryHas.inj_proj_eq (EntryT := EntryT) (α := α) (TraceEntryHas.inj x2) x2
   grind
 
 public

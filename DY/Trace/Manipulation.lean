@@ -485,14 +485,14 @@ theorem appendEntry.spec
       SubTraceInvariant.invariant tr (mkProofEntry time)
     )
     (fun time tr =>
-      tr.at_is time (mkProofEntry time)
+      tr.at? time = some (mkProofEntry time)
     )
 := by
   apply HoareTripleGhost.mk
   simp only [hoareTriple, wp, appendEntry, Traceful.run_mk]
   intro trProof h_pre h_inv
   exists trProof.append (mkProofEntry trProof.length)
-  simp_all [Trace.append_erase, Trace.append_le, Trace.invariant_append, Trace.at_is_append, Trace.erase_length]
+  simp_all [Trace.append_erase, Trace.append_le, Trace.invariant_append, Trace.at?_append, Trace.erase_length]
 
 public
 def getEntry
@@ -501,11 +501,7 @@ def getEntry
   : Traceful EntryT
 :=
   Traceful.mk (fun tr =>
-    let result :=
-      if h: timestamp < tr.length then
-        ExecTraceTypes.Has.proj (tr.at timestamp h)
-      else
-        none
+    let result := tr.at? timestamp
     (result, ⟨ tr, by grind ⟩ )
   )
 
@@ -525,7 +521,7 @@ theorem getEntry.spec
     (getEntry timestamp: Traceful ExecEntryT)
     (fun _ => True)
     (fun entry tr =>
-      exists proofEntry: ProofEntryT,
+      ∃ proofEntry: ProofEntryT,
       entry = ErasableProofEntry.erase proofEntry ∧
       SubTraceInvariant.invariant (tr.prefix timestamp) proofEntry
     )
@@ -536,21 +532,17 @@ theorem getEntry.spec
   exists trProof
   split
   · grind
-  rename_i execEntry heq
   simp only [h_inv, Trace.le_refl, and_true]
-  simp only [Option.dite_none_right_eq_some] at heq
-  obtain ⟨ h_timestamp, heq ⟩ := heq
-  cases h: (ProofTraceTypes.Has.proofProj (tr_proof'.at timestamp (by grind [Trace.erase_length])): Option ProofEntryT)
-  · simp_all [ProofTraceTypes.Has.proofProj_none_eq_erase, Trace.erase_at]
+  rename_i trProof execEntry heq
+  cases h: (tr_proof'.at? timestamp: Option ProofEntryT)
+  · simp_all [ProofTrace.Entry.at?_eq_none_erase]
   rename_i proofEntry
   exists proofEntry
-  simp only [ProofTraceTypes.Has.proof_inj_proj_eq] at h
-  simp only [ExecTraceTypes.Has.inj_proj_eq, Trace.erase_at, ProofTraceTypes.Has.erase_commutes, h] at heq
+  have := ProofTrace.Entry.at?_eq_some_erase tr_proof' timestamp proofEntry h
   constructor
   · grind
-  rewrite [← TraceInvariant.Has.inv_commutes, ← h]
-  apply Trace.invariant_at
-  assumption
+  rewrite [← TraceInvariant.Has.inv_commutes]
+  grind [Trace.at?_eq_some, Trace.invariant_at]
 
 public
 def getTimestamp [ExecTraceTypes]: Traceful Nat
