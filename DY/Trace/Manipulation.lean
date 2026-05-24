@@ -5,7 +5,6 @@ public import Lean
 public import DY.Bytes.Basic
 public import DY.Trace.Basic
 public import DY.Trace.Monad
-import all DY.Trace.Monad
 public import DY.Trace.Reachability
 public import DY.Trace.Invariant
 public import DY.Label
@@ -189,8 +188,7 @@ where
 public
 instance [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]: WPLift Err Traceful where
   pf := by
-    -- ugh
-    simp only [wp, liftM, monadLift, MonadLift.monadLift, Traceful.run, OptionT.run]
+    simp only [wp, liftM, monadLift, MonadLift.monadLift, Traceful.run_mk, OptionT.run]
     grind
 
 public
@@ -346,6 +344,7 @@ where
     simp only [hoareTriple, forall_const]
     intro tr h_inv
     exists tr
+    grind [Traceful.run_pure]
 
 public
 instance
@@ -359,6 +358,7 @@ where
     simp only [hoareTriple, forall_const]
     intro tr h_inv
     exists tr
+    grind [Traceful.run_failure]
 
 public
 def appendEntry
@@ -494,7 +494,7 @@ theorem getTimestamp.spec [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]:
     (fun _ _ => True)
 := by
   apply HoareTriple.mk
-  simp [hoareTriple, wp, getTimestamp]
+  simp [hoareTriple, wp, getTimestamp, Traceful.run_mk]
   intro tr h_inv
   exists tr
 

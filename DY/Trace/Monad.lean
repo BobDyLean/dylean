@@ -30,16 +30,6 @@ instance [ExecTraceTypes]: Alternative Traceful where
       let (optRes, trOut) := y () trMid.val
       (optRes, ⟨ trOut.val, by grind [Trace.le_trans] ⟩)
 
-@[expose]
-public
-def Err := OptionT Id
-deriving Monad, Alternative
-
-public
-instance [ExecTraceTypes]: MonadLift Err Traceful := {
-  monadLift x := fun tr => (x, ⟨ tr, by grind ⟩ )
-}
-
 public
 def Traceful.run [ExecTraceTypes] (x: Traceful a) (tr: ExecTrace): (Option a × { trOut: ExecTrace // tr ≤ trOut}) :=
   x tr
@@ -47,6 +37,16 @@ def Traceful.run [ExecTraceTypes] (x: Traceful a) (tr: ExecTrace): (Option a × 
 public
 def Traceful.mk [ExecTraceTypes] {α: Type} (f: (tr: ExecTrace) → (Option α × { trOut: ExecTrace // tr ≤ trOut})): Traceful α :=
   f
+
+@[expose]
+public
+def Err := OptionT Id
+deriving Monad, Alternative
+
+public
+instance [ExecTraceTypes]: MonadLift Err Traceful := {
+  monadLift x := Traceful.mk fun tr => (x, ⟨ tr, by grind ⟩ )
+}
 
 public
 theorem Traceful.run_mk
