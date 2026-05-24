@@ -203,6 +203,32 @@ def Bytes.AttackerKnows.attackerKnow.prove_from_base
   dsimp only [baseKnowledge, SubAttackerKnowledge.fromPred]
   exact h
 
+public
+theorem Bytes.AttackerKnows_le
+  [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge]
+  (b: Bytes) (tr1 tr2: ExecTrace)
+  : tr1 ≤ tr2 →
+    b.AttackerKnows tr1 →
+    b.AttackerKnows tr2
+:= by
+  intro h_le
+  apply Kleene.mkWeakestFixpoint_is_weakest ((Bytes.AttackerKnows.attackerKnowledge tr1).pred) ((Bytes.AttackerKnows.attackerKnowledge tr1).pred_isScottContinuous)
+  simp only [Subset, AttackerKnows.attackerKnowledge, SubAttackerKnowledge.combine', Kleene.combine, Fin.exists_fin_two]
+  intro b
+  intro h; cases h
+  · have h2 := Kleene.mkWeakestFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr2).pred (Bytes.AttackerKnows.attackerKnowledge tr2).pred_isScottContinuous
+    unfold Bytes.AttackerKnows at *
+    rewrite [← h2]
+    simp_all [AttackerKnows.attackerKnowledge, SubAttackerKnowledge.combine', Kleene.combine]
+  · have h0: Trace.BaseAttackerKnows tr2 b := by
+      grind [AttackerKnows.baseKnowledge, SubAttackerKnowledge.fromPred, AttackerKnows.baseKnowledge]
+    have h1 := Bytes.AttackerKnows.attackerKnow.prove_from_base (Bytes.AttackerKnows · tr2) b tr2 h0
+    have h2 := Kleene.mkWeakestFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr2).pred (Bytes.AttackerKnows.attackerKnowledge tr2).pred_isScottContinuous
+    unfold Bytes.AttackerKnows at *
+    simp_all
+
+grind_pattern Bytes.AttackerKnows_le => tr1 ≤ tr2, b.AttackerKnows tr1
+
 /--
   Main theorem to prove that the attacker knows some particular value
 -/

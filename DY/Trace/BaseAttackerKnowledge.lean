@@ -102,6 +102,20 @@ def Trace.BaseAttackerKnows
     Trace.BaseAttackerKnows trBefore b
 
 public
+theorem Trace.BaseAttackerKnows_le
+  [BytesFunctor] [ExecTraceTypes] [BaseAttackerKnowledge]
+  (b: Bytes) (tr1 tr2: ExecTrace)
+  : tr1 ≤ tr2 →
+    Trace.BaseAttackerKnows tr1 b →
+    Trace.BaseAttackerKnows tr2 b
+:= by
+  intro h
+  induction h <;>
+  grind [Trace.BaseAttackerKnows]
+
+grind_pattern Trace.BaseAttackerKnows_le => tr1 ≤ tr2, Trace.BaseAttackerKnows tr1 b
+
+public
 theorem Trace.prove_BaseAttackerKnows
   [BytesFunctor] [ExecTraceTypes] [BaseAttackerKnowledge]
   {ExecEntryT: Type}

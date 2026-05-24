@@ -324,4 +324,14 @@ theorem IsWellFormed_FormatRel_IsPublishable [ExecTraceTypes] [ProofTraceTypes] 
 
 grind_pattern IsWellFormed_FormatRel_IsPublishable => FormatRel buf x, Bytes.Publishable buf tr
 
+public
+theorem IsWellFormed_FormatRel_AttackerKnows [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge] [ParseableSerializeable a]:
+  ∀ (buf: Bytes) (x: a) (tr: ExecTrace),
+  FormatRel buf x →
+  (buf.AttackerKnows tr = IsWellFormed Bytes.AttackerKnows x tr)
+:=
+  IsWellFormed_FormatRel Bytes.AttackerKnows
+
+grind_pattern IsWellFormed_FormatRel_AttackerKnows => FormatRel buf x, Bytes.AttackerKnows buf tr
+
 end DY.Comparse
