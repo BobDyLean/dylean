@@ -118,6 +118,29 @@ abbrev reachability : ReachabilityConfig where
   PreCond b tr := b.AttackerKnows tr
   step b := ⟨ _, sendMessage b ⟩
 
+public
+theorem receiveMessage.preservesReachability
+  [BaseAttackerKnowledge.Has baseAttackerKnowledge]
+  (config: ReachabilityConfig)
+  (msgHandle: Nat)
+  : (receiveMessage msgHandle).PreservesReachability config (fun _ => True) (fun msg tr => msg.AttackerKnows tr)
+:= by
+  dsimp only [receiveMessage, Traceful.PreservesReachability]
+  intro tr h_reach h_pre
+  apply Traceful.PreservesReachabilityFrom_bind
+  · apply getEntry.preservesReachability
+  · grind
+  · grind
+  intro entry tr h_post h_reach h_le
+
+  apply Traceful.PreservesReachabilityFrom_pure
+  · grind
+
+  apply Bytes.AttackerKnows.prove_from_base
+  apply Trace.prove_BaseAttackerKnows baseAttackerKnowledge tr entry entry.msg msgHandle
+  · grind
+  simp [baseAttackerKnowledge]
+
 variable [ProofTraceTypes] [TraceInvariant]
 variable [BytesInvariants] [BytesInvariantsProofs]
 variable [ProofTraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]

@@ -6,6 +6,7 @@ public import DY.Bytes.Basic
 public import DY.Trace.Basic
 public import DY.Trace.Monad
 import all DY.Trace.Monad
+public import DY.Trace.Reachability
 public import DY.Trace.Invariant
 public import DY.Label
 
@@ -461,6 +462,21 @@ theorem getEntry.spec
   · grind
   rewrite [← TraceInvariant.Has.inv_commutes]
   grind [Trace.at?_eq_some, Trace.invariant_at]
+
+public
+theorem getEntry.preservesReachability
+  [ExecTraceTypes]
+  {ExecEntryT: Type}
+  [ExecTraceTypes.Has ExecEntryT]
+  (config: ReachabilityConfig)
+  (timestamp: Nat)
+  : Traceful.PreservesReachability config
+    (getEntry timestamp: Traceful ExecEntryT)
+    (fun _ => True)
+    (fun entry tr => tr.at? timestamp = some entry)
+:= by
+  simp only [Traceful.PreservesReachability, Traceful.PreservesReachabilityFrom, getEntry, Traceful.run_mk]
+  grind
 
 public
 def getTimestamp [ExecTraceTypes]: Traceful Nat

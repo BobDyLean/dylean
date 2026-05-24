@@ -15,35 +15,39 @@ def honest: Traceful Unit := do
   let _ ← client_finish "Alice" "Bob" pkHandle msgServerHandle stClientHandle -- 2
 
 theorem honest_PreservesReachability
-  : honest.PreservesReachability reachability
+  : honest.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
 := by
   unfold Traceful.PreservesReachability
-  intro tr h_tr
-  unfold honest
+  intro tr h_tr h_pre
+  dsimp only [honest]
+
   apply Traceful.PreservesReachabilityFrom_bind
+  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "SignedDH PKI")
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (LongTermKeys.generateKeyPair.reachability "SignedDH PKI")
-    simp [LongTermKeys.generateKeyPair.reachability]
-  intro ⟨ _, tsPk, tsSk ⟩ tr h_tr h_le
-  dsimp only
+  · simp [LongTermKeys.generateKeyPair.reachability]
+  intro ⟨ _, tsPk, tsSk ⟩ tr h_post h_tr h_le
+
   apply Traceful.PreservesReachabilityFrom_bind
+  · apply Traceful.PreservesReachability_base (client_initiate.reachability)
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (client_initiate.reachability)
-    simp [client_initiate.reachability]
-  intro ⟨ tsClientSt, tsMsgClient ⟩ tr h_tr h_le
-  dsimp only
+  · simp [client_initiate.reachability]
+  intro ⟨ tsClientSt, tsMsgClient ⟩ tr h_post h_tr h_le
+
   apply Traceful.PreservesReachabilityFrom_bind
+  · apply Traceful.PreservesReachability_base (server_receive.reachability) _ ("Bob", tsSk, tsMsgClient)
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (server_receive.reachability) _ ("Bob", tsSk, tsMsgClient)
-    simp [server_receive.reachability]
-  intro ⟨ _, tsMsgServer ⟩ tr h_tr h_le
-  dsimp only
+  · simp [server_receive.reachability]
+  intro ⟨ _, tsMsgServer ⟩ tr h_post h_tr h_le
+
   apply Traceful.PreservesReachabilityFrom_bind
+  · apply Traceful.PreservesReachability_base (client_finish.reachability) _ ("Alice", "Bob", tsPk, tsMsgServer, tsClientSt)
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (client_finish.reachability) _ ("Alice", "Bob", tsPk, tsMsgServer, tsClientSt)
-    simp [client_finish.reachability]
-  intro _ tr h_tr h_le
+  · simp [client_finish.reachability]
+  intro _ tr h_post h_tr h_le
+
   apply Traceful.PreservesReachabilityFrom_pure
+  · assumption
+  grind
 
 theorem sanity_check:
   ∃ tr: ExecTrace,
@@ -55,7 +59,8 @@ theorem sanity_check:
 := by
   exists (honest.run (Trace.nil)).snd
   apply And.intro
-  · exact honest_PreservesReachability Trace.nil (Trace.ReachableFrom.Base)
+  · apply Traceful.PreservesReachability_to_Reachable honest_PreservesReachability
+    grind
   exists 10
   exists 13
   simp only [DY.Trace.EventLoggedAt_eq_getEventAt]
@@ -72,7 +77,7 @@ theorem sanity_check:
 info: 'DY.Example.SignedDH.sanity_check' depends on axioms: [propext,
  Classical.choice,
  Quot.sound,
- sanity_check._native.native_decide.ax_1_5]
+ sanity_check._native.native_decide.ax_1_6]
 -/
 #guard_msgs in
 #print axioms sanity_check

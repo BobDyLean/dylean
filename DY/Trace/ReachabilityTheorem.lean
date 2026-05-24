@@ -40,7 +40,6 @@ theorem Trace.Reachable_implies_Invariant
       trProof.erase = trExec ∧
       trProof.Invariant
 := by
-  unfold Trace.Reachable
   intro h_reach
   induction h_reach
   · exists Trace.nil
