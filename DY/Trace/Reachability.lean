@@ -1,6 +1,6 @@
 module
 
-public import DY.Trace.Manipulation
+public import DY.Trace.Monad
 public meta import DY.Meta.CombineMacro
 
 namespace DY
@@ -43,7 +43,7 @@ class ReachabilityConfig.Has (config1 config2: ReachabilityConfig) where
   pf_step (config1 config2): ∀ input, config1.step input = config2.step (inj input)
 
 public
-instance
+instance instReachabilityConfigHasItself
   (config: ReachabilityConfig)
   : ReachabilityConfig.Has config config
 where
@@ -52,7 +52,7 @@ where
   pf_step input := by simp
 
 public
-instance
+instance instReachabilityConfigHasStep
   (config1 config2 config3: ReachabilityConfig)
   [inst12: ReachabilityConfig.HasStep config1 config2]
   [inst23: ReachabilityConfig.Has config2 config3]
@@ -63,7 +63,7 @@ where
   pf_step input := by simp [inst23.pf_step, inst12.pf_step]
 
 public
-instance
+instance instReachabilityConfigCombineHasStep
   {α: Type}
   (configs: α → ReachabilityConfig)
   (id: α)
@@ -82,7 +82,7 @@ inductive Trace.ReachableFrom (config: ReachabilityConfig) (trIn: ExecTrace): Ex
     (input: config.Input) →
     config.PreCond input trMid →
     Trace.ReachableFrom config trIn trMid →
-    Trace.ReachableFrom config trIn (Traceful.run ((config.step input).snd) trMid).snd
+    Trace.ReachableFrom config trIn (((config.step input).snd).run trMid).snd
 
 public
 theorem Trace.ReachableFrom_trans
