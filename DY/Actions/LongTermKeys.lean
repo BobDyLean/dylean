@@ -19,7 +19,7 @@ public
 structure SecretKeyState [BytesFunctor] (name: String) where
   sk: Bytes
 
-public
+public -- it is useful to implement attacker programs
 instance
   [BytesFunctor] [BytesLength]
   [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
@@ -32,6 +32,7 @@ instance
     (fun sk => { sk })
     (fun { sk := sk } => sk)
 
+public -- it is useful to implement attacker programs
 theorem SecretKeyState.IsWellFormed_eq
   [BytesFunctor] [BytesLength]
   [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
@@ -44,7 +45,7 @@ theorem SecretKeyState.IsWellFormed_eq
 
 grind_pattern SecretKeyState.IsWellFormed_eq => Comparse.IsWellFormed pre x tr
 
-public
+public -- it is useful to implement attacker programs
 structure PublicKeyState [BytesFunctor] (name: String) where
   p: Participant
   pk: Bytes
@@ -62,6 +63,7 @@ instance
     (fun ⟨ p, pk ⟩ => { p, pk })
     (fun { p, pk } => ⟨ p, pk ⟩)
 
+public -- it is useful to implement attacker programs
 theorem PublicKeyState.IsWellFormed_eq
   [BytesFunctor] [BytesLength]
   [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
@@ -491,8 +493,8 @@ def reachability : ReachabilityConfig
 :=
   .combine (reachability.internal name)
 
-instance: ReachabilityConfig.HasStep (generateKeyPair.reachability name) (reachability name) := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal name 0) (.combine (reachability.internal name))
-instance: ReachabilityConfig.HasStep (compromisePrivateKey.reachability name) (reachability name) := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal name 1) (.combine (reachability.internal name))
+public instance: ReachabilityConfig.HasStep (generateKeyPair.reachability name) (reachability name) := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal name 0) (.combine (reachability.internal name))
+public instance: ReachabilityConfig.HasStep (compromisePrivateKey.reachability name) (reachability name) := inferInstanceAs <| ReachabilityConfig.HasStep (reachability.internal name 1) (.combine (reachability.internal name))
 
 variable
   [ProofTraceTypes]
