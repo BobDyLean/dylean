@@ -1,6 +1,8 @@
 module
 
 public import DY.Trace.Reachability
+public import DY.Trace.Invariant
+public import DY.Trace.Manipulation
 import all DY.Trace.Reachability
 import all DY.Trace.Invariant
 public meta import DY.Meta.CombineMacro
@@ -38,13 +40,14 @@ theorem Trace.Reachable_implies_Invariant
       trProof.erase = trExec ∧
       trProof.Invariant
 := by
-  unfold Trace.Reachable
   intro h_reach
   induction h_reach
   · exists Trace.nil
   rename_i input h_pre h_reach ih
-  obtain ⟨ trProofMid, _ ⟩ := ih
-  have ⟨ trProofEnd, _ ⟩ := (inst.pf input).pf trProofMid (by simp_all) (by simp_all)
+  obtain ⟨ trProofMid, _, _ ⟩ := ih
+  have h_wp := (inst.pf input).pf trProofMid (by simp_all) (by simp_all)
+  dsimp only [wp] at h_wp
+  obtain ⟨ trProofEnd, h_wp ⟩ := h_wp
   exists trProofEnd
   grind
 

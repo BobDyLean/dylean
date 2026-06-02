@@ -108,12 +108,14 @@ public section Formats
 
 variable [HasExecBytes]
 
+public
 instance: ParseableSerializeable ClientMessage := .make <|
   .triviallyIsomorphic
     (.bytes)
     (fun xPk => { xPk })
     (fun { xPk := xPk } => xPk)
 
+public
 theorem ClientMessage.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ClientMessage) (tr: τ):
   IsWellFormed pre x tr = pre x.xPk tr
@@ -123,12 +125,14 @@ theorem ClientMessage.IsWellFormed_eq
 grind_pattern ClientMessage.IsWellFormed_eq => IsWellFormed pre x tr
 grind_pattern [grind_later] ClientMessage.IsWellFormed_eq => IsWellFormed pre x tr
 
+public
 instance: ParseableSerializeable ServerMessage := .make <|
   .triviallyIsomorphic
   (.prod .slowBytes .bytes)
   (fun ⟨ yPk, sig ⟩ => { yPk, sig })
   (fun { yPk, sig } => ⟨ yPk, sig ⟩)
 
+public
 theorem ServerMessage.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ServerMessage) (tr: τ):
   IsWellFormed pre x tr = (
@@ -141,12 +145,14 @@ theorem ServerMessage.IsWellFormed_eq
 grind_pattern ServerMessage.IsWellFormed_eq => IsWellFormed pre x tr
 grind_pattern [grind_later] ServerMessage.IsWellFormed_eq => IsWellFormed pre x tr
 
+public
 instance: ParseableSerializeable SigInput := .make <|
   .triviallyIsomorphic
   (.prod .slowBytes .bytes)
   (fun ⟨ xPk, yPk ⟩ => { xPk, yPk })
   (fun { xPk, yPk } => ⟨ xPk, yPk ⟩)
 
+public
 theorem SigInput.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: SigInput) (tr: τ):
   IsWellFormed pre x tr = (
@@ -159,12 +165,14 @@ theorem SigInput.IsWellFormed_eq
 grind_pattern SigInput.IsWellFormed_eq => IsWellFormed pre x tr
 grind_pattern [grind_later] SigInput.IsWellFormed_eq => IsWellFormed pre x tr
 
+public
 instance: ParseableSerializeable ClientInitiateState := .make <|
   .triviallyIsomorphic
     (.prod .slowBytes .bytes)
     (fun ⟨ xPk, xSk ⟩ => { xPk, xSk })
     (fun { xPk, xSk } => ⟨ xPk, xSk ⟩)
 
+public
 theorem ClientInitiateState.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ClientInitiateState) (tr: τ):
   IsWellFormed pre x tr = (pre x.xPk tr ∧ pre x.xSk tr)
@@ -173,12 +181,14 @@ theorem ClientInitiateState.IsWellFormed_eq
 
 grind_pattern ClientInitiateState.IsWellFormed_eq => IsWellFormed pre x tr
 
+public
 instance: ParseableSerializeable ClientFinishState := .make <|
   .triviallyIsomorphic
     (.prod .slowBytes .bytes)
     (fun ⟨ xPk, kC ⟩ => { xPk, kC })
     (fun { xPk, kC } => ⟨ xPk, kC ⟩)
 
+public
 theorem ClientFinishState.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ClientFinishState) (tr: τ):
   IsWellFormed pre x tr = (pre x.xPk tr ∧ pre x.kC tr)
@@ -187,12 +197,14 @@ theorem ClientFinishState.IsWellFormed_eq
 
 grind_pattern ClientFinishState.IsWellFormed_eq => IsWellFormed pre x tr
 
+public
 instance: ParseableSerializeable ServerFinishState := .make <|
   .triviallyIsomorphic
   (.prod .slowBytes .bytes)
   (fun ⟨ yPk, kS ⟩ => { yPk, kS })
   (fun { yPk, kS } => ⟨ yPk, kS ⟩)
 
+public
 theorem ServerFinishState.IsWellFormed_eq
   (pre: Bytes → τ → Prop) [BytesCompatibleTracePred pre] (x: ServerFinishState) (tr: τ):
   IsWellFormed pre x tr = (pre x.yPk tr ∧ pre x.kS tr)

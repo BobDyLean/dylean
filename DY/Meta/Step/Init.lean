@@ -323,7 +323,7 @@ def monotonizeContext
     ac := false
     order := false
 
-    matchEqs := false,
+    matchEqs := true, -- to reduce matches
     -- Splitting
     splits := 1, -- useful to "case split" on ∃
     splitMatch := false,

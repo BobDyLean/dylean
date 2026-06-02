@@ -1,2 +1,2 @@
-import Examples.SignedDH.SecurityTheorems
+import Examples.SignedDH
 import Examples.MerkleTree.SecurityTheorems

@@ -57,7 +57,7 @@ def _root_.DY.Trace.EventLoggedAt
   (tr: ExecTrace)
   : Prop
 :=
-  tr.at_is time (ExecEntryT.mk ev)
+  tr.at? time = some (ExecEntryT.mk ev)
 
 public
 def _root_.DY.Trace.getEventAt
@@ -68,12 +68,9 @@ def _root_.DY.Trace.getEventAt
   (tr: ExecTrace)
   : Option EventT
 :=
-  if h_i: i < tr.length then
-    match (ExecTraceTypes.Has.proj (tr.at i h_i): Option (ExecEntryT EventT)) with
-    | none => none
-    | some entry => some entry.ev
-  else
-    none
+  match (tr.at? i: Option (ExecEntryT EventT)) with
+  | none => none
+  | some entry => entry.ev
 
 public
 theorem _root_.DY.Trace.EventLoggedAt_eq_getEventAt
@@ -83,20 +80,8 @@ theorem _root_.DY.Trace.EventLoggedAt_eq_getEventAt
   (ev: EventT) (i: Nat) (tr: ExecTrace)
   : tr.EventLoggedAt ev i = (tr.getEventAt EventT i = some ev)
 := by
-  dsimp only [Trace.EventLoggedAt, Trace.getEventAt, Trace.at_is, IntoTraceEntry.make]
-  split
-  · simp only [eq_iff_iff]
-    constructor
-    · intro
-      have := ExecTraceTypes.Has.inj_proj_eq (ExecEntryT := ExecEntryT EventT) (ExecTraceTypes.Has.inj (ExecEntryT.mk ev))
-      grind
-    · split
-      · grind
-      · rename_i entry _
-        cases entry
-        have := ExecTraceTypes.Has.inj_proj_eq (ExecEntryT := ExecEntryT EventT) (tr.at i (by assumption)) (ExecEntryT.mk ev)
-        grind
-  · grind
+  dsimp only [Trace.EventLoggedAt, Trace.getEventAt]
+  grind [cases ExecEntryT]
 
 public
 theorem _root_.DY.Trace.EventLoggedAt_le
@@ -156,11 +141,11 @@ theorem _root_.DY.Trace.EventLoggedAt_imp_EventInv
     EventInv.invariant (tr.prefix i) ev
 := by
   intro h_inv h_ev
-  have := Trace.invariant_at tr i (by grind [Trace.EventLoggedAt, Trace.at_is]) h_inv
+  have := Trace.invariant_at tr i (by grind [Trace.EventLoggedAt]) h_inv
   suffices SubTraceInvariant.invariant (tr.prefix i) (ExecEntryT.mk ev) by
     simp_all [SubTraceInvariant.invariant]
   rewrite [← TraceInvariant.Has.inv_commutes]
-  simp [Trace.EventLoggedAt, Trace.at_is, IntoTraceEntry.make, Trace.erase_at, ProofTrace.Entry.erase_eq_imp_exists, ErasableProofEntry.erase] at h_ev
+  simp [Trace.EventLoggedAt, Trace.at?_eq_some, Trace.erase_at, ProofTrace.Entry.erase_eq_imp_exists, ErasableProofEntry.erase] at h_ev
   grind
 
 public
@@ -197,7 +182,7 @@ theorem logEvent.spec
   step
   simp only [Trace.EventLogged, Trace.EventLoggedAt]
   exists _i
-  have := Trace.at_is_erase tr _i (ExecEntryT.mk ev)
+  have := ProofTrace.Entry.at?_eq_some_erase tr _i (ExecEntryT.mk ev)
   simp_all [ErasableProofEntry.erase]
 
 public

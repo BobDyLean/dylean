@@ -21,6 +21,7 @@ structure LocalState (StateT: Type) where
   participant: Participant
   state: StateT
 
+public -- it is useful to implement attacker programs
 instance
   [BytesFunctor] [BytesLength]
   [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
@@ -34,6 +35,7 @@ instance
     (fun ⟨ participant, state ⟩ => { participant, state })
     (fun { participant, state } => ⟨ participant, state ⟩)
 
+public -- it is useful to implement attacker programs
 theorem LocalState.IsWellFormed_eq
   [BytesFunctor] [BytesLength]
   [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]

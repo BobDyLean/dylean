@@ -1,15 +1,18 @@
--- module -- no module to use `#print axioms`
+module
 
 import DY.Meta
 import DY.Meta.Utils
-import Examples.MerkleTree.Specification
-import Examples.MerkleTree.Proof
-import Examples.MerkleTree.Instance
+public import Examples.MerkleTree.Specification
+public import Examples.MerkleTree.Proof
+public import Examples.MerkleTree.Instance
+public meta import Examples.MerkleTree.Specification
+public meta import Examples.MerkleTree.Instance
 
 namespace DY.Example.MerkleTree
 
 section SecurityTheorems
 
+public
 theorem client_authentication
   (server: Participant)
   (element: Bytes)
@@ -39,7 +42,8 @@ end SecurityTheorems
 
 section SanityChecks
 
-def honest: Traceful Unit := do
+public
+def honestAttacker: Traceful Unit := do
   let (_, pkHandle, skHandle) ← LongTermKeys.generateKeyPair "MerkleTree PKI" "Bob" -- 4
   let msgHandle0 ← Network.sendMessage (Literal.literalToBytes "foo 0".toByteArray) -- 1
   let msgHandle1 ← Network.sendMessage (Literal.literalToBytes "bar 1".toByteArray) -- 1
@@ -51,99 +55,104 @@ def honest: Traceful Unit := do
   Client.checkInclusion "Bob" msgSigHandle msgInclHandle pkHandle -- 1
   return ()
 
-theorem honest_PreservesReachability
-  : honest.PreservesReachability reachability
+theorem honestAttacker_PreservesReachability
+  : honestAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
 := by
   unfold Traceful.PreservesReachability
-  intro tr h_tr
-  unfold honest
+  intro tr h_tr h_pre
+  dsimp only [honestAttacker]
+
   apply Traceful.PreservesReachabilityFrom_bind
+  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "MerkleTree PKI")
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (LongTermKeys.generateKeyPair.reachability "MerkleTree PKI")
-    simp [LongTermKeys.generateKeyPair.reachability]
-  intro ⟨ _, pkHandle, skHandle ⟩ tr h_tr h_le
+  · simp [LongTermKeys.generateKeyPair.reachability]
+  intro ⟨ _, pkHandle, skHandle ⟩ tr h_post h_tr h_le
   dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
+  · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (Network.reachability)
-    simp [Literal.attacker_knows_literalToBytes]
-  intro msgHandle1 tr h_tr tr_le
+  · simp [Literal.attacker_knows_literalToBytes]
+  intro msgHandle1 tr h_post h_tr tr_le
   dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
+  · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (Network.reachability)
-    simp [Literal.attacker_knows_literalToBytes]
-  intro msgHandle2 tr h_tr tr_le
+  · simp [Literal.attacker_knows_literalToBytes]
+  intro msgHandle2 tr h_post h_tr tr_le
   dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
+  · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (Network.reachability)
-    simp [Literal.attacker_knows_literalToBytes]
-  intro msgHandle3 tr h_tr tr_le
+  · simp [Literal.attacker_knows_literalToBytes]
+  intro msgHandle3 tr h_post h_tr tr_le
   dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
+  · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (Network.reachability)
-    simp [Literal.attacker_knows_literalToBytes]
-  intro msgHandle4 tr h_tr tr_le
+  · simp [Literal.attacker_knows_literalToBytes]
+  intro msgHandle4 tr h_post h_tr tr_le
   dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
+  · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (Network.reachability)
-    simp [Literal.attacker_knows_literalToBytes]
-  intro msgHandle5 tr h_tr tr_le
+  · simp [Literal.attacker_knows_literalToBytes]
+  intro msgHandle5 tr h_post h_tr tr_le
   dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
+  · apply Traceful.PreservesReachability_base (Server.authenticate.reachability) _ ("Bob", [msgHandle1, msgHandle2, msgHandle3, msgHandle4, msgHandle5], skHandle)
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (Server.authenticate.reachability) _ ("Bob", [msgHandle1, msgHandle2, msgHandle3, msgHandle4, msgHandle5], skHandle)
-    simp [Server.authenticate.reachability]
-  intro ⟨ msgSigHandle, stHandle ⟩ tr h_tr h_le
+  · simp [Server.authenticate.reachability]
+  intro ⟨ msgSigHandle, stHandle ⟩ tr h_post h_tr h_le
   dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
+  · apply Traceful.PreservesReachability_base (Server.proveInclusion.reachability) _ ("Bob", 3, stHandle)
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (Server.proveInclusion.reachability) _ ("Bob", 3, stHandle)
-    simp [Server.proveInclusion.reachability]
-  intro msgInclHandle tr h_tr h_le
+  · simp [Server.proveInclusion.reachability]
+  intro msgInclHandle tr h_post h_tr h_le
   dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
+  · apply Traceful.PreservesReachability_base (Client.checkInclusion.reachability) _ ("Bob", msgSigHandle, msgInclHandle, pkHandle)
   · assumption
-  · apply Traceful.PreservesReachabilityFrom_base (Client.checkInclusion.reachability) _ ("Bob", msgSigHandle, msgInclHandle, pkHandle)
-    simp [Client.checkInclusion.reachability]
-  intro _ tr h_tr h_le
+  · simp [Client.checkInclusion.reachability]
+  intro _ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_pure
+  · assumption
+  grind
 
-theorem sanity_check:
-  ∃ tr: ExecTrace,
-    tr.Reachable reachability ∧
-    ∃ (t1 t2: Nat) (msg: Bytes),
-      t1 < t2 ∧
-      tr.EventLoggedAt (TheEvent.ServerAuthenticated "Bob" msg) t1 ∧
-      tr.EventLoggedAt (TheEvent.ClientAccept "Bob" msg) t2
+public
+theorem honestAttacker_properties:
+  let tr := (honestAttacker.run (Trace.nil)).snd.val
+  tr.Reachable reachability ∧
+  ∃ (t1 t2: Nat) (msg: Bytes),
+    t1 < t2 ∧
+    tr.EventLoggedAt (TheEvent.ServerAuthenticated "Bob" msg) t1 ∧
+    tr.EventLoggedAt (TheEvent.ClientAccept "Bob" msg) t2
 := by
-  refine ⟨ (honest.run (Trace.nil)).snd, ?_ ⟩
-  apply And.intro
-  · exact honest_PreservesReachability Trace.nil (Trace.ReachableFrom.Base)
+  intro tr
+  refine ⟨ ?_, ?_ ⟩
+  · apply Traceful.PreservesReachability_to_Reachable honestAttacker_PreservesReachability
+    grind
   refine ⟨ 12, 18, (Literal.literalToBytes "qux 3".toByteArray), ?_ ⟩
   simp only [DY.Trace.EventLoggedAt_eq_getEventAt]
   native_decide
 
 /--
-info: 'DY.Example.MerkleTree.sanity_check' depends on axioms: [propext,
+info: 'DY.Example.MerkleTree.honestAttacker_properties' depends on axioms: [propext,
  Classical.choice,
  Quot.sound,
- sanity_check._native.native_decide.ax_1_1]
+ honestAttacker_properties._native.native_decide.ax_1_2]
 -/
 #guard_msgs in
-#print axioms sanity_check
+#print axioms honestAttacker_properties
 
 end SanityChecks
 

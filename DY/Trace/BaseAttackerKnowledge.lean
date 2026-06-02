@@ -25,7 +25,7 @@ class BaseAttackerKnowledge.Has
 where
   pf: ∀ tr entry b,
     sub.attackerKnows tr entry b →
-    BaseAttackerKnowledge.attackerKnows.attackerKnows tr (ExecTraceTypes.Has.inj entry) b
+    BaseAttackerKnowledge.attackerKnows.attackerKnows tr (TraceEntryHas.inj entry) b
 
 public
 class BaseAttackerKnowledge.HasStep
@@ -45,7 +45,7 @@ instance instBaseAttackerKnowledgeHasItself
   [BaseAttackerKnowledge]
   : BaseAttackerKnowledge.Has (BaseAttackerKnowledge.attackerKnows)
 where
-  pf := by simp [ExecTraceTypes.Has.inj]
+  pf := by simp [TraceEntryHas.inj]
 
 public
 instance instBaseAttackerKnowledgeHasStep
@@ -63,7 +63,7 @@ where
   pf := by
     have := BaseAttackerKnowledge.HasStep.pf (sub1 := sub1) (sub2 := sub2)
     have := BaseAttackerKnowledge.Has.pf (sub := sub2)
-    simp [ExecTraceTypes.Has.inj]
+    simp [TraceEntryHas.inj]
     grind
 
 public
@@ -102,7 +102,21 @@ def Trace.BaseAttackerKnows
     Trace.BaseAttackerKnows trBefore b
 
 public
-def Trace.prove_BaseAttackerKnows
+theorem Trace.BaseAttackerKnows_le
+  [BytesFunctor] [ExecTraceTypes] [BaseAttackerKnowledge]
+  (b: Bytes) (tr1 tr2: ExecTrace)
+  : tr1 ≤ tr2 →
+    Trace.BaseAttackerKnows tr1 b →
+    Trace.BaseAttackerKnows tr2 b
+:= by
+  intro h
+  induction h <;>
+  grind [Trace.BaseAttackerKnows]
+
+grind_pattern Trace.BaseAttackerKnows_le => tr1 ≤ tr2, Trace.BaseAttackerKnows tr1 b
+
+public
+theorem Trace.prove_BaseAttackerKnows
   [BytesFunctor] [ExecTraceTypes] [BaseAttackerKnowledge]
   {ExecEntryT: Type}
   [ExecTraceTypes.Has ExecEntryT]
@@ -110,15 +124,16 @@ def Trace.prove_BaseAttackerKnows
   [BaseAttackerKnowledge.Has sub]
   (tr: ExecTrace) (entry: ExecEntryT) (b: Bytes)
   (time: Nat)
-  : tr.at_is time entry →
+  : tr.at? time = some entry →
     sub.attackerKnows (tr.prefix time) entry b →
     Trace.BaseAttackerKnows tr b
 := by
+  simp only [tr.at?_eq_some]
   induction tr
-  · grind [Trace.at_is, Trace.length]
+  · grind [Trace.length]
   rename_i tr entry' ih
   have := BaseAttackerKnowledge.Has.pf (sub := sub) tr entry b
-  simp_all [Trace.prefix, Trace.length, Trace.at_is, Trace.at, IntoTraceEntry.make, Trace.BaseAttackerKnows]
+  simp_all [Trace.prefix, Trace.at, Trace.BaseAttackerKnows]
   grind
 
 namespace Meta.CombineMacro

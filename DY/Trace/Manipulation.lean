@@ -4,94 +4,12 @@ import Init.Control.Lawful.Basic
 public import Lean
 public import DY.Bytes.Basic
 public import DY.Trace.Basic
+public import DY.Trace.Monad
+public import DY.Trace.Reachability
 public import DY.Trace.Invariant
 public import DY.Label
 
 namespace DY
-
-@[expose]
-public
-def Traceful [ExecTraceTypes] (a: Type) := (trIn: ExecTrace) → Option a × { trOut: ExecTrace // trIn ≤ trOut }
-
-public
-instance [ExecTraceTypes]: Monad Traceful where
-  pure x := fun tr => (some x, ⟨ tr, by grind ⟩)
-  bind x f := fun tr =>
-    let (xOptVal, trMid) := x tr
-    match xOptVal with
-    | none => (none, trMid)
-    | some xVal =>
-      let (optRes, trOut) := f xVal trMid.val
-      (optRes, ⟨ trOut.val, by grind [Trace.le_trans] ⟩)
-
-public
-instance [ExecTraceTypes]: Alternative Traceful where
-  failure := fun tr => (none, ⟨ tr, by grind ⟩)
-  orElse x y := fun tr =>
-    let (xOptVal, trMid) := x tr
-    match xOptVal with
-    | some xVal => (some xVal, trMid)
-    | none =>
-      let (optRes, trOut) := y () trMid.val
-      (optRes, ⟨ trOut.val, by grind [Trace.le_trans] ⟩)
-
-@[expose]
-public
-def Err := OptionT Id
-deriving Monad, Alternative
-
-public
-instance [ExecTraceTypes]: MonadLift Err Traceful := {
-  monadLift x := fun tr => (x, ⟨ tr, by grind ⟩ )
-}
-
-public
-def Traceful.run [ExecTraceTypes] (x: Traceful a) (tr: ExecTrace): (Option a × { trOut: ExecTrace // tr ≤ trOut}) :=
-  x tr
-
-public
-def Traceful.mk [ExecTraceTypes] {α: Type} (f: (tr: ExecTrace) → (Option α × { trOut: ExecTrace // tr ≤ trOut})): Traceful α :=
-  f
-
-public
-theorem Traceful.run_mk
-  [ExecTraceTypes] {α: Type}
-  (f: (tr: ExecTrace) → (Option α × { trOut: ExecTrace // tr ≤ trOut}))
-  : Traceful.run (Traceful.mk f) = f
-:= by
-  rfl
-
-public
-theorem Traceful.run_pure
-  [ExecTraceTypes]
-  (x: a) (tr: ExecTrace)
-  : Traceful.run (pure x) tr = (some x, ⟨ tr, by grind ⟩)
-:= by
-  rfl
-
-public
-theorem Traceful.run_bind
-  [ExecTraceTypes]
-  (x: Traceful a) (f: a → Traceful b) (tr: ExecTrace)
-  : Traceful.run (x >>= f) tr = (
-    let (opt_x, tr) := x.run tr
-    match opt_x with
-    | some x =>
-      let (opt_y, tr) := (f x).run tr
-      (opt_y, ⟨ tr.val, by grind [Trace.le_trans]⟩)
-    | none => (none, tr)
-  )
-:= by
-  simp [Traceful.run, Bind.bind]
-  grind
-
-public
-theorem Traceful.run_failure
-  [ExecTraceTypes]
-  (tr: ExecTrace)
-  : Traceful.run (failure: Traceful a) tr = (none, ⟨ tr, by grind ⟩)
-:= by
-  rfl
 
 public
 class WP [ExecTraceTypes] [ProofTraceTypes] (m: Type u → Type v) where
@@ -270,8 +188,7 @@ where
 public
 instance [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]: WPLift Err Traceful where
   pf := by
-    -- ugh
-    simp only [wp, liftM, monadLift, MonadLift.monadLift, Traceful.run, OptionT.run]
+    simp only [wp, liftM, monadLift, MonadLift.monadLift, Traceful.run_mk, OptionT.run]
     grind
 
 public
@@ -427,6 +344,7 @@ where
     simp only [hoareTriple, forall_const]
     intro tr h_inv
     exists tr
+    grind [Traceful.run_pure]
 
 public
 instance
@@ -440,6 +358,7 @@ where
     simp only [hoareTriple, forall_const]
     intro tr h_inv
     exists tr
+    grind [Traceful.run_failure]
 
 public
 def appendEntry
@@ -485,14 +404,14 @@ theorem appendEntry.spec
       SubTraceInvariant.invariant tr (mkProofEntry time)
     )
     (fun time tr =>
-      tr.at_is time (mkProofEntry time)
+      tr.at? time = some (mkProofEntry time)
     )
 := by
   apply HoareTripleGhost.mk
   simp only [hoareTriple, wp, appendEntry, Traceful.run_mk]
   intro trProof h_pre h_inv
   exists trProof.append (mkProofEntry trProof.length)
-  simp_all [Trace.append_erase, Trace.append_le, Trace.invariant_append, Trace.at_is_append, Trace.erase_length]
+  simp_all [Trace.append_erase, Trace.append_le, Trace.invariant_append, Trace.at?_append, Trace.erase_length]
 
 public
 def getEntry
@@ -501,11 +420,7 @@ def getEntry
   : Traceful EntryT
 :=
   Traceful.mk (fun tr =>
-    let result :=
-      if h: timestamp < tr.length then
-        ExecTraceTypes.Has.proj (tr.at timestamp h)
-      else
-        none
+    let result := tr.at? timestamp
     (result, ⟨ tr, by grind ⟩ )
   )
 
@@ -525,7 +440,7 @@ theorem getEntry.spec
     (getEntry timestamp: Traceful ExecEntryT)
     (fun _ => True)
     (fun entry tr =>
-      exists proofEntry: ProofEntryT,
+      ∃ proofEntry: ProofEntryT,
       entry = ErasableProofEntry.erase proofEntry ∧
       SubTraceInvariant.invariant (tr.prefix timestamp) proofEntry
     )
@@ -536,21 +451,32 @@ theorem getEntry.spec
   exists trProof
   split
   · grind
-  rename_i execEntry heq
   simp only [h_inv, Trace.le_refl, and_true]
-  simp only [Option.dite_none_right_eq_some] at heq
-  obtain ⟨ h_timestamp, heq ⟩ := heq
-  cases h: (ProofTraceTypes.Has.proofProj (tr_proof'.at timestamp (by grind [Trace.erase_length])): Option ProofEntryT)
-  · simp_all [ProofTraceTypes.Has.proofProj_none_eq_erase, Trace.erase_at]
+  rename_i trProof execEntry heq
+  cases h: (tr_proof'.at? timestamp: Option ProofEntryT)
+  · simp_all [ProofTrace.Entry.at?_eq_none_erase]
   rename_i proofEntry
   exists proofEntry
-  simp only [ProofTraceTypes.Has.proof_inj_proj_eq] at h
-  simp only [ExecTraceTypes.Has.inj_proj_eq, Trace.erase_at, ProofTraceTypes.Has.erase_commutes, h] at heq
+  have := ProofTrace.Entry.at?_eq_some_erase tr_proof' timestamp proofEntry h
   constructor
   · grind
-  rewrite [← TraceInvariant.Has.inv_commutes, ← h]
-  apply Trace.invariant_at
-  assumption
+  rewrite [← TraceInvariant.Has.inv_commutes]
+  grind [Trace.at?_eq_some, Trace.invariant_at]
+
+public
+theorem getEntry.preservesReachability
+  [ExecTraceTypes]
+  {ExecEntryT: Type}
+  [ExecTraceTypes.Has ExecEntryT]
+  (config: ReachabilityConfig)
+  (timestamp: Nat)
+  : Traceful.PreservesReachability config
+    (getEntry timestamp: Traceful ExecEntryT)
+    (fun _ => True)
+    (fun entry tr => tr.at? timestamp = some entry)
+:= by
+  simp only [Traceful.PreservesReachability, Traceful.PreservesReachabilityFrom, getEntry, Traceful.run_mk]
+  grind
 
 public
 def getTimestamp [ExecTraceTypes]: Traceful Nat
@@ -568,7 +494,7 @@ theorem getTimestamp.spec [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]:
     (fun _ _ => True)
 := by
   apply HoareTriple.mk
-  simp [hoareTriple, wp, getTimestamp]
+  simp [hoareTriple, wp, getTimestamp, Traceful.run_mk]
   intro tr h_inv
   exists tr
 
@@ -625,7 +551,7 @@ theorem forIn'.spec
   · simp only [hoareTriple]
     intro tr h h_inv
     exists tr
-    grind
+    grind [Traceful.run_pure]
   rename_i head tail ih
   simp only [hoareTriple, List.forIn'_cons]
   intro tr h h_inv
@@ -636,6 +562,7 @@ theorem forIn'.spec
   intro tr res h' h_inv h_le
   split
   · exists tr
+    grind [Traceful.run_pure]
   rename_i x h
   exact ih h (pref ++ [head]) (by grind) tr (by grind) (by grind)
 

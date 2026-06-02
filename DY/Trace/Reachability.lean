@@ -1,6 +1,6 @@
 module
 
-public import DY.Trace.Manipulation
+public import DY.Trace.Monad
 public meta import DY.Meta.CombineMacro
 
 namespace DY
@@ -43,7 +43,7 @@ class ReachabilityConfig.Has (config1 config2: ReachabilityConfig) where
   pf_step (config1 config2): ∀ input, config1.step input = config2.step (inj input)
 
 public
-instance
+instance instReachabilityConfigHasItself
   (config: ReachabilityConfig)
   : ReachabilityConfig.Has config config
 where
@@ -52,7 +52,7 @@ where
   pf_step input := by simp
 
 public
-instance
+instance instReachabilityConfigHasStep
   (config1 config2 config3: ReachabilityConfig)
   [inst12: ReachabilityConfig.HasStep config1 config2]
   [inst23: ReachabilityConfig.Has config2 config3]
@@ -63,7 +63,7 @@ where
   pf_step input := by simp [inst23.pf_step, inst12.pf_step]
 
 public
-instance
+instance instReachabilityConfigCombineHasStep
   {α: Type}
   (configs: α → ReachabilityConfig)
   (id: α)
@@ -74,85 +74,85 @@ where
   pf_step input := by simp [ReachabilityConfig.combine]
 
 public
-inductive Trace.ReachableFrom (config: ReachabilityConfig) (trIn: ExecTrace): ExecTrace → Prop where
+inductive Trace.Reachable (config: ReachabilityConfig): ExecTrace → Prop where
   | Base:
-    Trace.ReachableFrom config trIn trIn
+    Trace.Reachable config Trace.nil
   | Step:
-    {trMid: ExecTrace} →
+    {tr: ExecTrace} →
     (input: config.Input) →
-    config.PreCond input trMid →
-    Trace.ReachableFrom config trIn trMid →
-    Trace.ReachableFrom config trIn (Traceful.run ((config.step input).snd) trMid).snd
+    config.PreCond input tr →
+    Trace.Reachable config tr →
+    Trace.Reachable config (((config.step input).snd).run tr).snd
 
+-- Weakest Precondition
+@[expose]
 public
-theorem Trace.ReachableFrom_trans
+def Traceful.PreservesReachabilityFrom
+  {a: Type}
   (config: ReachabilityConfig)
-  (tr1 tr2 tr3: ExecTrace)
-  : Trace.ReachableFrom config tr1 tr2 →
-    Trace.ReachableFrom config tr2 tr3 →
-    Trace.ReachableFrom config tr1 tr3
-:= by
-  intro h12 h23
-  induction h23
-  · exact h12
-  · rename_i trIn trOut input h_input h_reach1 h_reach2
-    apply Trace.ReachableFrom.Step input <;> grind
+  (f: Traceful a)
+  (post: a → ExecTrace → Prop)
+  (tr: ExecTrace): Prop
+:=
+  let (optRes, trOut) := Traceful.run f tr
+  Trace.Reachable config trOut ∧
+  match optRes with
+  | none => True
+  | some res => post res trOut
 
+-- Hoare Triple
+@[expose]
 public
-def Trace.Reachable (config: ReachabilityConfig) (tr: ExecTrace): Prop :=
-  Trace.ReachableFrom config Trace.nil tr
-
-public
-def Traceful.PreservesReachabilityFrom {a: Type} (config: ReachabilityConfig) (f: Traceful a) (tr: ExecTrace): Prop :=
-    Trace.ReachableFrom config tr (Traceful.run f tr).snd
-
-public
-def Traceful.PreservesReachability {a: Type} (config: ReachabilityConfig) (f: Traceful a): Prop :=
+def Traceful.PreservesReachability
+  {a: Type}
+  (config: ReachabilityConfig)
+  (f: Traceful a)
+  (pre: ExecTrace → Prop)
+  (post: a → ExecTrace → Prop)
+  : Prop
+:=
   ∀ tr,
     tr.Reachable config →
-    Trace.ReachableFrom config tr (Traceful.run f tr).snd
+    pre tr →
+    f.PreservesReachabilityFrom config post tr
 
 public
 theorem Traceful.PreservesReachabilityFrom_bind
   {a b: Type}
   (config: ReachabilityConfig)
   (x: Traceful a) (f: a → Traceful b)
+  (postF: b → ExecTrace → Prop)
+  (preX: ExecTrace → Prop)
+  (postX: a → ExecTrace → Prop)
   (tr: ExecTrace)
-  : tr.Reachable config →
-    x.PreservesReachabilityFrom config tr →
-    (∀ x' trMid,
+  (h_x: x.PreservesReachability config preX postX)
+  (h_tr_reachable: tr.Reachable config)
+  (h_pre_x: preX tr)
+  (h_f: ∀ x':a, ∀ trMid: ExecTrace,
+      postX x' trMid →
       trMid.Reachable config →
       tr ≤ trMid →
-      (f x').PreservesReachabilityFrom config trMid
-    ) →
-    (x >>= f).PreservesReachabilityFrom config tr
+      (f x').PreservesReachabilityFrom config postF trMid
+  )
+  : (x >>= f).PreservesReachabilityFrom config postF tr
 := by
-  intro h_tr h_x h_next
-  simp_all only [Traceful.PreservesReachabilityFrom, Traceful.run_bind]
-  cases h: (x.run tr).fst
-  · simp_all
-  · refine Trace.ReachableFrom_trans _ _ (x.run tr).snd _ ?_ ?_
-    · grind
-    · rename_i val
-      refine h_next val (x.run tr).snd ?_ ?_
-      · grind [Trace.Reachable, Trace.ReachableFrom_trans]
-      · exact (x.run tr).snd.property
+  simp_all only [Traceful.PreservesReachability, Traceful.PreservesReachabilityFrom, Traceful.run_bind]
+  grind
 
 public
-theorem Traceful.PreservesReachabilityFrom_base
+theorem Traceful.PreservesReachability_base
   (subConfig config: ReachabilityConfig)
   [ReachabilityConfig.Has subConfig config]
   (input: subConfig.Input)
-  (tr: ExecTrace)
-  : subConfig.PreCond input tr →
-    (subConfig.step input).snd.PreservesReachabilityFrom config tr
+  : (subConfig.step input).snd.PreservesReachability config (subConfig.PreCond input) (fun _ _ => True)
 := by
-  intro h_input
-  dsimp only [Traceful.PreservesReachabilityFrom]
-  rewrite [ReachabilityConfig.Has.pf_step subConfig config]
-  apply Trace.ReachableFrom.Step (ReachabilityConfig.Has.inj input)
-  · grind [ReachabilityConfig.Has.pf_pre]
-  · apply Trace.ReachableFrom.Base
+  dsimp only [Traceful.PreservesReachability, Traceful.PreservesReachabilityFrom]
+  intro tr h_reach h_pre
+  apply And.intro
+  · rewrite [ReachabilityConfig.Has.pf_step subConfig config]
+    apply Trace.Reachable.Step (ReachabilityConfig.Has.inj input) <;>
+    grind [ReachabilityConfig.Has.pf_pre]
+  · grind
 
 public
 theorem Traceful.PreservesReachabilityFrom_pure
@@ -160,10 +160,28 @@ theorem Traceful.PreservesReachabilityFrom_pure
   (config: ReachabilityConfig)
   (x: α)
   (tr: ExecTrace)
-  : (pure x: Traceful α).PreservesReachabilityFrom config tr
+  (post: α → ExecTrace → Prop)
+  : tr.Reachable config →
+    post x tr →
+    (pure x: Traceful α).PreservesReachabilityFrom config post tr
 := by
   simp only [Traceful.PreservesReachabilityFrom, Traceful.run_pure]
-  apply Trace.ReachableFrom.Base
+  grind
+
+public
+theorem Traceful.PreservesReachability_to_Reachable
+  {a: Type}
+  {config: ReachabilityConfig}
+  {f: Traceful a}
+  {pre: ExecTrace → Prop}
+  {post: a → ExecTrace → Prop}
+  (h: f.PreservesReachability config pre post)
+  : pre Trace.nil →
+    (f.run Trace.nil).snd.val.Reachable config
+:= by
+  simp_all [Traceful.PreservesReachability, Traceful.PreservesReachabilityFrom]
+  have := h Trace.nil (.Base)
+  grind
 
 namespace Meta.CombineMacro
 
