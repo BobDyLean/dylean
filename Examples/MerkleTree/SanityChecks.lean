@@ -41,35 +41,30 @@ theorem honestAttacker_PreservesReachability
   · assumption
   · simp [Literal.attacker_knows_literalToBytes]
   intro msgHandle1 tr h_post h_tr tr_le
-  dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
   · simp [Literal.attacker_knows_literalToBytes]
   intro msgHandle2 tr h_post h_tr tr_le
-  dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
   · simp [Literal.attacker_knows_literalToBytes]
   intro msgHandle3 tr h_post h_tr tr_le
-  dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
   · simp [Literal.attacker_knows_literalToBytes]
   intro msgHandle4 tr h_post h_tr tr_le
-  dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
   · simp [Literal.attacker_knows_literalToBytes]
   intro msgHandle5 tr h_post h_tr tr_le
-  dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Server.authenticate.reachability) _ ("Bob", [msgHandle1, msgHandle2, msgHandle3, msgHandle4, msgHandle5], skHandle)
@@ -83,7 +78,6 @@ theorem honestAttacker_PreservesReachability
   · assumption
   · simp [Server.proveInclusion.reachability]
   intro msgInclHandle tr h_post h_tr h_le
-  dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Client.checkInclusion.reachability) _ ("Bob", msgSigHandle, msgInclHandle, pkHandle)
