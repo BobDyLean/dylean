@@ -23,26 +23,26 @@ public section ExecBytesConfig
 
 class HasExecBytes where
   [bytesFunc: BytesFunctor]
-  [bytesFunc0: BytesFunctor.Has Literal.SubF]
-  [bytesFunc1: BytesFunctor.Has Concat.SubF]
-  [bytesFunc2: BytesFunctor.Has Hash.SubF]
-  [bytesFunc3: BytesFunctor.Has Signature.SubF]
-  [bytesFunc4: BytesFunctor.Has DiffieHellman.SubF]
-  [bytesFunc5: BytesFunctor.Has Random.SubF]
+  [bytesFunc0: BytesFunctor.Has Random.SubF]
+  [bytesFunc1: BytesFunctor.Has Literal.SubF]
+  [bytesFunc2: BytesFunctor.Has Concat.SubF]
+  [bytesFunc3: BytesFunctor.Has Hash.SubF]
+  [bytesFunc4: BytesFunctor.Has Signature.SubF]
+  [bytesFunc5: BytesFunctor.Has DiffieHellman.SubF]
   [bytesLen: BytesLength]
-  [bytesLen0: BytesLength.Has Literal.SubF.length]
-  [bytesLen1: BytesLength.Has Concat.SubF.length]
-  [bytesLen2: BytesLength.Has Hash.SubF.length]
-  [bytesLen3: BytesLength.Has Signature.SubF.length]
-  [bytesLen4: BytesLength.Has DiffieHellman.SubF.length]
-  [bytesLen5: BytesLength.Has Random.SubF.length]
+  [bytesLen0: BytesLength.Has Random.SubF.length]
+  [bytesLen1: BytesLength.Has Literal.SubF.length]
+  [bytesLen2: BytesLength.Has Concat.SubF.length]
+  [bytesLen3: BytesLength.Has Hash.SubF.length]
+  [bytesLen4: BytesLength.Has Signature.SubF.length]
+  [bytesLen5: BytesLength.Has DiffieHellman.SubF.length]
   [att: AttackerKnowledge]
-  [att0: AttackerKnowledge.Has Literal.attackerKnowledge]
-  [att1: AttackerKnowledge.Has Concat.attackerKnowledge]
-  [att2: AttackerKnowledge.Has Hash.attackerKnowledge]
-  [att3: AttackerKnowledge.Has Signature.attackerKnowledge]
-  [att4: AttackerKnowledge.Has DiffieHellman.attackerKnowledge]
-  [att5: AttackerKnowledge.Has Random.attackerKnowledge]
+  [att0: AttackerKnowledge.Has Random.attackerKnowledge]
+  [att1: AttackerKnowledge.Has Literal.attackerKnowledge]
+  [att2: AttackerKnowledge.Has Concat.attackerKnowledge]
+  [att3: AttackerKnowledge.Has Hash.attackerKnowledge]
+  [att4: AttackerKnowledge.Has Signature.attackerKnowledge]
+  [att5: AttackerKnowledge.Has DiffieHellman.attackerKnowledge]
 
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc0
@@ -228,7 +228,6 @@ class HasExecTrace extends HasExecBytes where
   [traceExec5: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT SignedDH.ServerFinishState)]
   [traceExec6: ExecTraceTypes.Has (LongTermKeys.ExecEntryT "SignedDH PKI")]
   [attBase: BaseAttackerKnowledge]
-  -- no has :thinking_face:
 
 attribute [reducible, scoped instance] HasExecTrace.traceExec
 attribute [reducible, scoped instance] HasExecTrace.traceExec0
@@ -248,7 +247,7 @@ variable [HasExecTrace]
 
 instance: LongTermKeys.ExecConfig "SignedDH PKI" Signature.vk where
 
-def client_initiate (me: Participant): Traceful (Nat × Nat) := do
+def Client.initiate (me: Participant): Traceful (Nat × Nat) := do
   let xSk ← Random.genRand 32
   let xPk := DiffieHellman.dh_pk xSk
 
@@ -257,31 +256,31 @@ def client_initiate (me: Participant): Traceful (Nat × Nat) := do
   let msgHandle ← Network.sendMessage (serialize ({ xPk } : ClientMessage))
   return (stHandle, msgHandle)
 
-def server_receive (me: Participant) (skHandle: Nat) (msgHandle: Nat): Traceful (Nat × Nat) := do
-  let msg_bytes ← Network.receiveMessage msgHandle
-  let msg: ClientMessage ← parse msg_bytes
+def Server.receive (me: Participant) (skHandle: Nat) (msgHandle: Nat): Traceful (Nat × Nat) := do
+  let msgBytes ← Network.receiveMessage msgHandle
+  let msg: ClientMessage ← parse msgBytes
   let xPk := msg.xPk
-  let my_sig_key ← LongTermKeys.getPrivateKey "SignedDH PKI" me skHandle
+  let serverSigKey ← LongTermKeys.getPrivateKey "SignedDH PKI" me skHandle
 
   let ySk ← Random.genRand 32
   let yPk := DiffieHellman.dh_pk ySk
   let kS := Hash.hash (DiffieHellman.dh xPk ySk)
-  let sig_nonce ← Random.genRand 32
-  let sig := Signature.sign my_sig_key sig_nonce (serialize ({xPk, yPk}: SigInput))
+  let sigNonce ← Random.genRand 32
+  let sig := Signature.sign serverSigKey sigNonce (serialize ({xPk, yPk}: SigInput))
 
   ProtocolEvent.logEvent (SignedDHEvent.ServerFinishEvent me xPk yPk kS)
   let stHandle ← PersistentLocalState.storeLocalState me ({ yPk, kS }: ServerFinishState)
   let msgHandle ← Network.sendMessage (serialize ({ yPk, sig } : ServerMessage))
   return (stHandle, msgHandle)
 
-def client_finish (me: Participant) (server: Participant) (pkHandle: Nat) (msgHandle: Nat) (stHandle: Nat) : Traceful Nat := do
-  let msg_bytes ← Network.receiveMessage msgHandle
-  let msg: ServerMessage ← parse msg_bytes
+def Client.finish (me: Participant) (server: Participant) (pkHandle: Nat) (msgHandle: Nat) (stHandle: Nat) : Traceful Nat := do
+  let msgBytes ← Network.receiveMessage msgHandle
+  let msg: ServerMessage ← parse msgBytes
 
   let ({xPk, xSk}: ClientInitiateState) ← PersistentLocalState.getLocalState me stHandle
-  let server_vk ← LongTermKeys.getPublicKey "SignedDH PKI" server pkHandle
+  let serverVk ← LongTermKeys.getPublicKey "SignedDH PKI" server pkHandle
 
-  guard (Signature.verify server_vk (serialize ({ xPk, yPk := msg.yPk }: SigInput)) msg.sig)
+  guard (Signature.verify serverVk (serialize ({ xPk, yPk := msg.yPk }: SigInput)) msg.sig)
   let kC := Hash.hash (DiffieHellman.dh msg.yPk xSk)
 
   ProtocolEvent.logEvent (SignedDHEvent.ClientFinishEvent me server xPk msg.yPk kC)
@@ -349,9 +348,9 @@ public section Reachability
 variable [HasExecTrace]
 
 @[expose] public section
-def client_initiate.reachability: ReachabilityConfig := .make (fun me => client_initiate me)
-def server_receive.reachability: ReachabilityConfig := .make (fun (me, skHandle, msgHandle) => server_receive me skHandle msgHandle)
-def client_finish.reachability: ReachabilityConfig := .make (fun (me, server, pkHandle, msgHandle, stHandle) => client_finish me server pkHandle msgHandle stHandle)
+def Client.initiate.reachability: ReachabilityConfig := .make (fun me => Client.initiate me)
+def Server.receive.reachability: ReachabilityConfig := .make (fun (me, skHandle, msgHandle) => Server.receive me skHandle msgHandle)
+def Client.finish.reachability: ReachabilityConfig := .make (fun (me, server, pkHandle, msgHandle, stHandle) => Client.finish me server pkHandle msgHandle stHandle)
 def ClientInitiateState.compromise.reachability: ReachabilityConfig := .make (fun stHandle => ClientInitiateState.compromise stHandle)
 def ServerFinishState.compromise.reachability: ReachabilityConfig := .make (fun stHandle => ServerFinishState.compromise stHandle)
 def ClientFinishState.compromise.reachability: ReachabilityConfig := .make (fun stHandle => ClientFinishState.compromise stHandle)
@@ -360,9 +359,9 @@ end
 #combine into ReachabilityConfig from
   Network,
   LongTermKeys "SignedDH PKI",
-  client_initiate,
-  server_receive,
-  client_finish,
+  Client.initiate,
+  Server.receive,
+  Client.finish,
   ClientInitiateState.compromise,
   ClientFinishState.compromise,
   ServerFinishState.compromise,

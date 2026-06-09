@@ -134,8 +134,7 @@ instance:
     pf := sorry
 
 /--
-trace: case pf
-inst✝⁵ : ExecTraceTypes
+trace: inst✝⁵ : ExecTraceTypes
 inst✝⁴ : ProofTraceTypes
 inst✝³ : TraceInvariant
 inst✝² : BytesFunctor
