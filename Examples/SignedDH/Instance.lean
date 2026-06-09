@@ -8,12 +8,12 @@ namespace DY.Example.SignedDH
 public section
 
 #combine +toplevel into BytesFunctor, BytesLength, attackerKnowledge from
+  Random,
   Literal,
   Concat,
   Hash,
   Signature,
   DiffieHellman,
-  Random,
 
 instance: HasExecBytes where
 
@@ -45,12 +45,12 @@ from
 instance: HasProofTrace where
 
 #combine +toplevel into BytesInvariants, BytesInvariantsProofs from
+  Random,
   Literal,
   Concat,
   Hash,
   Signature,
   DiffieHellman,
-  Random
 
 instance: HasBytesInvariants where
 
@@ -67,12 +67,12 @@ from
   LongTermKeys "SignedDH PKI",
 
 #combine +toplevel into SubAttackerKnowledgeTheorem from
+  Random,
   Literal,
   Concat,
   Hash,
   Signature,
   DiffieHellman,
-  Random,
 
 instance: HasTraceInvariant where
 
