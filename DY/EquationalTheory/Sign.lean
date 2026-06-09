@@ -244,7 +244,7 @@ end VkLemmas
 
 public
 class SignPred where
-  pred: [GetUsage] → [GetLabel] → Usage → Bytes → Bytes → ProofTrace → Prop
+  pred: [BytesWellFormed] → [GetUsage] → [GetLabel] → Usage → Bytes → Bytes → ProofTrace → Prop
 
 public
 class SignPredProof [BytesInvariants] [SignPred] where
