@@ -21,9 +21,9 @@ theorem liftM_parse_preserves_reachability
 public
 def honestAttacker: Traceful Unit := do
   let (_, pkHandle, skHandle) ← LongTermKeys.generateKeyPair "SignedDH PKI" "Bob" -- 4
-  let (stClientHandle, msgClientHandle) ← client_initiate "Alice" -- 4
-  let (_stServerHandle, msgServerHandle) ← server_receive "Bob" skHandle msgClientHandle -- 5
-  let _ ← client_finish "Alice" "Bob" pkHandle msgServerHandle stClientHandle -- 2
+  let (stClientHandle, msgClientHandle) ← Client.initiate "Alice" -- 4
+  let (_stServerHandle, msgServerHandle) ← Server.receive "Bob" skHandle msgClientHandle -- 5
+  let _ ← Client.finish "Alice" "Bob" pkHandle msgServerHandle stClientHandle -- 2
 
 #guard (honestAttacker.run Trace.nil).fst = some ()
 
@@ -41,21 +41,21 @@ theorem honestAttacker_PreservesReachability
   intro ⟨ _, tsPk, tsSk ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (client_initiate.reachability)
+  · apply Traceful.PreservesReachability_base (Client.initiate.reachability)
   · assumption
-  · simp [client_initiate.reachability]
+  · simp [Client.initiate.reachability]
   intro ⟨ tsClientSt, tsMsgClient ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (server_receive.reachability) _ ("Bob", tsSk, tsMsgClient)
+  · apply Traceful.PreservesReachability_base (Server.receive.reachability) _ ("Bob", tsSk, tsMsgClient)
   · assumption
-  · simp [server_receive.reachability]
+  · simp [Server.receive.reachability]
   intro ⟨ _, tsMsgServer ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (client_finish.reachability) _ ("Alice", "Bob", tsPk, tsMsgServer, tsClientSt)
+  · apply Traceful.PreservesReachability_base (Client.finish.reachability) _ ("Alice", "Bob", tsPk, tsMsgServer, tsClientSt)
   · assumption
-  · simp [client_finish.reachability]
+  · simp [Client.finish.reachability]
   intro _ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_pure
@@ -214,7 +214,7 @@ def compromiseSigKeyAttacker: Traceful Unit := do
   let globalStSigkey: PersistentLocalState.LocalState (LongTermKeys.SecretKeyState "SignedDH PKI") ← Comparse.parse globalStSigkeyBytes
   let sigKey := globalStSigkey.state.sk
 
-  let (stClientHandle, msgClientHandle) ← client_initiate "Alice" -- 4
+  let (stClientHandle, msgClientHandle) ← Client.initiate "Alice" -- 4
 
   let msgClientBytes ← Network.receiveMessage msgClientHandle
   let msgClient: ClientMessage ← Comparse.parse msgClientBytes
@@ -226,7 +226,7 @@ def compromiseSigKeyAttacker: Traceful Unit := do
   let sigNonce := Literal.literalToBytes "00000000000000000000000000000000".toByteArray
   let sig := Signature.sign sigKey sigNonce (Comparse.serialize ({xPk, yPk}: SigInput))
   let msgServerHandle ← Network.sendMessage (Comparse.serialize ({ yPk, sig } : ServerMessage)) -- 1
-  let _ ← client_finish "Alice" "Bob" pkHandle msgServerHandle stClientHandle -- 2
+  let _ ← Client.finish "Alice" "Bob" pkHandle msgServerHandle stClientHandle -- 2
   let _ ← Network.sendMessage k -- 1
   return ()
 
@@ -265,9 +265,9 @@ theorem compromiseSigKeyAttacker_PreservesReachability
 
   dsimp
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (client_initiate.reachability)
+  · apply Traceful.PreservesReachability_base (Client.initiate.reachability)
   · assumption
-  · simp [client_initiate.reachability]
+  · simp [Client.initiate.reachability]
   intro ⟨ stClientHandle, msgClientHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
@@ -300,9 +300,9 @@ theorem compromiseSigKeyAttacker_PreservesReachability
   intro msgServerHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (client_finish.reachability) _ ("Alice", "Bob", pkHandle, msgServerHandle, stClientHandle)
+  · apply Traceful.PreservesReachability_base (Client.finish.reachability) _ ("Alice", "Bob", pkHandle, msgServerHandle, stClientHandle)
   · assumption
-  · simp [client_finish.reachability]
+  · simp [Client.finish.reachability]
   intro _ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind

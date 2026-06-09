@@ -108,22 +108,22 @@ public section BytesInvariantsConfig
 
 class HasBytesInvariants extends HasProofTrace where
   [bytesInv: BytesInvariants]
-  [bytesInv0: BytesInvariantsProofs]
+  [bytesInvProof: BytesInvariantsProofs]
+  [bytesInv0: BytesInvariants.Has Random.invariants]
   [bytesInv1: BytesInvariants.Has Literal.invariants]
   [bytesInv2: BytesInvariants.Has Concat.invariants]
   [bytesInv3: BytesInvariants.Has Hash.invariants]
   [bytesInv4: BytesInvariants.Has Signature.invariants]
   [bytesInv5: BytesInvariants.Has DiffieHellman.invariants]
-  [bytesInv6: BytesInvariants.Has Random.invariants]
 
 attribute [reducible, scoped instance] HasBytesInvariants.bytesInv
+attribute [           scoped instance] HasBytesInvariants.bytesInvProof
 attribute [           scoped instance] HasBytesInvariants.bytesInv0
 attribute [           scoped instance] HasBytesInvariants.bytesInv1
 attribute [           scoped instance] HasBytesInvariants.bytesInv2
 attribute [           scoped instance] HasBytesInvariants.bytesInv3
 attribute [           scoped instance] HasBytesInvariants.bytesInv4
 attribute [           scoped instance] HasBytesInvariants.bytesInv5
-attribute [           scoped instance] HasBytesInvariants.bytesInv6
 
 end BytesInvariantsConfig
 
@@ -270,14 +270,14 @@ attribute [local grind] LongTermKeys.IsLongTermPublicKey
 attribute [local grind] LongTermKeys.IsLongTermSecretKey
 
 @[instance]
-theorem client_initiate.spec (me: Participant):
+theorem Client.initiate.spec (me: Participant):
   HoareTriple
-    (client_initiate me)
+    (Client.initiate me)
     (fun _ => True)
     (fun _ _ => True)
 := by
   apply HoareTriple.mk
-  unfold client_initiate
+  unfold Client.initiate
   step with ⟨ fun xSk => client_label me (DiffieHellman.dh_pk xSk), Usage.nothing ⟩
   step
   step
@@ -289,14 +289,14 @@ theorem client_initiate.spec (me: Participant):
   grind
 
 @[instance]
-theorem server_receive.spec (me: Participant) (skHandle: Nat) (msgHandle: Nat):
+theorem Server.receive.spec (me: Participant) (skHandle: Nat) (msgHandle: Nat):
   HoareTriple
-    (server_receive me skHandle msgHandle)
+    (Server.receive me skHandle msgHandle)
     (fun _ => True)
     (fun _ _ => True)
 := by
   apply HoareTriple.mk
-  unfold server_receive
+  unfold Server.receive
   step
   step
   step_intro
@@ -322,14 +322,14 @@ theorem server_receive.spec (me: Participant) (skHandle: Nat) (msgHandle: Nat):
   grind
 
 @[instance]
-theorem client_finish.spec (me: Participant) (server: Participant) (pkHandle: Nat) (msgHandle: Nat) (stHandle: Nat):
+theorem Client.finish.spec (me: Participant) (server: Participant) (pkHandle: Nat) (msgHandle: Nat) (stHandle: Nat):
   HoareTriple
-    (client_finish me server pkHandle msgHandle stHandle)
+    (Client.finish me server pkHandle msgHandle stHandle)
     (fun _ => True)
     (fun _ _ => True)
 := by
   apply HoareTriple.mk
-  unfold client_finish
+  unfold Client.finish
   step
   step
   step
@@ -370,9 +370,9 @@ section ReachabilityImpliesInvariant
 
 variable [HasTraceInvariant]
 
-public instance: ReachableImpliesInvariant client_initiate.reachability := .mk (fun me => client_initiate.spec me)
-public instance: ReachableImpliesInvariant server_receive.reachability := .mk (fun (me, skHandle, msgHandle) => server_receive.spec me skHandle msgHandle)
-public instance: ReachableImpliesInvariant client_finish.reachability := .mk (fun (me, server, pkHandle, msgHandle, stHandle) => client_finish.spec me server pkHandle msgHandle stHandle)
+public instance: ReachableImpliesInvariant Client.initiate.reachability := .mk (fun me => Client.initiate.spec me)
+public instance: ReachableImpliesInvariant Server.receive.reachability := .mk (fun (me, skHandle, msgHandle) => Server.receive.spec me skHandle msgHandle)
+public instance: ReachableImpliesInvariant Client.finish.reachability := .mk (fun (me, server, pkHandle, msgHandle, stHandle) => Client.finish.spec me server pkHandle msgHandle stHandle)
 public instance: ReachableImpliesInvariant ClientInitiateState.compromise.reachability := .mk (fun (stHandle) => ClientInitiateState.compromise.spec stHandle)
 public instance: ReachableImpliesInvariant ClientFinishState.compromise.reachability := .mk (fun (stHandle) => ClientFinishState.compromise.spec stHandle)
 public instance: ReachableImpliesInvariant ServerFinishState.compromise.reachability := .mk (fun (stHandle) => ServerFinishState.compromise.spec stHandle)
@@ -380,9 +380,9 @@ public instance: ReachableImpliesInvariant ServerFinishState.compromise.reachabi
 #combine into ReachabilityTheorem from
   Network,
   LongTermKeys "SignedDH PKI",
-  client_initiate,
-  server_receive,
-  client_finish,
+  Client.initiate,
+  Server.receive,
+  Client.finish,
   ClientInitiateState.compromise,
   ClientFinishState.compromise,
   ServerFinishState.compromise,
