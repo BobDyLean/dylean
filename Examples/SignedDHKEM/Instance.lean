@@ -12,7 +12,7 @@ public section
   Literal,
   Concat,
   Hash,
-  Signature,
+  Signature',
   DiffieHellman',
   KEM,
 
@@ -32,6 +32,7 @@ from
   LongTermKeys "SignedDHKEM PKI",
   KEM.Broken,
   DiffieHellman'.Broken,
+  Signature'.Broken,
 
 instance: HasExecTrace where
 
@@ -48,6 +49,7 @@ from
   LongTermKeys "SignedDHKEM PKI",
   KEM.Broken,
   DiffieHellman'.Broken,
+  Signature'.Broken,
 
 instance: HasProofTrace where
 
@@ -56,7 +58,7 @@ instance: HasProofTrace where
   Literal,
   Concat,
   Hash,
-  Signature,
+  Signature',
   DiffieHellman',
   KEM,
 
@@ -76,13 +78,14 @@ from
   LongTermKeys "SignedDHKEM PKI",
   KEM.Broken,
   DiffieHellman'.Broken,
+  Signature'.Broken,
 
 #combine +toplevel into SubAttackerKnowledgeTheorem from
   Random,
   Literal,
   Concat,
   Hash,
-  Signature,
+  Signature',
   DiffieHellman',
   KEM,
 

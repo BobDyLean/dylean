@@ -20,13 +20,16 @@ theorem client_auth
     (
       let tr_before := tr.prefix time
       tr_before.EventLogged (SignedDHKEMEvent.ServerFinishEvent server xPk yPk zPk k) ∨
-      (∃ spk, LongTermKeys.LongTermKeyCompromised "SignedDHKEM PKI" server spk tr_before)
+      (∃ spk,
+        LongTermKeys.LongTermKeyCompromised "SignedDHKEM PKI" server spk tr_before ∨
+        Signature'.Broken.ThisVkHasBeenBroken spk tr_before
+      )
     )
 := by
   apply Trace.apply_Reachable_implies_Invariant
   intro tr h_trinv h_ev
   have := Trace.EventLoggedAt_imp_EventInv _ _ _ h_trinv h_ev
-  simp [ProtocolEvent.EventInv.invariant, LongTermKeys.label] at this
+  simp [ProtocolEvent.EventInv.invariant, LongTermKeys.label, mkLongTermLabel, Signature'.Broken.label] at this
   grind
 
 /--
@@ -46,8 +49,10 @@ theorem client_secrecy
     (
       let tr_before := tr.prefix time
       (
-        (∃ spk, LongTermKeys.LongTermKeyCompromised "SignedDHKEM PKI" server spk tr_before) ∨
-        False
+        (∃ spk,
+          LongTermKeys.LongTermKeyCompromised "SignedDHKEM PKI" server spk tr_before ∨
+          Signature'.Broken.ThisVkHasBeenBroken spk tr_before
+        )
       ) ∨
       (
         (
@@ -66,7 +71,7 @@ theorem client_secrecy
   intro tr h_trinv h_pub h_ev
   have := Trace.EventLoggedAt_imp_EventInv _ _ _ h_trinv h_ev
   simp [ProtocolEvent.EventInv.invariant] at this
-  simp_all [clientDhLabel, clientKemLabel, serverLabel, LongTermKeys.label, KEM.Broken.label, DiffieHellman'.Broken.label]
+  simp_all [clientDhLabel, clientKemLabel, serverLabel, mkLongTermLabel, LongTermKeys.label, KEM.Broken.label, DiffieHellman'.Broken.label, Signature'.Broken.label]
   grind
 
 /--

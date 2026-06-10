@@ -23,6 +23,7 @@ class HasProofTrace extends HasExecTrace where
   [traceProof7: ProofTraceTypes.Has (LongTermKeys.ProofEntryT "SignedDHKEM PKI")]
   [traceProof8: ProofTraceTypes.Has (KEM.Broken.ProofEntryT)]
   [traceProof9: ProofTraceTypes.Has (DiffieHellman'.Broken.ProofEntryT)]
+  [traceProof10: ProofTraceTypes.Has (Signature'.Broken.ProofEntryT)]
 
 attribute [reducible, scoped instance] HasProofTrace.traceProof
 attribute [reducible, scoped instance] HasProofTrace.traceProof0
@@ -35,6 +36,7 @@ attribute [reducible, scoped instance] HasProofTrace.traceProof6
 attribute [reducible, scoped instance] HasProofTrace.traceProof7
 attribute [reducible, scoped instance] HasProofTrace.traceProof8
 attribute [reducible, scoped instance] HasProofTrace.traceProof9
+attribute [reducible, scoped instance] HasProofTrace.traceProof10
 
 end ProofTraceConfig
 
@@ -86,7 +88,7 @@ theorem mkLongTermUsage_inj:
     grind
 
 instance SignedDHKEMSignPred
-  : Signature.SignPred
+  : Signature'.SignPred
 where
   pred skUsg vk msg tr :=
     ∃ server, skUsg = mkLongTermUsage server ∧ (
@@ -111,7 +113,7 @@ instance
   [BytesInvariants.Has Literal.invariants]
   [BytesInvariants.Has Concat.invariants]
   [BytesInvariants.Has KEM.invariants]
-  : Signature.SignPredProof
+  : Signature'.SignPredProof
 where
   pred_later := by
     intro _ _ _ _ _ _ _ _ _ _ _
@@ -131,7 +133,7 @@ class HasBytesInvariants extends HasProofTrace where
   [bytesInv1: BytesInvariants.Has Literal.invariants]
   [bytesInv2: BytesInvariants.Has Concat.invariants]
   [bytesInv3: BytesInvariants.Has Hash.invariants]
-  [bytesInv4: BytesInvariants.Has Signature.invariants]
+  [bytesInv4: BytesInvariants.Has Signature'.invariants]
   [bytesInv5: BytesInvariants.Has DiffieHellman'.invariants]
   [bytesInv6: BytesInvariants.Has KEM.invariants]
 
@@ -243,17 +245,22 @@ where
       grind
     grind [canFlowTrans]
 
+def mkLongTermLabel (p: Participant) (vk: Bytes): Label :=
+  (LongTermKeys.label "SignedDHKEM PKI" p vk).join (Signature'.Broken.label vk)
+
 @[grind]
-instance : LongTermKeys.ProofConfig "SignedDHKEM PKI" mkLongTermUsage
+instance : LongTermKeys.ProofConfig "SignedDHKEM PKI" mkLongTermUsage mkLongTermLabel
 where
   IsLongTermPublicKey who vk tr :=
     vk.Publishable tr ∧
-    vk.signkeyLabel tr = LongTermKeys.label "SignedDHKEM PKI" who vk ∧
-    vk.SignkeyHasUsage (mkLongTermUsage who) tr
+    vk.signkeyLabel' tr = mkLongTermLabel who vk ∧
+    vk.SignkeyHasUsage' (mkLongTermUsage who) tr
+
+  label_canFlow := by simp [mkLongTermLabel]; grind
 
   IsLongTermPublicKey_implied := by
     simp_all [Bytes.Publishable]
-    grind
+    grind [Signature'.vk.Invariant, mkLongTermLabel]
 
 instance SignedDHKEMEventInv : ProtocolEvent.EventInv (SignedDHKEMEvent)
 where
@@ -273,7 +280,7 @@ where
         tr.erase.EventLogged (SignedDHKEMEvent.ServerFinishEvent server xPk yPk zPk kC) ∧
         kC.Invariant tr ∧
         kC.label tr = (((clientDhLabel client xPk).join (DiffieHellman'.Broken.label xPk)).join ((serverLabel server xPk yPk zPk).join (DiffieHellman'.Broken.label yPk))).meet (((clientKemLabel client zPk).join (KEM.Broken.label zPk)).join (serverLabel server xPk yPk zPk))
-      ) ∨ (∃ spk, (LongTermKeys.label "SignedDHKEM PKI" server spk).isCorrupt tr.erase)
+      ) ∨ (∃ spk, (mkLongTermLabel server spk).isCorrupt tr.erase)
     )
 
 end TraceInvariant
@@ -293,6 +300,7 @@ class HasTraceInvariant extends HasBytesInvariants where
   [traceInv7: TraceInvariant.Has (LongTermKeys.ProofEntryT "SignedDHKEM PKI")]
   [traceInv8: TraceInvariant.Has KEM.Broken.ProofEntryT]
   [traceInv9: TraceInvariant.Has DiffieHellman'.Broken.ProofEntryT]
+  [traceInv10: TraceInvariant.Has Signature'.Broken.ProofEntryT]
   [attBaseThm: BaseAttackerKnowledgeTheorem]
   [attThm: AttackerKnowledgeTheorem]
 
@@ -307,6 +315,7 @@ attribute [           scoped instance] HasTraceInvariant.traceInv6
 attribute [           scoped instance] HasTraceInvariant.traceInv7
 attribute [           scoped instance] HasTraceInvariant.traceInv8
 attribute [           scoped instance] HasTraceInvariant.traceInv9
+attribute [           scoped instance] HasTraceInvariant.traceInv10
 attribute [           scoped instance] HasTraceInvariant.attBaseThm
 attribute [           scoped instance] HasTraceInvariant.attThm
 
@@ -322,7 +331,7 @@ attribute [local grind] ClientInitiateDHStateInv
 attribute [local grind] ClientInitiateKEMStateInv
 attribute [local grind] ClientFinishStateInv
 attribute [local grind] ServerFinishStateInv
-attribute [local grind] Signature.SignPred.pred
+attribute [local grind] Signature'.SignPred.pred
 attribute [local grind] SignedDHKEMSignPred
 attribute [local grind] PersistentLocalState.LocalStateInv.invariant
 attribute [local grind] PersistentLocalState.CompromisableLocalStateInv.toLocalStateInv
@@ -496,6 +505,7 @@ public instance: ReachableImpliesInvariant ServerFinishState.compromise.reachabi
   ServerFinishState.compromise,
   KEM.Broken.breakKemPk,
   DiffieHellman'.Broken.breakDhPk,
+  Signature'.Broken.breakVk,
 
 end ReachabilityImpliesInvariant
 

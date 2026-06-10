@@ -5,7 +5,7 @@ public import DY.Bytes
 public import DY.EquationalTheory.Literal
 public import DY.EquationalTheory.Concat
 public import DY.EquationalTheory.Hash
-public import DY.EquationalTheory.Sign
+public import Examples.SignedDHKEM.Sign
 public import Examples.SignedDHKEM.DiffieHellman
 public import Examples.SignedDHKEM.KEM
 public import DY.Actions.Network
@@ -27,7 +27,7 @@ class HasExecBytes where
   [bytesFunc1: BytesFunctor.Has Literal.SubF]
   [bytesFunc2: BytesFunctor.Has Concat.SubF]
   [bytesFunc3: BytesFunctor.Has Hash.SubF]
-  [bytesFunc4: BytesFunctor.Has Signature.SubF]
+  [bytesFunc4: BytesFunctor.Has Signature'.SubF]
   [bytesFunc5: BytesFunctor.Has DiffieHellman'.SubF]
   [bytesFunc6: BytesFunctor.Has KEM.SubF]
   [bytesLen: BytesLength]
@@ -35,7 +35,7 @@ class HasExecBytes where
   [bytesLen1: BytesLength.Has Literal.SubF.length]
   [bytesLen2: BytesLength.Has Concat.SubF.length]
   [bytesLen3: BytesLength.Has Hash.SubF.length]
-  [bytesLen4: BytesLength.Has Signature.SubF.length]
+  [bytesLen4: BytesLength.Has Signature'.SubF.length]
   [bytesLen5: BytesLength.Has DiffieHellman'.SubF.length]
   [bytesLen6: BytesLength.Has KEM.SubF.length]
   [att: AttackerKnowledge]
@@ -43,7 +43,7 @@ class HasExecBytes where
   [att1: AttackerKnowledge.Has Literal.attackerKnowledge]
   [att2: AttackerKnowledge.Has Concat.attackerKnowledge]
   [att3: AttackerKnowledge.Has Hash.attackerKnowledge]
-  [att4: AttackerKnowledge.Has Signature.attackerKnowledge]
+  [att4: AttackerKnowledge.Has Signature'.attackerKnowledge]
   [att5: AttackerKnowledge.Has DiffieHellman'.attackerKnowledge]
   [att6: AttackerKnowledge.Has KEM.attackerKnowledge]
 
@@ -282,6 +282,7 @@ class HasExecTrace extends HasExecBytes where
   [traceExec7: ExecTraceTypes.Has (LongTermKeys.ExecEntryT "SignedDHKEM PKI")]
   [traceExec8: ExecTraceTypes.Has (KEM.Broken.ExecEntryT)]
   [traceExec9: ExecTraceTypes.Has (DiffieHellman'.Broken.ExecEntryT)]
+  [traceExec10: ExecTraceTypes.Has (Signature'.Broken.ExecEntryT)]
   [attBase: BaseAttackerKnowledge]
 
 attribute [reducible, scoped instance] HasExecTrace.traceExec
@@ -295,6 +296,7 @@ attribute [reducible, scoped instance] HasExecTrace.traceExec6
 attribute [reducible, scoped instance] HasExecTrace.traceExec7
 attribute [reducible, scoped instance] HasExecTrace.traceExec8
 attribute [reducible, scoped instance] HasExecTrace.traceExec9
+attribute [reducible, scoped instance] HasExecTrace.traceExec10
 attribute [reducible, scoped instance] HasExecTrace.attBase
 
 end ExecTraceConfig
@@ -303,7 +305,7 @@ public section Specification
 
 variable [HasExecTrace]
 
-instance: LongTermKeys.ExecConfig "SignedDHKEM PKI" Signature.vk where
+instance: LongTermKeys.ExecConfig "SignedDHKEM PKI" Signature'.vk where
 
 def Client.initiate (me: Participant): Traceful (Nat × Nat × Nat) := do
   let xSk ← Random.genRand 32
@@ -334,7 +336,7 @@ def Server.receive (me: Participant) (skHandle: Nat) (msgHandle: Nat): Traceful 
   let kS := Hash.hash (Concat.concat dhss kemss)
 
   let sigNonce ← Random.genRand 32
-  let sig := Signature.sign sigKey sigNonce (serialize ({xPk, yPk, zPk, ct}: SigInput))
+  let sig := Signature'.sign sigKey sigNonce (serialize ({xPk, yPk, zPk, ct}: SigInput))
 
   ProtocolEvent.logEvent (SignedDHKEMEvent.ServerFinishEvent me xPk yPk zPk kS)
   let stHandle ← PersistentLocalState.storeLocalState me ({ xPk, yPk, zPk, kS }: ServerFinishState)
@@ -350,7 +352,7 @@ def Client.finish (me: Participant) (server: Participant) (pkHandle: Nat) (msgHa
 
   let serverVk ← LongTermKeys.getPublicKey "SignedDHKEM PKI" server pkHandle
 
-  guard (Signature.verify serverVk (serialize ({ xPk, yPk := msg.yPk, zPk := zPk, ct := msg.ct}: SigInput)) msg.sig)
+  guard (Signature'.verify serverVk (serialize ({ xPk, yPk := msg.yPk, zPk := zPk, ct := msg.ct}: SigInput)) msg.sig)
 
   let dhss := DiffieHellman'.dh msg.yPk xSk
   let kemss ← KEM.kemDecap zSk msg.ct
@@ -465,6 +467,7 @@ end
   ServerFinishState.compromise,
   KEM.Broken.breakKemPk,
   DiffieHellman'.Broken.breakDhPk,
+  Signature'.Broken.breakVk,
 
 end Reachability
 
