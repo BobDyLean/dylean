@@ -21,6 +21,7 @@ class HasProofTrace extends HasExecTrace where
   [traceProof5: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT ClientFinishState)]
   [traceProof6: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT ServerFinishState)]
   [traceProof7: ProofTraceTypes.Has (LongTermKeys.ProofEntryT "SignedDHKEM PKI")]
+  [traceProof8: ProofTraceTypes.Has (KEM.Broken.ProofEntryT)]
 
 attribute [reducible, scoped instance] HasProofTrace.traceProof
 attribute [reducible, scoped instance] HasProofTrace.traceProof0
@@ -31,6 +32,7 @@ attribute [reducible, scoped instance] HasProofTrace.traceProof4
 attribute [reducible, scoped instance] HasProofTrace.traceProof5
 attribute [reducible, scoped instance] HasProofTrace.traceProof6
 attribute [reducible, scoped instance] HasProofTrace.traceProof7
+attribute [reducible, scoped instance] HasProofTrace.traceProof8
 
 end ProofTraceConfig
 
@@ -183,10 +185,10 @@ where
     zPk = KEM.kemPk zSk ∧
     zPk.Publishable tr ∧
     zSk.Invariant tr ∧
-    zSk.label tr = clientKemLabel me zPk
+    zSk.label tr = (clientKemLabel me zPk).join (KEM.Broken.label zPk)
   invariant_later := by grind
   invariant_implies_KnowableBy participant state tr := by
-    have: (clientKemLabel participant state.zPk).canFlow (PersistentLocalState.label participant state) tr.erase := by
+    have: ((clientKemLabel participant state.zPk).join (KEM.Broken.label state.zPk)).canFlow (PersistentLocalState.label participant state) tr.erase := by
       cases state
       simp [Label.canFlow, clientKemLabel, ClientEphemeralKEMStateCompromised]
       grind
@@ -268,7 +270,7 @@ where
       (
         tr.erase.EventLogged (SignedDHKEMEvent.ServerFinishEvent server xPk yPk zPk kC) ∧
         kC.Invariant tr ∧
-        kC.label tr = ((clientDhLabel client xPk).join (serverLabel server xPk yPk zPk)).meet ((clientKemLabel client zPk).join (serverLabel server xPk yPk zPk))
+        kC.label tr = ((clientDhLabel client xPk).join (serverLabel server xPk yPk zPk)).meet (((clientKemLabel client zPk).join (KEM.Broken.label zPk)).join (serverLabel server xPk yPk zPk))
       ) ∨ (∃ spk, (LongTermKeys.label "SignedDHKEM PKI" server spk).isCorrupt tr.erase)
     )
 
@@ -287,6 +289,7 @@ class HasTraceInvariant extends HasBytesInvariants where
   [traceInv5: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT ClientFinishState)]
   [traceInv6: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT ServerFinishState)]
   [traceInv7: TraceInvariant.Has (LongTermKeys.ProofEntryT "SignedDHKEM PKI")]
+  [traceInv8: TraceInvariant.Has KEM.Broken.ProofEntryT]
   [attBaseThm: BaseAttackerKnowledgeTheorem]
   [attThm: AttackerKnowledgeTheorem]
 
@@ -299,6 +302,7 @@ attribute [           scoped instance] HasTraceInvariant.traceInv4
 attribute [           scoped instance] HasTraceInvariant.traceInv5
 attribute [           scoped instance] HasTraceInvariant.traceInv6
 attribute [           scoped instance] HasTraceInvariant.traceInv7
+attribute [           scoped instance] HasTraceInvariant.traceInv8
 attribute [           scoped instance] HasTraceInvariant.attBaseThm
 attribute [           scoped instance] HasTraceInvariant.attThm
 
@@ -331,7 +335,7 @@ theorem Client.initiate.spec (me: Participant):
   unfold Client.initiate
   step with ⟨ fun xSk => clientDhLabel me (DiffieHellman.dh_pk xSk), Usage.nothing ⟩
   step
-  step with ⟨ fun zSk => clientKemLabel me (KEM.kemPk zSk), Usage.nothing ⟩
+  step with ⟨ fun zSk => (clientKemLabel me (KEM.kemPk zSk)).join (KEM.Broken.label (KEM.kemPk zSk)), Usage.nothing ⟩
   step
   step
   step by
@@ -485,6 +489,7 @@ public instance: ReachableImpliesInvariant ServerFinishState.compromise.reachabi
   ClientInitiateKEMState.compromise,
   ClientFinishState.compromise,
   ServerFinishState.compromise,
+  KEM.Broken.breakKemPk,
 
 end ReachabilityImpliesInvariant
 

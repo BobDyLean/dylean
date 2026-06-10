@@ -30,6 +30,7 @@ from
   PersistentLocalState.CompromisableState ClientFinishState,
   PersistentLocalState.CompromisableState ServerFinishState,
   LongTermKeys "SignedDHKEM PKI",
+  KEM.Broken,
 
 instance: HasExecTrace where
 
@@ -44,6 +45,7 @@ from
   PersistentLocalState.CompromisableState ClientFinishState,
   PersistentLocalState.CompromisableState ServerFinishState,
   LongTermKeys "SignedDHKEM PKI",
+  KEM.Broken,
 
 instance: HasProofTrace where
 
@@ -70,6 +72,7 @@ from
   PersistentLocalState.CompromisableState ClientFinishState,
   PersistentLocalState.CompromisableState ServerFinishState,
   LongTermKeys "SignedDHKEM PKI",
+  KEM.Broken,
 
 #combine +toplevel into SubAttackerKnowledgeTheorem from
   Random,

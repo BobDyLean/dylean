@@ -280,6 +280,7 @@ class HasExecTrace extends HasExecBytes where
   [traceExec5: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientFinishState)]
   [traceExec6: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ServerFinishState)]
   [traceExec7: ExecTraceTypes.Has (LongTermKeys.ExecEntryT "SignedDHKEM PKI")]
+  [traceExec8: ExecTraceTypes.Has (KEM.Broken.ExecEntryT)]
   [attBase: BaseAttackerKnowledge]
 
 attribute [reducible, scoped instance] HasExecTrace.traceExec
@@ -291,6 +292,7 @@ attribute [reducible, scoped instance] HasExecTrace.traceExec4
 attribute [reducible, scoped instance] HasExecTrace.traceExec5
 attribute [reducible, scoped instance] HasExecTrace.traceExec6
 attribute [reducible, scoped instance] HasExecTrace.traceExec7
+attribute [reducible, scoped instance] HasExecTrace.traceExec8
 attribute [reducible, scoped instance] HasExecTrace.attBase
 
 end ExecTraceConfig
@@ -459,6 +461,7 @@ end
   ClientInitiateKEMState.compromise,
   ClientFinishState.compromise,
   ServerFinishState.compromise,
+  KEM.Broken.breakKemPk,
 
 end Reachability
 

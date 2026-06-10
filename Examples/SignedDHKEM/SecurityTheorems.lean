@@ -45,9 +45,19 @@ theorem client_secrecy
     tr.EventLoggedAt (SignedDHKEMEvent.ClientFinishEvent client server xPk yPk zPk k) time →
     (
       let tr_before := tr.prefix time
-      (∃ spk, LongTermKeys.LongTermKeyCompromised "SignedDHKEM PKI" server spk tr_before) ∨
-      ClientEphemeralDHStateCompromised client xPk tr ∨
-      ClientEphemeralKEMStateCompromised client zPk tr ∨
+      (
+        (∃ spk, LongTermKeys.LongTermKeyCompromised "SignedDHKEM PKI" server spk tr_before) ∨
+        False
+      ) ∨
+      (
+        (
+          ClientEphemeralDHStateCompromised client xPk tr ∨
+          False -- TODO
+        ) ∧ (
+          ClientEphemeralKEMStateCompromised client zPk tr ∨
+          KEM.Broken.ThisKemPkHasBeenBroken zPk tr
+        )
+      ) ∨
       ServerEphemeralStateCompromised server xPk yPk zPk tr
     )
 := by
@@ -55,7 +65,7 @@ theorem client_secrecy
   intro tr h_trinv h_pub h_ev
   have := Trace.EventLoggedAt_imp_EventInv _ _ _ h_trinv h_ev
   simp [ProtocolEvent.EventInv.invariant] at this
-  simp_all [clientDhLabel, clientKemLabel, serverLabel, LongTermKeys.label]
+  simp_all [clientDhLabel, clientKemLabel, serverLabel, LongTermKeys.label, KEM.Broken.label]
   grind
 
 /--
