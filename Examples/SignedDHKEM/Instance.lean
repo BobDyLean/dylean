@@ -13,7 +13,7 @@ public section
   Concat,
   Hash,
   Signature,
-  DiffieHellman,
+  DiffieHellman',
   KEM,
 
 instance: HasExecBytes where
@@ -31,6 +31,7 @@ from
   PersistentLocalState.CompromisableState ServerFinishState,
   LongTermKeys "SignedDHKEM PKI",
   KEM.Broken,
+  DiffieHellman'.Broken,
 
 instance: HasExecTrace where
 
@@ -46,6 +47,7 @@ from
   PersistentLocalState.CompromisableState ServerFinishState,
   LongTermKeys "SignedDHKEM PKI",
   KEM.Broken,
+  DiffieHellman'.Broken,
 
 instance: HasProofTrace where
 
@@ -55,7 +57,7 @@ instance: HasProofTrace where
   Concat,
   Hash,
   Signature,
-  DiffieHellman,
+  DiffieHellman',
   KEM,
 
 instance: HasBytesInvariants where
@@ -73,6 +75,7 @@ from
   PersistentLocalState.CompromisableState ServerFinishState,
   LongTermKeys "SignedDHKEM PKI",
   KEM.Broken,
+  DiffieHellman'.Broken,
 
 #combine +toplevel into SubAttackerKnowledgeTheorem from
   Random,
@@ -80,7 +83,7 @@ from
   Concat,
   Hash,
   Signature,
-  DiffieHellman,
+  DiffieHellman',
   KEM,
 
 instance: HasTraceInvariant where

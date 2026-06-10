@@ -22,6 +22,7 @@ class HasProofTrace extends HasExecTrace where
   [traceProof6: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT ServerFinishState)]
   [traceProof7: ProofTraceTypes.Has (LongTermKeys.ProofEntryT "SignedDHKEM PKI")]
   [traceProof8: ProofTraceTypes.Has (KEM.Broken.ProofEntryT)]
+  [traceProof9: ProofTraceTypes.Has (DiffieHellman'.Broken.ProofEntryT)]
 
 attribute [reducible, scoped instance] HasProofTrace.traceProof
 attribute [reducible, scoped instance] HasProofTrace.traceProof0
@@ -33,6 +34,7 @@ attribute [reducible, scoped instance] HasProofTrace.traceProof5
 attribute [reducible, scoped instance] HasProofTrace.traceProof6
 attribute [reducible, scoped instance] HasProofTrace.traceProof7
 attribute [reducible, scoped instance] HasProofTrace.traceProof8
+attribute [reducible, scoped instance] HasProofTrace.traceProof9
 
 end ProofTraceConfig
 
@@ -92,10 +94,10 @@ where
       | none => False
       | some (msg: SigInput) => (
         ∃ ySk entropy,
-          let dhss := DiffieHellman.dh msg.xPk ySk
+          let dhss := DiffieHellman'.dh msg.xPk ySk
           let encapResult := KEM.kemEncap msg.zPk entropy
-          msg.yPk = DiffieHellman.dh_pk ySk ∧
-          ySk.label tr = serverLabel server msg.xPk msg.yPk msg.zPk ∧
+          msg.yPk = DiffieHellman'.dh_pk ySk ∧
+          ySk.label tr = (serverLabel server msg.xPk msg.yPk msg.zPk).join (DiffieHellman'.Broken.label msg.yPk) ∧
           msg.ct = encapResult.fst ∧
           entropy.WellFormed tr ∧
           entropy.label tr = (serverLabel server msg.xPk msg.yPk msg.zPk).join (msg.zPk.kemSkLabel tr) ∧
@@ -105,7 +107,7 @@ where
 
 instance
   [BytesInvariants]
-  [BytesInvariants.Has DiffieHellman.DhPk.invariants]
+  [BytesInvariants.Has DiffieHellman'.DhPk.invariants]
   [BytesInvariants.Has Literal.invariants]
   [BytesInvariants.Has Concat.invariants]
   [BytesInvariants.Has KEM.invariants]
@@ -115,7 +117,7 @@ where
     intro _ _ _ _ _ _ _ _ _ _ _
     intro ⟨ server, h ⟩
     exists server
-    grind [DiffieHellman.dh_pk.WellFormed]
+    grind [DiffieHellman'.dh_pk.WellFormed]
 
 end BytesInvariants
 
@@ -130,7 +132,7 @@ class HasBytesInvariants extends HasProofTrace where
   [bytesInv2: BytesInvariants.Has Concat.invariants]
   [bytesInv3: BytesInvariants.Has Hash.invariants]
   [bytesInv4: BytesInvariants.Has Signature.invariants]
-  [bytesInv5: BytesInvariants.Has DiffieHellman.invariants]
+  [bytesInv5: BytesInvariants.Has DiffieHellman'.invariants]
   [bytesInv6: BytesInvariants.Has KEM.invariants]
 
 attribute [reducible, scoped instance] HasBytesInvariants.bytesInv
@@ -153,13 +155,13 @@ instance ClientInitiateDHStateInv : PersistentLocalState.CompromisableLocalState
 where
   invariant me st tr :=
     let { xPk, xSk } := st
-    xPk = DiffieHellman.dh_pk xSk ∧
+    xPk = DiffieHellman'.dh_pk xSk ∧
     xPk.Publishable tr ∧
     xSk.Invariant tr ∧
-    xSk.label tr = clientDhLabel me xPk
+    xSk.label tr = (clientDhLabel me xPk).join (DiffieHellman'.Broken.label xPk)
   invariant_later := by grind
   invariant_implies_KnowableBy participant state tr := by
-    have: (clientDhLabel participant state.xPk).canFlow (PersistentLocalState.label participant state) tr.erase := by
+    have: ((clientDhLabel participant state.xPk).join (DiffieHellman'.Broken.label state.xPk)).canFlow (PersistentLocalState.label participant state) tr.erase := by
       cases state
       simp [Label.canFlow, clientDhLabel, ClientEphemeralDHStateCompromised]
       grind
@@ -259,18 +261,18 @@ where
     match ev with
     | .ClientInitiateEvent client xPk zPk => (
       xPk.Invariant tr ∧
-      xPk.dhSkLabel tr = clientDhLabel client xPk
+      xPk.dhSkLabel' tr = (clientDhLabel client xPk).join (DiffieHellman'.Broken.label xPk)
     )
     | .ServerFinishEvent server xPk yPk zPk kS => (
       kS.Invariant tr ∧
       xPk.Invariant tr ∧
-      kS.label tr = ((serverLabel server xPk yPk zPk).join (xPk.dhSkLabel tr)).meet ((serverLabel server xPk yPk zPk).join (zPk.kemSkLabel tr))
+      kS.label tr = (((serverLabel server xPk yPk zPk).join (DiffieHellman'.Broken.label yPk)).join (xPk.dhSkLabel' tr)).meet ((serverLabel server xPk yPk zPk).join (zPk.kemSkLabel tr))
     )
     | .ClientFinishEvent client server xPk yPk zPk kC => (
       (
         tr.erase.EventLogged (SignedDHKEMEvent.ServerFinishEvent server xPk yPk zPk kC) ∧
         kC.Invariant tr ∧
-        kC.label tr = ((clientDhLabel client xPk).join (serverLabel server xPk yPk zPk)).meet (((clientKemLabel client zPk).join (KEM.Broken.label zPk)).join (serverLabel server xPk yPk zPk))
+        kC.label tr = (((clientDhLabel client xPk).join (DiffieHellman'.Broken.label xPk)).join ((serverLabel server xPk yPk zPk).join (DiffieHellman'.Broken.label yPk))).meet (((clientKemLabel client zPk).join (KEM.Broken.label zPk)).join (serverLabel server xPk yPk zPk))
       ) ∨ (∃ spk, (LongTermKeys.label "SignedDHKEM PKI" server spk).isCorrupt tr.erase)
     )
 
@@ -290,6 +292,7 @@ class HasTraceInvariant extends HasBytesInvariants where
   [traceInv6: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT ServerFinishState)]
   [traceInv7: TraceInvariant.Has (LongTermKeys.ProofEntryT "SignedDHKEM PKI")]
   [traceInv8: TraceInvariant.Has KEM.Broken.ProofEntryT]
+  [traceInv9: TraceInvariant.Has DiffieHellman'.Broken.ProofEntryT]
   [attBaseThm: BaseAttackerKnowledgeTheorem]
   [attThm: AttackerKnowledgeTheorem]
 
@@ -303,6 +306,7 @@ attribute [           scoped instance] HasTraceInvariant.traceInv5
 attribute [           scoped instance] HasTraceInvariant.traceInv6
 attribute [           scoped instance] HasTraceInvariant.traceInv7
 attribute [           scoped instance] HasTraceInvariant.traceInv8
+attribute [           scoped instance] HasTraceInvariant.traceInv9
 attribute [           scoped instance] HasTraceInvariant.attBaseThm
 attribute [           scoped instance] HasTraceInvariant.attThm
 
@@ -333,7 +337,7 @@ theorem Client.initiate.spec (me: Participant):
     (fun _ _ => True)
 := by
   unfold Client.initiate
-  step with ⟨ fun xSk => clientDhLabel me (DiffieHellman.dh_pk xSk), Usage.nothing ⟩
+  step with ⟨ fun xSk => (clientDhLabel me (DiffieHellman'.dh_pk xSk)).join (DiffieHellman'.Broken.label (DiffieHellman'.dh_pk xSk)), Usage.nothing ⟩
   step
   step with ⟨ fun zSk => (clientKemLabel me (KEM.kemPk zSk)).join (KEM.Broken.label (KEM.kemPk zSk)), Usage.nothing ⟩
   step
@@ -375,10 +379,10 @@ theorem Server.receive.spec (me: Participant) (skHandle: Nat) (msgHandle: Nat):
   step_intro
   step_intro
   step
-  step with ⟨ fun ySk => serverLabel me xPk (DiffieHellman.dh_pk ySk) zPk, Usage.nothing ⟩
+  step with ⟨ fun ySk => (serverLabel me xPk (DiffieHellman'.dh_pk ySk) zPk).join (DiffieHellman'.Broken.label (DiffieHellman'.dh_pk ySk)), Usage.nothing ⟩
   step
   step
-  step with ⟨ fun entropy => (serverLabel me xPk (DiffieHellman.dh_pk ySk) zPk).join (zPk.kemSkLabel tr), Usage.nothing ⟩
+  step with ⟨ fun entropy => (serverLabel me xPk (DiffieHellman'.dh_pk ySk) zPk).join (zPk.kemSkLabel tr), Usage.nothing ⟩
   step
   dsimp -zeta at *
   hoist
@@ -392,6 +396,7 @@ theorem Server.receive.spec (me: Participant) (skHandle: Nat) (msgHandle: Nat):
   step_let sig with ⟨ mkLongTermUsage me ⟩
   step by
     simp only [PersistentLocalState.LocalStateInv.invariant]
+    have: (dhss.label tr).canFlow (ySk.label tr) tr.erase := by grind
     grind
   step by
     have: sig_msg.Publishable tr := by grind -- TODO how to infer this automatically?
@@ -490,6 +495,7 @@ public instance: ReachableImpliesInvariant ServerFinishState.compromise.reachabi
   ClientFinishState.compromise,
   ServerFinishState.compromise,
   KEM.Broken.breakKemPk,
+  DiffieHellman'.Broken.breakDhPk,
 
 end ReachabilityImpliesInvariant
 

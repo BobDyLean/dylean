@@ -52,7 +52,8 @@ theorem client_secrecy
       (
         (
           ClientEphemeralDHStateCompromised client xPk tr ∨
-          False -- TODO
+          DiffieHellman'.Broken.ThisDhPkHasBeenBroken xPk tr ∨
+          DiffieHellman'.Broken.ThisDhPkHasBeenBroken yPk tr
         ) ∧ (
           ClientEphemeralKEMStateCompromised client zPk tr ∨
           KEM.Broken.ThisKemPkHasBeenBroken zPk tr
@@ -65,7 +66,7 @@ theorem client_secrecy
   intro tr h_trinv h_pub h_ev
   have := Trace.EventLoggedAt_imp_EventInv _ _ _ h_trinv h_ev
   simp [ProtocolEvent.EventInv.invariant] at this
-  simp_all [clientDhLabel, clientKemLabel, serverLabel, LongTermKeys.label, KEM.Broken.label]
+  simp_all [clientDhLabel, clientKemLabel, serverLabel, LongTermKeys.label, KEM.Broken.label, DiffieHellman'.Broken.label]
   grind
 
 /--

@@ -6,7 +6,7 @@ public import DY.EquationalTheory.Literal
 public import DY.EquationalTheory.Concat
 public import DY.EquationalTheory.Hash
 public import DY.EquationalTheory.Sign
-public import DY.EquationalTheory.DiffieHellman
+public import Examples.SignedDHKEM.DiffieHellman
 public import Examples.SignedDHKEM.KEM
 public import DY.Actions.Network
 public import DY.Actions.Random
@@ -28,7 +28,7 @@ class HasExecBytes where
   [bytesFunc2: BytesFunctor.Has Concat.SubF]
   [bytesFunc3: BytesFunctor.Has Hash.SubF]
   [bytesFunc4: BytesFunctor.Has Signature.SubF]
-  [bytesFunc5: BytesFunctor.Has DiffieHellman.SubF]
+  [bytesFunc5: BytesFunctor.Has DiffieHellman'.SubF]
   [bytesFunc6: BytesFunctor.Has KEM.SubF]
   [bytesLen: BytesLength]
   [bytesLen0: BytesLength.Has Random.SubF.length]
@@ -36,7 +36,7 @@ class HasExecBytes where
   [bytesLen2: BytesLength.Has Concat.SubF.length]
   [bytesLen3: BytesLength.Has Hash.SubF.length]
   [bytesLen4: BytesLength.Has Signature.SubF.length]
-  [bytesLen5: BytesLength.Has DiffieHellman.SubF.length]
+  [bytesLen5: BytesLength.Has DiffieHellman'.SubF.length]
   [bytesLen6: BytesLength.Has KEM.SubF.length]
   [att: AttackerKnowledge]
   [att0: AttackerKnowledge.Has Random.attackerKnowledge]
@@ -44,7 +44,7 @@ class HasExecBytes where
   [att2: AttackerKnowledge.Has Concat.attackerKnowledge]
   [att3: AttackerKnowledge.Has Hash.attackerKnowledge]
   [att4: AttackerKnowledge.Has Signature.attackerKnowledge]
-  [att5: AttackerKnowledge.Has DiffieHellman.attackerKnowledge]
+  [att5: AttackerKnowledge.Has DiffieHellman'.attackerKnowledge]
   [att6: AttackerKnowledge.Has KEM.attackerKnowledge]
 
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc
@@ -281,6 +281,7 @@ class HasExecTrace extends HasExecBytes where
   [traceExec6: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ServerFinishState)]
   [traceExec7: ExecTraceTypes.Has (LongTermKeys.ExecEntryT "SignedDHKEM PKI")]
   [traceExec8: ExecTraceTypes.Has (KEM.Broken.ExecEntryT)]
+  [traceExec9: ExecTraceTypes.Has (DiffieHellman'.Broken.ExecEntryT)]
   [attBase: BaseAttackerKnowledge]
 
 attribute [reducible, scoped instance] HasExecTrace.traceExec
@@ -293,6 +294,7 @@ attribute [reducible, scoped instance] HasExecTrace.traceExec5
 attribute [reducible, scoped instance] HasExecTrace.traceExec6
 attribute [reducible, scoped instance] HasExecTrace.traceExec7
 attribute [reducible, scoped instance] HasExecTrace.traceExec8
+attribute [reducible, scoped instance] HasExecTrace.traceExec9
 attribute [reducible, scoped instance] HasExecTrace.attBase
 
 end ExecTraceConfig
@@ -305,7 +307,7 @@ instance: LongTermKeys.ExecConfig "SignedDHKEM PKI" Signature.vk where
 
 def Client.initiate (me: Participant): Traceful (Nat × Nat × Nat) := do
   let xSk ← Random.genRand 32
-  let xPk := DiffieHellman.dh_pk xSk
+  let xPk := DiffieHellman'.dh_pk xSk
 
   let zSk ← Random.genRand 1000 -- TODO
   let zPk := KEM.kemPk zSk
@@ -324,8 +326,8 @@ def Server.receive (me: Participant) (skHandle: Nat) (msgHandle: Nat): Traceful 
   let sigKey ← LongTermKeys.getPrivateKey "SignedDHKEM PKI" me skHandle
 
   let ySk ← Random.genRand 32
-  let yPk := DiffieHellman.dh_pk ySk
-  let dhss := DiffieHellman.dh xPk ySk
+  let yPk := DiffieHellman'.dh_pk ySk
+  let dhss := DiffieHellman'.dh xPk ySk
   let entropy ← Random.genRand 1000 -- TODO
   let kemResult := KEM.kemEncap zPk entropy
   let (ct, kemss) := kemResult
@@ -350,7 +352,7 @@ def Client.finish (me: Participant) (server: Participant) (pkHandle: Nat) (msgHa
 
   guard (Signature.verify serverVk (serialize ({ xPk, yPk := msg.yPk, zPk := zPk, ct := msg.ct}: SigInput)) msg.sig)
 
-  let dhss := DiffieHellman.dh msg.yPk xSk
+  let dhss := DiffieHellman'.dh msg.yPk xSk
   let kemss ← KEM.kemDecap zSk msg.ct
   let kC := Hash.hash (Concat.concat dhss kemss)
 
@@ -462,6 +464,7 @@ end
   ClientFinishState.compromise,
   ServerFinishState.compromise,
   KEM.Broken.breakKemPk,
+  DiffieHellman'.Broken.breakDhPk,
 
 end Reachability
 
