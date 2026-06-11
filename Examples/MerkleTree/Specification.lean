@@ -171,6 +171,7 @@ decreasing_by grind
 
 end
 
+public
 def mkInclusionProof
   {Bytes: Type}
   [Comparse.BytesLike Bytes] [DY.Hash.CanHash Bytes]
