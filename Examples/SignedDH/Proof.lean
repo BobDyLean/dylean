@@ -191,7 +191,7 @@ where
     grind [canFlowTrans]
 
 @[grind]
-instance : LongTermKeys.ProofConfig "SignedDH PKI" mk_long_term_usage
+instance : LongTermKeys.ProofConfig "SignedDH PKI" mk_long_term_usage (LongTermKeys.label "SignedDH PKI")
 where
   IsLongTermPublicKey who vk tr :=
     vk.Publishable tr ∧
