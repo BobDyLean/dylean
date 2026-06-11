@@ -60,6 +60,20 @@ def _root_.DY.Trace.EventLoggedAt
   tr.at? time = some (ExecEntryT.mk ev)
 
 public
+theorem _root_.DY.Trace.EventLoggedAt_implies_i_le_length
+  {EventT: Type}
+  [ExecTraceTypes]
+  [ExecTraceTypes.Has (ExecEntryT EventT)]
+  (ev: EventT) (i: Nat)
+  (tr: ExecTrace)
+  : tr.EventLoggedAt ev i →
+    i < tr.length
+:= by
+  grind [Trace.EventLoggedAt]
+
+grind_pattern DY.Trace.EventLoggedAt_implies_i_le_length => tr.EventLoggedAt ev i
+
+public
 def _root_.DY.Trace.getEventAt
   (EventT: Type)
   [ExecTraceTypes]
