@@ -278,6 +278,7 @@ def breakVk (msgHandle: Nat): Traceful Nat := do
   let handle ← Network.sendMessage sk
   return handle
 
+@[expose]
 public
 def breakVk.reachability: ReachabilityConfig := .make (fun handle => breakVk handle)
 

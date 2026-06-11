@@ -290,6 +290,7 @@ def breakDhPk (msgHandle: Nat): Traceful Nat := do
   let handle ← Network.sendMessage sk
   return handle
 
+@[expose]
 public
 def breakDhPk.reachability: ReachabilityConfig := .make (fun handle => breakDhPk handle)
 

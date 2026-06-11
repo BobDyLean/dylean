@@ -359,6 +359,7 @@ def breakKemPk (msgHandle: Nat): Traceful Nat := do
   let handle ← Network.sendMessage sk
   return handle
 
+@[expose]
 public
 def breakKemPk.reachability: ReachabilityConfig := .make (fun handle => breakKemPk handle)
 
