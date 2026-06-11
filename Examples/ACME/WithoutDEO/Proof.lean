@@ -207,7 +207,7 @@ where
   invariant_implies_KnowableBy state tr := by grind [canFlowTrans]
 
 @[grind]
-instance : LongTermKeys.ProofConfig "ACME PKI" (fun _ => sigAcmeUsage)
+instance : LongTermKeys.ProofConfig "ACME PKI" (fun _ => sigAcmeUsage) (LongTermKeys.label "ACME PKI")
 where
   IsLongTermPublicKey who vk tr :=
     vk.Publishable tr ∧
