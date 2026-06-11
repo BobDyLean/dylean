@@ -263,17 +263,16 @@ theorem compromiseSigKeyAttacker_properties:
   · apply Traceful.PreservesReachability_to_Reachable compromiseSigKeyAttacker_PreservesReachability
     grind
   conv in (∀ t': Nat, _) =>
-    rewrite [rewrite_forall_nat_into_forall_fin tr.length (by sorry)] -- sorry filled in ACME PR
+    rewrite [rewrite_forall_nat_into_forall_fin tr.length (by grind)]
   simp only [DY.Trace.EventLoggedAt_eq_getEventAt]
   refine ⟨ 8, (Literal.literalToBytes "quux 4".toByteArray), ?_ ⟩
   native_decide
 
 /--
 info: 'DY.Example.MerkleTree.compromiseSigKeyAttacker_properties' depends on axioms: [propext,
- sorryAx,
  Classical.choice,
  Quot.sound,
- compromiseSigKeyAttacker_properties._native.native_decide.ax_1_2]
+ compromiseSigKeyAttacker_properties._native.native_decide.ax_1_3]
 -/
 #guard_msgs in
 #print axioms compromiseSigKeyAttacker_properties
