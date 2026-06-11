@@ -230,7 +230,7 @@ where
       (∃ spk, (LongTermKeys.label "MerkleTree PKI" server spk).isCorrupt tr.erase)
 
 @[grind]
-instance : LongTermKeys.ProofConfig "MerkleTree PKI" mkLongTermKeyUsage
+instance : LongTermKeys.ProofConfig "MerkleTree PKI" mkLongTermKeyUsage (LongTermKeys.label "MerkleTree PKI")
 where
   IsLongTermPublicKey who vk tr :=
     vk.Publishable tr ∧
