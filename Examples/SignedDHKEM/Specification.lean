@@ -311,7 +311,7 @@ def Client.initiate (me: Participant): Traceful (Nat × Nat × Nat) := do
   let xSk ← Random.genRand 32
   let xPk := DiffieHellman'.dh_pk xSk
 
-  let zSk ← Random.genRand 1000 -- TODO
+  let zSk ← Random.genRand 64 -- ML-KEM-512 keypair seed size
   let zPk := KEM.kemPk zSk
 
   ProtocolEvent.logEvent (SignedDHKEMEvent.ClientInitiateEvent me xPk zPk)
@@ -330,7 +330,7 @@ def Server.receive (me: Participant) (skHandle: Nat) (msgHandle: Nat): Traceful 
   let ySk ← Random.genRand 32
   let yPk := DiffieHellman'.dh_pk ySk
   let dhss := DiffieHellman'.dh xPk ySk
-  let entropy ← Random.genRand 1000 -- TODO
+  let entropy ← Random.genRand 32 -- ML-KEM-512 encapsulation seed size
   let kemResult := KEM.kemEncap zPk entropy
   let (ct, kemss) := kemResult
   let kS := Hash.hash (Concat.concat dhss kemss)
