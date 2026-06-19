@@ -395,7 +395,6 @@ where finally
     step by simp [ProtocolEvent.EventInv.invariant]
     step_intro
     step
-    step
     simp_all
     grind
 
@@ -418,7 +417,6 @@ theorem Server.proveInclusion.spec
   have: ∀ element, element ∈ mkInclusionProof .bytes elements i (by grind) → element.Publishable tr := by
     have := pred_mkInclusionProof .bytes elements i (by grind) (Bytes.Publishable · tr) (by simp [Bytes.Publishable]) (by simp_all [PersistentLocalState.LocalStateInv.invariant]; grind)
     grind
-  step
   step
   grind
 

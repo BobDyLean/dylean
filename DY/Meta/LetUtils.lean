@@ -156,13 +156,13 @@ def addLets
 meta
 def hoistArguments
   (p: Expr → HoistInfo → Bool) (e: Expr)
-  : MetaM (Option Expr)
+  : MetaM Expr
   := do
     match e.consumeMData with
     | .letE declName type value body nondep =>
       let (value, hoisted) ← hoistArgumentsAux p value
       if hoisted.isEmpty then
-        return none
+        throwError "hoist: nothing to hoist"
       let pre := declName.getString! ++ "_"
       pure (addLets pre hoisted (.letE declName type value body nondep))
     | .app _ _ =>
@@ -170,20 +170,26 @@ def hoistArguments
       -- but what if the instruction is simply the last one
       -- (hence is an .app but not a bind?)
       let (fn, args) := e.withApp Prod.mk
-      unless fn.constName = ``Bind.bind && args.size = 6 do
-        return none
-      let (value, hoisted) ← hoistArgumentsAux p args[4]!
-      let args := args.set! 4 value
-      let pre :=
-        match args[5]! with
-        | .lam binderName _ _ _ =>
-          if binderName.isStr then
-            binderName.getString! ++ "_"
-          else
-            ""
-        | _ => ""
-      pure (addLets pre hoisted (args.foldl mkApp fn))
-    | _ => pure none
+      if fn.constName = ``Bind.bind && args.size = 6 then
+        let (value, hoisted) ← hoistArgumentsAux p args[4]!
+        if hoisted.isEmpty then
+          throwError "hoist: nothing to hoist"
+        let args := args.set! 4 value
+        let pre :=
+          match args[5]! with
+          | .lam binderName _ _ _ =>
+            if binderName.isStr then
+              binderName.getString! ++ "_"
+            else
+              ""
+          | _ => ""
+        pure (addLets pre hoisted (args.foldl mkApp fn))
+      else
+        let (value, hoisted) ← hoistArgumentsAux p e
+        if hoisted.isEmpty then
+          throwError "hoist: nothing to hoist"
+        pure (addLets "" hoisted value)
+    | _ => throwError "hoist: neither a let nor an app"
 
 meta
 def isExplicitComplexExpr
@@ -203,24 +209,21 @@ def isExplicitComplexExpr
 meta
 def hoistArgumentsInWpAux
   (e: Expr)
-  : MetaM (Option Expr)
+  : MetaM Expr
   := do
     let (fn, args) := e.withApp Prod.mk
     unless fn.constName = ``DY.wp && args.size = 8 do
-      return none
-    match ← hoistArguments isExplicitComplexExpr args[5]! with
-    | .some arg1 =>
-      let args := args.set! 5 arg1
-      pure (some (mkAppN fn args))
-    | .none => pure none
+      throwError "hoist: not a wp"
+    let arg1 ← hoistArguments isExplicitComplexExpr args[5]!
+    let args := args.set! 5 arg1
+    pure (mkAppN fn args)
 
 meta
 def hoist (mvar: MVarId): TacticM MVarId :=
   mvar.withContext do
   let goal ← mvar.getType
   let goal ← goal.sanitize
-  let some newGoal ← hoistArgumentsInWpAux goal
-    | pure mvar
+  let newGoal ← hoistArgumentsInWpAux goal
   unless ← isDefEq goal newGoal do
     throwError "hoist: internal bug, {goal} and {newGoal} are not definitionally equal"
   mvar.replaceTargetDefEq newGoal
@@ -233,6 +236,7 @@ namespace Test
   def g (foo: Bytes) (bar: Bytes) := foo
   def send_message (b: Bytes): Traceful Nat := sorry
 
+  -- test hoisting in a let
   example:
     wp (
       have b := g (g (g b1 b2) (g b3 b4)) (g (g b5 b6) (g b7 b8))
@@ -251,11 +255,33 @@ namespace Test
     step_intro
     sorry
 
+  -- test hoisting in a bind
   example:
     wp (
       do
         let i ← send_message (g (g (g b1 b2) (g b3 b4)) (g (g b5 b6) (g b7 b8)));
-        pure i
+        send_message b1
+    )
+    (fun _ _ => True) tr
+  := by
+    hoist
+    hoist
+    hoist
+    step_intro
+    step_intro
+    step_intro
+    hoist
+    step_intro
+    step_intro
+    step_intro
+    step_intro
+    sorry
+
+  -- test hoisting a final function
+  example:
+    wp (
+      do
+        send_message (g (g (g b1 b2) (g b3 b4)) (g (g b5 b6) (g b7 b8)));
     )
     (fun _ _ => True) tr
   := by

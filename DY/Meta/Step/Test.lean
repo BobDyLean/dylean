@@ -353,8 +353,8 @@ tr : Trace ProofTrace.Entry
 h : tr.Invariant
 b : Bytes
 h_b✝ : b.Publishable tr
-x✝ : PUnit
-h_x✝ : x✝ = PUnit.unit
+__r✝ : PUnit
+h___r✝ : __r✝ = PUnit.unit
 ⊢ wp
     (do
       send_message b

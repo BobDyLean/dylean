@@ -460,7 +460,6 @@ theorem Client.finish.spec (me: Participant) (server: Participant) (pkHandle: Na
   step by
     simp_all only [PersistentLocalState.LocalStateInv.invariant, Label.canFlow]
     grind
-  step
   grind
 
 @[instance]

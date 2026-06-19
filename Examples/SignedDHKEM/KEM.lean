@@ -879,7 +879,6 @@ theorem breakKemPk.spec (msgHandle: Nat)
   step by simp [ProtocolEvent.EventInv.invariant]
   step
   step
-  step
   grind
 
 public instance: ReachableImpliesInvariant breakKemPk.reachability := .mk (fun (msgHandle) => breakKemPk.spec msgHandle)

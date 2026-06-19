@@ -45,11 +45,11 @@ def MerkleTreeNode.mf
   : Comparse.ExtensibleMessageFormat Bytes (MerkleTreeNode Bytes α)
 :=
   .triviallyIsomorphic (.sigma (.fin8 3 (by decide)) (internalType.mf Bytes α mf))
-  (fun ⟨id, x⟩ =>
-    match id, x with
-    | 0, x => MerkleTreeNode.Empty
-    | 1, x => MerkleTreeNode.Leaf x
-    | 2, (b1, b2) => MerkleTreeNode.Internal b1 b2
+  (fun x =>
+    match x with
+    | ⟨ 0, () ⟩ => MerkleTreeNode.Empty
+    | ⟨ 1, x ⟩ => MerkleTreeNode.Leaf x
+    | ⟨ 2, (b1, b2) ⟩ => MerkleTreeNode.Internal b1 b2
   )
   (fun x =>
     match x with

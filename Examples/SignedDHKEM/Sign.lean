@@ -851,7 +851,6 @@ theorem breakVk.spec (msgHandle: Nat)
   step by simp [ProtocolEvent.EventInv.invariant]
   step
   step
-  step
   grind
 
 public instance: ReachableImpliesInvariant breakVk.reachability := .mk (fun (msgHandle) => breakVk.spec msgHandle)

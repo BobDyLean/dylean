@@ -292,7 +292,6 @@ theorem Owner.claimAddress.spec (owner: Participant) (address: String) (oSkHandl
   step by simp_all only [PersistentLocalState.LocalStateInv.invariant]; grind
   step by simp only [ProtocolEvent.EventInv.invariant]
   step by simp_all only [PersistentLocalState.LocalStateInv.invariant]; grind
-  step
   grind
 
 @[instance]
