@@ -113,7 +113,24 @@ theorem _root_.DY.Trace.EventLoggedAt_le
 grind_pattern Trace.EventLoggedAt_le => tr1 ≤ tr2, tr1.EventLoggedAt ev time
 grind_pattern [grind_later] Trace.EventLoggedAt_le => tr1 ≤ tr2, tr1.EventLoggedAt ev time
 
-@[grind]
+public
+theorem _root_.DY.Trace.EventLoggedAt_le'
+  {EventT: Type}
+  [ExecTraceTypes]
+  [ExecTraceTypes.Has (ExecEntryT EventT)]
+  (ev: EventT) (time: Nat)
+  (tr1 tr2: ExecTrace)
+  : time < tr1.length →
+    tr1 ≤ tr2 →
+    tr2.EventLoggedAt ev time →
+    tr1.EventLoggedAt ev time
+:= by
+  grind [Trace.EventLoggedAt, Trace.at?_eq_some]
+
+grind_pattern Trace.EventLoggedAt_le => tr1 ≤ tr2, tr1.EventLoggedAt ev time
+grind_pattern [grind_later] Trace.EventLoggedAt_le => tr1 ≤ tr2, tr1.EventLoggedAt ev time
+
+@[expose, grind]
 public
 def _root_.DY.Trace.EventLogged
   {EventT: Type}
@@ -161,6 +178,21 @@ theorem _root_.DY.Trace.EventLoggedAt_imp_EventInv
   rewrite [← TraceInvariant.Has.inv_commutes]
   simp [Trace.EventLoggedAt, Trace.at?_eq_some, Trace.erase_at, ProofTrace.Entry.erase_eq_imp_exists, ErasableProofEntry.erase] at h_ev
   grind
+
+public
+theorem _root_.DY.Trace.EventLogged_imp_EventInv
+  {EventT: Type}
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [EventInv EventT]
+  [ExecTraceTypes.Has (ExecEntryT EventT)] [ProofTraceTypes.Has (ProofEntryT EventT)] [TraceInvariant.Has (ProofEntryT EventT)]
+  (ev: EventT)
+  (tr: ProofTrace)
+  : tr.Invariant →
+    tr.erase.EventLogged ev →
+    ∃ i, EventInv.invariant (tr.prefix i) ev
+:= by
+  intro h_inv ⟨ i, h_ev ⟩
+  exact ⟨ i, DY.Trace.EventLoggedAt_imp_EventInv ev i tr h_inv h_ev ⟩
 
 public
 def logEvent

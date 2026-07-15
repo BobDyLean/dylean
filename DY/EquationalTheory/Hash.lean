@@ -13,6 +13,16 @@ class CanHash (Bytes: Type u) where
 
 export CanHash (hash)
 
+public
+def hashLength := 32
+
+@[simp]
+public
+theorem hashLength_neq_0
+  : hashLength ≠ 0
+:= by
+  simp [hashLength]
+
 section Constructors
 
 namespace Hash
@@ -52,7 +62,7 @@ public instance: SubBytesFunctor SubF where
 public
 def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
   fun _ _ =>
-    32
+    hashLength
 
 end Hash
 
@@ -77,6 +87,16 @@ theorem hash_inj
 := by
   simp only [hash]
   grind
+
+@[simp]
+public
+theorem length_hash
+  [BytesLength] [BytesLength.Has SubF.length]
+  (inp: Bytes)
+  : Bytes.length (hash inp) = hashLength
+:= by
+  simp only [hash]
+  grind [Hash.SubF.length]
 
 end Constructors
 
