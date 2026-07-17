@@ -1031,7 +1031,6 @@ theorem keyLabelMyTurn_isCorrupt_implies
             previousTranscript.length ≤ 2 ∨
             StateCompromised me previousTranscript tr ∨
             StateCompromised me previousTranscript.tail tr ∨
-            StateCompromised recipient previousTranscript tr ∨
             StateCompromised recipient previousTranscript.tail tr ∨
             StateCompromised recipient previousTranscript.tail.tail tr
           )
@@ -1044,10 +1043,9 @@ theorem keyLabelMyTurn_isCorrupt_implies
   rewrite [keyLabelMyTurn_isCorrupt_eq] at h_corrupt
   by_cases ¬ (labelBeforeEvent (ltkLabel recipient) me recipient transcript).isCorrupt tr
   · left; grind
-  right
   cases h_corrupt
-  · exists transcript
-    grind
+  · left; grind
+  right
   rename_i h_corrupt
   obtain ⟨ h_key_corrupt, h_sig_corrupt ⟩ := h_corrupt
   by_cases (labelBeforeEvent (ltkLabel recipient) me recipient transcript.tail.tail).isCorrupt tr
@@ -1059,7 +1057,8 @@ theorem keyLabelMyTurn_isCorrupt_implies
     · by_cases transcript.length ≤ 2
       · exists transcript
         grind
-      exists transcript.tail.tail
+      -- in the following, `grind` does case splitting
+      -- and chooses between `exists transcript` and `exists transcript.tail.tail`!
       grind [List.tail_suffix]
     rename_i h
     obtain ⟨ previousTranscript, _, _ ⟩ := h
@@ -1088,7 +1087,6 @@ theorem keyLabelOtherTurn_isCorrupt_implies
             previousTranscript.length ≤ 2 ∨
             StateCompromised me previousTranscript tr ∨
             StateCompromised me previousTranscript.tail tr ∨
-            StateCompromised recipient previousTranscript tr ∨
             StateCompromised recipient previousTranscript.tail tr ∨
             StateCompromised recipient previousTranscript.tail.tail tr
           )
@@ -1105,9 +1103,7 @@ theorem keyLabelOtherTurn_isCorrupt_implies
   obtain ⟨ h_key_corrupt, h_sig_corrupt ⟩ := h_corrupt
   have := keyLabelMyTurn_isCorrupt_implies _ _ _ _ h_key_corrupt
   cases this
-  · right
-    exists transcript.tail
-    grind [List.tail_suffix]
+  · grind [List.tail_suffix]
   right
   grind [List.tail_suffix]
 

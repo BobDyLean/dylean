@@ -220,7 +220,6 @@ theorem secrecy_receiveUpdate_unfolded
             previousTranscript.length ≤ 2 ∨
             StateCompromised me previousTranscript tr ∨
             StateCompromised me previousTranscript.tail tr ∨
-            StateCompromised recipient previousTranscript tr ∨
             StateCompromised recipient previousTranscript.tail tr ∨
             StateCompromised recipient previousTranscript.tail.tail tr
           )
@@ -272,7 +271,6 @@ theorem secrecy_sendUpdate_unfolded
             previousTranscript.length ≤ 2 ∨
             StateCompromised me previousTranscript tr ∨
             StateCompromised me previousTranscript.tail tr ∨
-            StateCompromised recipient previousTranscript tr ∨
             StateCompromised recipient previousTranscript.tail tr ∨
             StateCompromised recipient previousTranscript.tail.tail tr
           )
