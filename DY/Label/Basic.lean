@@ -71,4 +71,9 @@ theorem canFlowTrans (l1: Label) (l2: Label) (l3: Label) (tr: ExecTrace):
     unfold Label.canFlow
     grind
 
+public
+abbrev Label.equivalent (l1: Label) (l2: Label) (tr: ExecTrace): Prop :=
+  l1.canFlow l2 tr ∧
+  l2.canFlow l1 tr
+
 end DY
