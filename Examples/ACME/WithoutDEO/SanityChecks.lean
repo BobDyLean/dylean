@@ -20,6 +20,7 @@ def honestAttacker: Traceful Unit := do
 
 #guard (honestAttacker.run Trace.nil).fst = some ()
 
+-- Future work: we could design a step-like tactic to automate this proof
 theorem honestAttacker_PreservesReachability
   : honestAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
 := by

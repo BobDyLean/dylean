@@ -38,6 +38,7 @@ def honestAttacker: Traceful Unit := do
 
 #guard (honestAttacker.run Trace.nil).fst = some ()
 
+-- Future work: we could design a step-like tactic to automate this proof
 theorem honestAttackerLoop_PreservesReachability
   (n: Nat) (aliceVkHandle aliceSkHandle bobVkHandle bobSkHandle aliceStHandle bobStHandle: Nat)
   : (honestAttackerLoop n aliceVkHandle aliceSkHandle bobVkHandle bobSkHandle aliceStHandle bobStHandle).PreservesReachability reachability (fun _ => True) (fun _ _ => True)
@@ -80,6 +81,7 @@ theorem honestAttackerLoop_PreservesReachability
   · assumption
   grind
 
+-- Future work: we could design a step-like tactic to automate this proof
 theorem honestAttacker_PreservesReachability
   : honestAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
 := by
@@ -159,6 +161,7 @@ def compromiseStateMyTurnAttacker: Traceful Unit := do
 
 #guard (compromiseStateMyTurnAttacker.run Trace.nil).fst = some ()
 
+-- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseStateMyTurnAttacker_PreservesReachability
   : compromiseStateMyTurnAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
 := by
@@ -252,6 +255,7 @@ def compromiseStateOtherTurnAttacker: Traceful Unit := do
 
 #guard (compromiseStateOtherTurnAttacker.run Trace.nil).fst = some ()
 
+-- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseStateOtherTurnAttacker_PreservesReachability
   : compromiseStateOtherTurnAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
 := by
@@ -388,6 +392,7 @@ def compromiseSigKeyAttacker: Traceful Unit := do
 
 #guard (compromiseSigKeyAttacker.run Trace.nil).fst = some ()
 
+-- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseSigKeyAttackerLoop_PreservesReachability
   (n: Nat)
   (aliceVkHandle aliceSkHandle bobVkHandle aliceStHandle: Nat)
@@ -487,6 +492,7 @@ theorem compromiseSigKeyAttackerLoop_PreservesReachability
   · assumption
   grind (ematch := 10)
 
+-- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseSigKeyAttacker_PreservesReachability
   : compromiseSigKeyAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
 := by

@@ -26,7 +26,7 @@ deriving DecidableEq
 
 end MerkleTreeStructures
 
--- this section could be metaprogrammed
+-- Future work: the following section is boilerplate that could be meta-programmed
 section MerkleTreeFormats
 
 def MerkleTreeNode.internalType (Bytes α: Type) : Fin 3 → Type
@@ -270,6 +270,7 @@ deriving Decidable
 
 end MerkleTreeDefs
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section ExecBytesConfig
 
 class HasExecBytes where
@@ -340,6 +341,7 @@ deriving DecidableEq
 
 end Structures
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section Formats
 
 open Comparse
@@ -416,6 +418,7 @@ grind_pattern [grind_later] ServerState.IsWellFormed_eq => IsWellFormed pre x tr
 
 end Formats
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section ExecTraceConfig
 
 class HasExecTrace extends HasExecBytes where
@@ -496,6 +499,7 @@ public section Reachability
 
 variable [HasExecTrace]
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 @[expose] public section
 def Server.authenticate.reachability: ReachabilityConfig := .make (fun (server, msgHandles, skHandle) => Server.authenticate server msgHandles skHandle)
 def Server.proveInclusion.reachability: ReachabilityConfig := .make (fun (server, i, stHandle) => Server.proveInclusion server i stHandle)

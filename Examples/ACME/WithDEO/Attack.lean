@@ -52,6 +52,7 @@ theorem liftM_parse_preserves_reachability
   simp only [Traceful.PreservesReachability, Traceful.PreservesReachabilityFrom, liftM, monadLift, MonadLift.monadLift, Traceful.run_mk]
   grind
 
+-- Future work: we could design a step-like tactic to automate this proof
 theorem attacker_PreservesReachability
   : attacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
 := by

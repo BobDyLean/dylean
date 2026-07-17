@@ -20,6 +20,7 @@ namespace DY.Example.Ratchet
 
 open DY.Comparse
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section ExecBytesConfig
 
 class HasExecBytes where
@@ -124,7 +125,7 @@ deriving DecidableEq
 
 end Structures
 
--- TODO: this section should be meta-programmable
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section Formats
 
 variable [HasExecBytes]
@@ -258,7 +259,7 @@ grind_pattern StateOtherTurn.IsWellFormed_eq => IsWellFormed pre x tr
 
 end Formats
 
--- TODO: a meta-program could divide this section length by 2
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section ExecTraceConfig
 
 class HasExecTrace extends HasExecBytes where
@@ -414,6 +415,7 @@ public section Reachability
 
 variable [HasExecTrace]
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 @[expose] public section
 def initiate.reachability: ReachabilityConfig := .make (fun (me, other, mySigKeyHandle) => initiate me other mySigKeyHandle)
 def processInitiate.reachability: ReachabilityConfig := .make (fun (me, other, otherVerifyKeyHandle, msgHandle) => processInitiate me other otherVerifyKeyHandle msgHandle)

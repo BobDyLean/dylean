@@ -8,7 +8,7 @@ namespace DY.Example.SignedDHKEM
 
 open DY.Comparse
 
--- TODO: this whole section should be meta-programmable
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section ProofTraceConfig
 
 class HasProofTrace extends HasExecTrace where
@@ -123,7 +123,7 @@ where
 
 end BytesInvariants
 
--- TODO: this whole section should be meta-programmable
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section BytesInvariantsConfig
 
 class HasBytesInvariants extends HasProofTrace where
@@ -285,7 +285,7 @@ where
 
 end TraceInvariant
 
--- TODO: this whole section should be meta-programmable
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section TraceInvariantConfig
 
 class HasTraceInvariant extends HasBytesInvariants where
@@ -484,6 +484,8 @@ section ReachabilityImpliesInvariant
 
 variable [HasTraceInvariant]
 
+-- Future work: the following section is boilerplate that could be meta-programmed
+section
 public instance: ReachableImpliesInvariant Client.initiate.reachability := .mk (fun me => Client.initiate.spec me)
 public instance: ReachableImpliesInvariant Server.receive.reachability := .mk (fun (me, skHandle, msgHandle) => Server.receive.spec me skHandle msgHandle)
 public instance: ReachableImpliesInvariant Client.finish.reachability := .mk (fun (me, server, pkHandle, msgHandle, dhStHandle, kemStHandle) => Client.finish.spec me server pkHandle msgHandle dhStHandle kemStHandle)
@@ -491,6 +493,7 @@ public instance: ReachableImpliesInvariant ClientInitiateDHState.compromise.reac
 public instance: ReachableImpliesInvariant ClientInitiateKEMState.compromise.reachability := .mk (fun (stHandle) => ClientInitiateKEMState.compromise.spec stHandle)
 public instance: ReachableImpliesInvariant ClientFinishState.compromise.reachability := .mk (fun (stHandle) => ClientFinishState.compromise.spec stHandle)
 public instance: ReachableImpliesInvariant ServerFinishState.compromise.reachability := .mk (fun (stHandle) => ServerFinishState.compromise.spec stHandle)
+end
 
 #combine into ReachabilityTheorem from
   Network,

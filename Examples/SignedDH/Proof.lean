@@ -9,7 +9,7 @@ namespace DY.Example.SignedDH
 
 open DY.Comparse
 
--- TODO: this whole section should be meta-programmable
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section ProofTraceConfig
 
 class HasProofTrace extends HasExecTrace where
@@ -103,7 +103,7 @@ where
 
 end BytesInvariants
 
--- TODO: this whole section should be meta-programmable
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section BytesInvariantsConfig
 
 class HasBytesInvariants extends HasProofTrace where
@@ -225,7 +225,7 @@ where
 
 end TraceInvariant
 
--- TODO: this whole section should be meta-programmable
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section TraceInvariantConfig
 
 class HasTraceInvariant extends HasBytesInvariants where

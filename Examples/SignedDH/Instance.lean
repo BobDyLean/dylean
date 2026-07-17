@@ -5,6 +5,7 @@ public import Examples.SignedDH.Proof
 
 namespace DY.Example.SignedDH
 
+-- Future work: the following section could avoid a lot of repetition
 public section
 
 #combine +toplevel into BytesFunctor, BytesLength, attackerKnowledge from

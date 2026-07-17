@@ -18,6 +18,7 @@ namespace DY.Example.ACME
 
 open DY.Comparse
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section ExecBytesConfig
 
 class HasExecBytes where
@@ -85,7 +86,7 @@ deriving DecidableEq
 
 end Structures
 
--- TODO: this section should be meta-programmable
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section Formats
 
 variable [HasExecBytes]
@@ -207,6 +208,7 @@ grind_pattern [grind_later] DNSEntry.IsWellFormed_eq => IsWellFormed pre x tr
 
 end Formats
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section ExecTraceConfig
 
 class HasExecTrace extends HasExecBytes where
@@ -311,6 +313,7 @@ public section Reachability
 
 variable [HasExecTrace]
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 @[expose] public section
 def Owner.generateKeyPair.reachability: ReachabilityConfig := .make (fun owner => Owner.generateKeyPair owner)
 def Owner.claimAddress.reachability: ReachabilityConfig := .make (fun (owner, address, oSkHandle) => Owner.claimAddress owner address oSkHandle)

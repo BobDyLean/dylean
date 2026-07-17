@@ -5,6 +5,7 @@ public import Examples.MerkleTree.Proof
 
 namespace DY.Example.MerkleTree
 
+-- Future work: the following section could avoid a lot of repetition
 public section
 
 #combine +toplevel into BytesFunctor, BytesLength, attackerKnowledge from

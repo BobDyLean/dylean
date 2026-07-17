@@ -8,6 +8,7 @@ namespace DY.Example.ACME.WithoutDEO
 
 open DY.Comparse
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section ExecBytesConfig
 
 class HasExecBytesWithoutDEO where
@@ -47,6 +48,7 @@ instance [HasExecBytesWithoutDEO]: HasExecBytes where
 
 end ExecBytesConfig
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section ExecTraceConfig
 
 -- same as HasExecTrace, but instead extends HasExecBytesWithoutDEO
@@ -77,7 +79,7 @@ instance [HasExecTraceWithoutDEO]: HasExecTrace where
 
 end ExecTraceConfig
 
--- TODO: this whole section should be meta-programmable
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section ProofTraceConfig
 
 class HasProofTrace extends HasExecTraceWithoutDEO where
@@ -120,6 +122,7 @@ where
 
 end BytesInvariants
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section BytesInvariantsConfig
 
 class HasBytesInvariants extends HasProofTrace where
@@ -229,7 +232,7 @@ where
 
 end TraceInvariant
 
--- TODO: this whole section should be meta-programmable
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section TraceInvariantConfig
 
 class HasTraceInvariant extends HasBytesInvariants where
@@ -408,6 +411,8 @@ section ReachabilityImpliesInvariant
 
 variable [HasTraceInvariant]
 
+-- Future work: the following section is boilerplate that could be meta-programmed
+section
 public instance: ReachableImpliesInvariant Owner.generateKeyPair.reachability := .mk (fun owner => Owner.generateKeyPair.spec owner)
 public instance: ReachableImpliesInvariant Owner.claimAddress.reachability := .mk (fun (owner, address, oSkHandle) => Owner.claimAddress.spec owner address oSkHandle)
 public instance: ReachableImpliesInvariant LetsEncrypt.initiate.reachability := .mk (fun (server, address, skHandle) => LetsEncrypt.initiate.spec server address skHandle)
@@ -417,6 +422,7 @@ public instance: ReachableImpliesInvariant OwnerKeyState.compromise.reachability
 public instance: ReachableImpliesInvariant OwnerAddressState.compromise.reachability := .mk (fun stHandle => OwnerAddressState.compromise.spec stHandle)
 public instance: ReachableImpliesInvariant LetsEncryptPendingChallengeState.compromise.reachability := .mk (fun stHandle => LetsEncryptPendingChallengeState.compromise.spec stHandle)
 public instance: ReachableImpliesInvariant DNSEntry.compromise.reachability := .mk (fun stHandle => DNSEntry.compromise.spec stHandle)
+end
 
 #combine into ReachabilityTheorem from
   Network,

@@ -8,7 +8,7 @@ namespace DY.Example.Ratchet
 
 open DY.Comparse
 
--- TODO: this whole section should be meta-programmable
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section ProofTraceConfig
 
 class HasProofTrace extends HasExecTrace where
@@ -353,7 +353,7 @@ where
 
 end BytesInvariants
 
--- TODO: this whole section should be meta-programmable
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section BytesInvariantsConfig
 
 class HasBytesInvariants extends HasProofTrace where
@@ -502,7 +502,7 @@ where
 
 end TraceInvariant
 
--- TODO: this whole section should be meta-programmable
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section TraceInvariantConfig
 
 class HasTraceInvariant extends HasBytesInvariants where
@@ -920,12 +920,15 @@ section ReachabilityImpliesInvariant
 
 variable [HasTraceInvariant]
 
+-- Future work: the following section is boilerplate that could be meta-programmed
+section
 public instance: ReachableImpliesInvariant initiate.reachability := .mk (fun (me, other, mySigKeyHandle) => initiate.spec me other mySigKeyHandle)
 public instance: ReachableImpliesInvariant processInitiate.reachability := .mk (fun (me, other, otherVerifKeyHandle, msgHandle) => processInitiate.spec me other otherVerifKeyHandle msgHandle)
 public instance: ReachableImpliesInvariant sendUpdate.reachability := .mk (fun (me, mySigKeyHandle, stHandle) => sendUpdate.spec me mySigKeyHandle stHandle)
 public instance: ReachableImpliesInvariant processUpdate.reachability := .mk (fun (me, otherVerifKeyHandle, stHandle, msgHandle) => processUpdate.spec me otherVerifKeyHandle stHandle msgHandle)
 public instance: ReachableImpliesInvariant StateMyTurn.compromise.reachability := .mk (fun (stHandle) => StateMyTurn.compromise.spec stHandle)
 public instance: ReachableImpliesInvariant StateOtherTurn.compromise.reachability := .mk (fun (stHandle) => StateOtherTurn.compromise.spec stHandle)
+end
 
 #combine into ReachabilityTheorem from
   Network,

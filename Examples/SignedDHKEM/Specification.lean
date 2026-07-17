@@ -19,6 +19,7 @@ namespace DY.Example.SignedDHKEM
 
 open DY.Comparse
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section ExecBytesConfig
 
 class HasExecBytes where
@@ -120,6 +121,7 @@ deriving DecidableEq
 
 end Structures
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section Formats
 
 variable [HasExecBytes]
@@ -268,6 +270,7 @@ grind_pattern ServerFinishState.IsWellFormed_eq => IsWellFormed pre x tr
 
 end Formats
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 public section ExecTraceConfig
 
 class HasExecTrace extends HasExecBytes where
@@ -445,6 +448,7 @@ public section Reachability
 
 variable [HasExecTrace]
 
+-- Future work: the following section is boilerplate that could be meta-programmed
 @[expose] public section
 def Client.initiate.reachability: ReachabilityConfig := .make (fun me => Client.initiate me)
 def Server.receive.reachability: ReachabilityConfig := .make (fun (me, skHandle, msgHandle) => Server.receive me skHandle msgHandle)

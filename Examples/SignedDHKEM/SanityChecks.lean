@@ -39,6 +39,7 @@ def honestAttacker: Traceful Unit := do
 
 #guard (honestAttacker.run Trace.nil).fst = some ()
 
+-- Future work: we could design a step-like tactic to automate this proof
 theorem honestAttacker_PreservesReachability
   : honestAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
 := by
@@ -131,6 +132,7 @@ def breakDhAndKemAttacker: Traceful Unit := do
 
 #guard (breakDhAndKemAttacker.run Trace.nil).fst = some ()
 
+-- Future work: we could design a step-like tactic to automate this proof
 theorem breakDhAndKemAttacker_PreservesReachability
   : breakDhAndKemAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
 := by
@@ -295,6 +297,7 @@ def breakSigKeyAttacker: Traceful Unit := do
 
 #guard (breakSigKeyAttacker.run Trace.nil).fst = some ()
 
+-- Future work: we could design a step-like tactic to automate this proof
 theorem breakSigKeyAttacker_PreservesReachability
   : breakSigKeyAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
 := by
