@@ -179,6 +179,7 @@ def minimum.aux (p: Nat → Prop) (i1 i2: Nat): Nat := by
   · exact minimum.aux p (i1+1) i2
 termination_by i2-i1
 
+omit [HasProofTrace] in
 theorem minimum.aux.thm
   (p: Nat → Prop) (i1 i2: Nat)
   : (∀ i, i < i1 → ¬ p i) →
@@ -188,7 +189,8 @@ theorem minimum.aux.thm
 := by
   fun_induction minimum.aux <;> grind
 
-def minimum
+omit [HasProofTrace] in
+theorem minimum
   (p: Nat → Prop) (i: Nat) (h: p i)
   : ∃ min, p min ∧ ∀ i', i' < min → ¬ p i'
 :=
@@ -318,7 +320,7 @@ theorem mkLongTermKeyUsage_inj:
 instance RatchetSignPred
   : Signature.SignPred
 where
-  pred skUsg vk msg tr :=
+  pred skUsg _ msg tr :=
     ∃ signer, skUsg = mkLongTermKeyUsage signer ∧ (
       match parse msg with
       | none => False
@@ -330,7 +332,7 @@ where
             tr.erase.EventLogged (RatchetEvent.SendUpdate signer (transcript.head h).recipient transcript k)
           ) ∧
           (∃ dhSk h, -- work around dhSkLabel :|
-            dhSk.WellFormed tr ∧ -- TODO
+            dhSk.WellFormed tr ∧ -- TODO could be removed?
             DiffieHellman.dh_pk dhSk = (transcript.head h).dhPk ∧
             dhSk.label tr = stateLabel signer transcript
           )
@@ -493,7 +495,6 @@ where
           )
         )).canFlow (k.label tr) tr.erase
        ) ∧
-      -- (keyLabelMyTurn me other transcript).canFlow (k.label tr) tr.erase ∧
       (
         tr.erase.EventLogged (RatchetEvent.SendUpdate other me transcript k) ∨
         (∃ spk, LongTermKeys.LongTermKeyCompromised "Ratchet PKI" other spk tr.erase)
