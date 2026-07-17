@@ -16,6 +16,9 @@ public import DY.ALaCarte.Basic
 public import DY.ALaCarte.DecidableEq
 public import DY.ALaCarte.Ordering
 public meta import DY.Meta.CombineMacro
+-- transitively import to check its proofs,
+-- not as a real dependency
+import DY.Bytes.NormalizationMetaTheory
 
 namespace DY
 
