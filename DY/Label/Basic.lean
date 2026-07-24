@@ -26,7 +26,6 @@ theorem Label.isCorruptLater_grind (l: Label) (tr1 tr2: ExecTrace):
 @[ext]
 public
 theorem Label.ext
-  [ExecTraceTypes]
   (l1 l2: Label)
   : (∀ tr: ExecTrace, l1.isCorrupt tr = l2.isCorrupt tr) →
   l1 = l2

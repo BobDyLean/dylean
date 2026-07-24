@@ -120,7 +120,7 @@ end AttackerKnowledge
 section Invariants
 
 variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [BytesFunctor]
 variable [ExecTraceTypes.Has ExecEntryT]
 variable [ProofTraceTypes.Has ProofEntryT]
 
@@ -162,6 +162,7 @@ theorem Random.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs
 public
 abbrev invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs invariants := Random.Random.invariantsProofs
 
+variable [BytesFunctor.Has SubF]
 variable [BytesInvariants] [BytesInvariants.Has invariants]
 
 theorem makeRand.Invariant

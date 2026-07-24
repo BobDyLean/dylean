@@ -411,10 +411,8 @@ end DiffieHellman'
 
 section ExtractDhSk
 
-variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor]
 variable [BytesFunctor.Has DiffieHellman'.SubF]
-variable [ExecTraceTypes.Has DiffieHellman'.Broken.ExecEntryT]
 
 noncomputable
 def DiffieHellman'.extractDhSk (pk: Bytes): Option Bytes :=
@@ -430,6 +428,9 @@ theorem DiffieHellman'.dh_pk_extractDhSk (b: Bytes):
 := by
   simp [extractDhSk, DiffieHellman'.dh_pk]
   grind
+
+variable [ExecTraceTypes] [ProofTraceTypes]
+variable [ExecTraceTypes.Has DiffieHellman'.Broken.ExecEntryT]
 
 theorem DiffieHellman'.extractDhSk.preserves_WellFormed
   [BytesInvariants] [BytesInvariants.Has DiffieHellman'.invariants]

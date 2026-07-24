@@ -458,10 +458,7 @@ end Signature'
 
 section ExtractSignKey
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor]
-variable [BytesFunctor.Has Signature'.SubF]
-variable [ExecTraceTypes.Has Signature'.Broken.ExecEntryT]
+variable [BytesFunctor] [BytesFunctor.Has Signature'.SubF]
 
 noncomputable
 def Signature'.extractSignkey (vk: Bytes): Option Bytes :=
@@ -478,8 +475,10 @@ theorem Signature'.vk_extractSignkey (b: Bytes):
   simp [extractSignkey, Signature'.vk]
   grind
 
+variable [ExecTraceTypes] [ProofTraceTypes]
+
 theorem Signature'.extractSignkey.preserves_WellFormed
-  [BytesInvariants] [Signature'.SignPred] [BytesInvariants.Has Signature'.invariants]
+  [ExecTraceTypes.Has Signature'.Broken.ExecEntryT] [BytesInvariants] [Signature'.SignPred] [BytesInvariants.Has Signature'.invariants]
 : ExtractPreservesWellFormed extractSignkey
 := by
   simp [ExtractPreservesWellFormed]
@@ -506,6 +505,7 @@ grind_pattern Bytes.SignkeyHasUsage'_vk => (Signature'.vk sk).SignkeyHasUsage' s
 public
 theorem Bytes.SignkeyHasUsage'_later
   [BytesInvariants] [BytesInvariantsProofs]
+  [ExecTraceTypes.Has Signature'.Broken.ExecEntryT]
   [Signature'.SignPred] [BytesInvariants.Has Signature'.invariants]
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
   : b.WellFormed tr1 →
@@ -521,6 +521,7 @@ grind_pattern Bytes.SignkeyHasUsage'_later => tr1 ≤ tr2, b.SignkeyHasUsage' us
 public
 theorem Bytes.SignkeyHasUsage'_later_fast
   [BytesInvariants] [BytesInvariantsProofs]
+  [ExecTraceTypes.Has Signature'.Broken.ExecEntryT]
   [Signature'.SignPred] [BytesInvariants.Has Signature'.invariants]
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
   : b.Invariant tr1 →
@@ -542,6 +543,7 @@ def Bytes.signkeyLabel'
 public
 theorem Bytes.signkeyLabel'_vk
   [BytesInvariants]
+  [ExecTraceTypes.Has Signature'.Broken.ExecEntryT]
   [Signature'.SignPred] [BytesInvariants.Has Signature'.invariants]
   (sk: Bytes) (tr: ProofTrace)
   : (Signature'.vk sk).signkeyLabel' tr = sk.label tr
@@ -554,6 +556,7 @@ grind_pattern Bytes.signkeyLabel'_vk => (Signature'.vk sk).signkeyLabel' tr
 public
 theorem Bytes.signkeyLabel'_later
   [BytesInvariants] [BytesInvariantsProofs]
+  [ExecTraceTypes.Has Signature'.Broken.ExecEntryT]
   [Signature'.SignPred] [BytesInvariants.Has Signature'.invariants]
   (b: Bytes) (tr1 tr2: ProofTrace)
   : b.WellFormed tr1 →
@@ -568,6 +571,7 @@ grind_pattern Bytes.signkeyLabel'_later => tr1 ≤ tr2, b.signkeyLabel' tr1
 public
 theorem Bytes.signkeyLabel'_later_fast
   [BytesInvariants] [BytesInvariantsProofs]
+  [ExecTraceTypes.Has Signature'.Broken.ExecEntryT]
   [Signature'.SignPred] [BytesInvariants.Has Signature'.invariants]
   (b: Bytes) (tr1 tr2: ProofTrace)
   : b.Invariant tr1 →

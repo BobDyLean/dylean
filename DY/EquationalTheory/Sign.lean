@@ -354,9 +354,7 @@ end Signature
 
 section ExtractSignKey
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor]
-variable [BytesFunctor.Has Signature.SubF]
+variable [BytesFunctor] [BytesFunctor.Has Signature.SubF]
 
 noncomputable
 def Signature.extractSignkey (vk: Bytes): Option Bytes :=
@@ -372,6 +370,8 @@ theorem Signature.vk_extractSignkey (b: Bytes):
 := by
   simp [extractSignkey, Signature.vk]
   grind
+
+variable [ExecTraceTypes] [ProofTraceTypes]
 
 theorem Signature.extractSignkey.preserves_WellFormed
   [BytesInvariants] [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
