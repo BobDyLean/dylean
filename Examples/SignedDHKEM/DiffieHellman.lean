@@ -298,6 +298,8 @@ end Broken
 
 section Invariants
 
+section Definition
+
 variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has DiffieHellman'.SubF]
 variable [ExecTraceTypes.Has Broken.ExecEntryT]
@@ -318,9 +320,15 @@ def DhPk.invariants: Bytes.PartialInvariants DhPk.SubF where
     (rec sk) tr
 
 public
-def DhPk.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs DhPk.invariants where
+theorem DhPk.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs DhPk.invariants where
+
+end Definition
 
 section DhPkLemmas
+
+variable [ExecTraceTypes] [ProofTraceTypes]
+variable [BytesFunctor] [BytesFunctor.Has DiffieHellman'.SubF]
+variable [ExecTraceTypes.Has Broken.ExecEntryT]
 
 variable [BytesInvariants] [BytesInvariants.Has DhPk.invariants]
 
@@ -355,6 +363,12 @@ theorem dh_pk.Invariant
 
 end DhPkLemmas
 
+section Definition
+
+variable [ExecTraceTypes] [ProofTraceTypes]
+variable [BytesFunctor] [BytesFunctor.Has DiffieHellman'.SubF]
+variable [ExecTraceTypes.Has Broken.ExecEntryT]
+
 public
 def Dh.invariants: Bytes.PartialInvariants Dh.SubF where
   well_formed := fun {pk, sk} rec tr =>
@@ -375,11 +389,13 @@ def Dh.invariants: Bytes.PartialInvariants Dh.SubF where
       (rec sk) tr
 
 public
-def Dh.invariantsProofs [BytesInvariants] [BytesInvariants.Has DhPk.invariants]: Bytes.PartialInvariantsProofs Dh.invariants where
+theorem Dh.invariantsProofs [BytesInvariants] [BytesInvariants.Has DhPk.invariants]: Bytes.PartialInvariantsProofs Dh.invariants where
   label_later := by
     intro _ x rec tr1 tr2
     cases x
     simp_all [DhPk.invariants, invariants, DY.ALaCarte.FunctorSizeOf.sizeOf, GetLabelLaterT] <;> grind
+
+end Definition
 
 #combine [BytesFunctor.Has SubF] [ExecTraceTypes.Has Broken.ExecEntryT] into
   BytesInvariants,

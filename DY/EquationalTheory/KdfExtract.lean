@@ -103,8 +103,10 @@ end AttackerKnowledge
 
 section Invariants
 
+section Definition
+
 variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [BytesFunctor]
 
 public
 def KdfExtract.invariants: Bytes.PartialInvariants KdfExtract.SubF where
@@ -120,13 +122,18 @@ def KdfExtract.invariants: Bytes.PartialInvariants KdfExtract.SubF where
     (rec salt) tr ∧ (rec ikm) tr
 
 public
-def KdfExtract.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs KdfExtract.invariants where
+theorem KdfExtract.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs KdfExtract.invariants where
+
+end Definition
 
 #combine into
   BytesInvariants,
   BytesInvariantsProofs
 from
   KdfExtract,
+
+variable [ExecTraceTypes] [ProofTraceTypes]
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 @[simp]
 public

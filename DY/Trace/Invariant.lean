@@ -82,7 +82,7 @@ theorem Trace.erase_length
 grind_pattern Trace.erase_length => tr.erase.length
 
 public
-def Trace.erase_at
+theorem Trace.erase_at
   [ExecTraceTypes] [ProofTraceTypes]
   (tr: ProofTrace)
   (i: Nat) (h_i: i < tr.erase.length)
@@ -96,7 +96,7 @@ def Trace.erase_at
 
 @[simp]
 public
-def Trace.prefix_erase
+theorem Trace.prefix_erase
   [ExecTraceTypes] [ProofTraceTypes]
   (tr: ProofTrace)
   (i: Nat)
@@ -463,6 +463,7 @@ macro_rules
       combineName := ``DY.ProofTraceTypes.combine
       internalOutTypeStx := fun _ _ => `(term| Type)
       outTypeStx := fun _ => `(term| Type)
+      isTheorem := false
     }
 
     let execInternalStx := Lean.mkIdent `ExecEntryT.internal

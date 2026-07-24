@@ -438,7 +438,7 @@ where
   invariant := Bytes.PartialFunction.combine (fun id => (invs id).invariant)
 
 public
-def Bytes.PartialInvariantsProofs.combine
+theorem Bytes.PartialInvariantsProofs.combine
   [BytesInvariants]
   {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
   {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
@@ -716,6 +716,7 @@ macro_rules
       refereeName := `SubF
       combineName := ``DY.Bytes.PartialInvariants.combine
       outTypeName := ``DY.Bytes.PartialInvariants
+      isTheorem := false
     }
 
     let hasStep ← mkHasStep hasStepParams sources <| .makeSimple {
@@ -743,6 +744,7 @@ macro_rules
       refereeName := `invariants
       combineName := ``DY.Bytes.PartialInvariantsProofs.combine
       outTypeName := ``DY.Bytes.PartialInvariantsProofs
+      isTheorem := true
     }
 
     let invariantsProofsStx := Lean.mkIdent `invariantsProofs

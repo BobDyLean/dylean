@@ -191,8 +191,10 @@ end AttackerKnowledge
 
 section Invariants
 
+section Definition
+
 variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has Signature.SubF]
+variable [BytesFunctor]
 
 public
 def Vk.invariants: Bytes.PartialInvariants Vk.SubF where
@@ -209,10 +211,14 @@ def Vk.invariants: Bytes.PartialInvariants Vk.SubF where
     (rec sk) tr
 
 public
-def Vk.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Vk.invariants where
+theorem Vk.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Vk.invariants where
+
+end Definition
 
 section VkLemmas
 
+variable [ExecTraceTypes] [ProofTraceTypes]
+variable [BytesFunctor] [BytesFunctor.Has Signature.SubF]
 variable [BytesInvariants] [BytesInvariants.Has Vk.invariants]
 
 @[simp]
@@ -241,6 +247,11 @@ theorem vk.Invariant
   simp [vk, Bytes.Invariant.eq, Vk.invariants]
 
 end VkLemmas
+
+section Definition
+
+variable [ExecTraceTypes] [ProofTraceTypes]
+variable [BytesFunctor]
 
 public
 class SignPred where
@@ -273,7 +284,7 @@ theorem SignPredProof.pred_later_fast
 grind_pattern [grind_later] SignPredProof.pred_later_fast => tr1 ≤ tr2, SignPred.pred skUsg vk msg tr1
 
 public
-def Sign.invariants [SignPred]: Bytes.PartialInvariants Sign.SubF where
+def Sign.invariants [BytesFunctor.Has Signature.SubF] [SignPred]: Bytes.PartialInvariants Sign.SubF where
   well_formed := fun {sk, nonce, msg} rec tr =>
       (rec sk) tr ∧
       (rec nonce) tr ∧
@@ -319,13 +330,15 @@ def Sign.invariants [SignPred]: Bytes.PartialInvariants Sign.SubF where
       )
 
 public
-def Sign.invariantsProofs [BytesInvariants] [BytesInvariants.Has Vk.invariants] [SignPred] [SignPredProof]: Bytes.PartialInvariantsProofs Sign.invariants where
+theorem Sign.invariantsProofs [BytesFunctor.Has Signature.SubF] [BytesInvariants] [BytesInvariants.Has Vk.invariants] [SignPred] [SignPredProof]: Bytes.PartialInvariantsProofs Sign.invariants where
   invariant_later := by
     intro _ _ _ _ x rec tr1 tr2
     cases x
     simp_all [invariants, DY.ALaCarte.FunctorSizeOf.sizeOf, BytesInvariantLaterT]
     -- TODO: grind set
     grind [vk.WellFormed]
+
+end Definition
 
 #combine [BytesFunctor.Has SubF] [SignPred] into
   BytesInvariants,

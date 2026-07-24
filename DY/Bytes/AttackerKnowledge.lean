@@ -174,7 +174,7 @@ public
 def Bytes.AttackerKnows [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge] (b: Bytes) (tr: ExecTrace): Prop :=
   Kleene.mkWeakestFixpoint ((Bytes.AttackerKnows.attackerKnowledge tr).pred) b
 
-def Bytes.AttackerKnows.attackerKnow.prove
+theorem Bytes.AttackerKnows.attackerKnow.prove
   [ExecTraceTypes]
   [BaseAttackerKnowledge] [AttackerKnowledge]
   {SubF: Type → Type}
@@ -189,7 +189,7 @@ def Bytes.AttackerKnows.attackerKnow.prove
   simp
   grind
 
-def Bytes.AttackerKnows.attackerKnow.prove_from_base
+theorem Bytes.AttackerKnows.attackerKnow.prove_from_base
   [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge]
   (p: Bytes → Prop)
   (b: Bytes) (tr: ExecTrace)
@@ -340,6 +340,7 @@ macro_rules
       refereeName := `SubF
       combineName := ``DY.SubAttackerKnowledge.combine
       outTypeName := ``DY.SubAttackerKnowledge
+      isTheorem := false
     }
 
     let hasStep ← mkHasStep params sources <| .makeSimple {
@@ -367,6 +368,7 @@ macro_rules
       combineName := ``DY.SubAttackerKnowledge.combine'
       internalOutTypeStx := fun args _ => `(term| DY.SubAttackerKnowledge ($subfStx $args*))
       outTypeStx := fun args => `(term| DY.SubAttackerKnowledge ($subfStx $args*))
+      isTheorem := false
     }
 
     let hasStep ← mkHasStep params sources <| .makeSimple {

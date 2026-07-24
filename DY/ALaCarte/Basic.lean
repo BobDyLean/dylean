@@ -330,7 +330,7 @@ def Container.fromFunctor
     grind [BareContainer.wf, Array.size_unattach, Array.mem_unattach]
   )
 
-def Container.intoFunctor_fromFunctor
+theorem Container.intoFunctor_fromFunctor
   {CtorId: Type} {ctors: Ctors CtorId}
   (x: FunctorRepr ctors (Container ctors))
   : Container.intoFunctor (Container.fromFunctor x) = x
@@ -339,7 +339,7 @@ def Container.intoFunctor_fromFunctor
   rewrite [Container.fromFunctor, Container.intoFunctor]
   simp [Array.attachWith_unattach]
 
-def Container.fromFunctor_intoFunctor
+theorem Container.fromFunctor_intoFunctor
   {CtorId: Type} {ctors: Ctors CtorId}
   (x: Container ctors)
   : Container.fromFunctor (Container.intoFunctor x) = x
@@ -700,7 +700,7 @@ theorem Container.PartialProof1.into
   exact pf x rec
 
 public
-def Container.PartialProof1.combine
+theorem Container.PartialProof1.combine
   {t: Type} [DecidableEq t]
   {functors: t → Type → Type} [∀ id, FunctorSizeOf (functors id)]
   {g: Type → Type} [FunctorSizeOf g] [Representable g]
@@ -750,7 +750,7 @@ theorem Container.PartialProof2.into
   exact pf x rec
 
 public
-def Container.PartialProof2.combine
+theorem Container.PartialProof2.combine
   {t: Type} [DecidableEq t]
   {functors: t → Type → Type} [∀ id, FunctorSizeOf (functors id)]
   {g: Type → Type} [FunctorSizeOf g] [Representable g]

@@ -367,6 +367,8 @@ end Broken
 
 section Invariants
 
+section Definition
+
 variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has KEM.SubF]
 variable [ExecTraceTypes.Has Broken.ExecEntryT]
@@ -387,10 +389,15 @@ def Pk.invariants: Bytes.PartialInvariants Pk.SubF where
     (rec sk) tr
 
 public
-def Pk.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Pk.invariants where
+theorem Pk.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Pk.invariants where
+
+end Definition
 
 section PkLemmas
 
+variable [ExecTraceTypes] [ProofTraceTypes]
+variable [BytesFunctor] [BytesFunctor.Has KEM.SubF]
+variable [ExecTraceTypes.Has Broken.ExecEntryT]
 variable [BytesInvariants] [BytesInvariants.Has Pk.invariants]
 
 @[simp]
@@ -556,6 +563,8 @@ namespace KEM
 
 section Invariants
 
+section Definition
+
 variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has KEM.SubF]
 
@@ -586,7 +595,7 @@ def Encap.invariants: Bytes.PartialInvariants Encap.SubF where
       )
 
 public
-def Encap.invariantsProofs [BytesInvariants] [ExecTraceTypes.Has Broken.ExecEntryT] [BytesInvariants.Has Pk.invariants]: Bytes.PartialInvariantsProofs Encap.invariants where
+theorem Encap.invariantsProofs [BytesInvariants] [ExecTraceTypes.Has Broken.ExecEntryT] [BytesInvariants.Has Pk.invariants]: Bytes.PartialInvariantsProofs Encap.invariants where
 
 public
 def SharedSecret.invariants: Bytes.PartialInvariants SharedSecret.SubF where
@@ -603,7 +612,9 @@ def SharedSecret.invariants: Bytes.PartialInvariants SharedSecret.SubF where
     (rec entropy) tr
 
 public
-def SharedSecret.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs SharedSecret.invariants where
+theorem SharedSecret.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs SharedSecret.invariants where
+
+end Definition
 
 #combine [BytesFunctor.Has SubF] [ExecTraceTypes.Has Broken.ExecEntryT] into
   BytesInvariants,
@@ -615,6 +626,8 @@ from
 
 section EncapLemmas
 
+variable [ExecTraceTypes] [ProofTraceTypes]
+variable [BytesFunctor] [BytesFunctor.Has KEM.SubF]
 variable [ExecTraceTypes.Has Broken.ExecEntryT]
 variable [BytesInvariants] [BytesInvariants.Has KEM.invariants]
 
@@ -639,6 +652,8 @@ end EncapLemmas
 
 section DecapLemmas
 
+variable [ExecTraceTypes] [ProofTraceTypes]
+variable [BytesFunctor] [BytesFunctor.Has KEM.SubF]
 variable [ExecTraceTypes.Has Broken.ExecEntryT]
 variable [BytesInvariants] [BytesInvariants.Has KEM.invariants]
 

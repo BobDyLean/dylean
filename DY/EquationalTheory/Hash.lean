@@ -131,8 +131,10 @@ end AttackerKnowledge
 
 section Invariants
 
+section Definition
+
 variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [BytesFunctor]
 
 public
 def Hash.invariants: Bytes.PartialInvariants Hash.SubF where
@@ -148,7 +150,9 @@ def Hash.invariants: Bytes.PartialInvariants Hash.SubF where
     (rec input) tr
 
 public
-def Hash.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Hash.invariants where
+theorem Hash.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Hash.invariants where
+
+end Definition
 
 #combine into
   BytesInvariants,
@@ -156,6 +160,8 @@ def Hash.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Hash.
 from
   Hash,
 
+variable [ExecTraceTypes] [ProofTraceTypes]
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 variable [BytesInvariants] [BytesInvariants.Has invariants]
 
 @[simp]

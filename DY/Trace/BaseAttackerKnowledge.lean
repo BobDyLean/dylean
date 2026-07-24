@@ -150,6 +150,7 @@ macro_rules
       refereeName := `ExecEntryT
       combineName := ``DY.SubBaseAttackerKnowledge.combine
       outTypeName := ``DY.SubBaseAttackerKnowledge
+      isTheorem := false
     }
 
 

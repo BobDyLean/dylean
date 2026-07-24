@@ -286,6 +286,8 @@ end Broken
 
 section Invariants
 
+section Definition
+
 variable [ExecTraceTypes] [ProofTraceTypes]
 variable [BytesFunctor] [BytesFunctor.Has Signature'.SubF]
 variable [ExecTraceTypes.Has Broken.ExecEntryT]
@@ -306,10 +308,15 @@ def Vk.invariants: Bytes.PartialInvariants Vk.SubF where
     (rec sk) tr
 
 public
-def Vk.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Vk.invariants where
+theorem Vk.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Vk.invariants where
+
+end Definition
 
 section VkLemmas
 
+variable [ExecTraceTypes] [ProofTraceTypes]
+variable [BytesFunctor] [BytesFunctor.Has Signature'.SubF]
+variable [ExecTraceTypes.Has Broken.ExecEntryT]
 variable [BytesInvariants] [BytesInvariants.Has Vk.invariants]
 
 @[simp]
@@ -341,6 +348,11 @@ theorem vk.Invariant
 
 end VkLemmas
 
+section Definition
+
+variable [ExecTraceTypes] [ProofTraceTypes]
+variable [BytesFunctor]
+
 public
 class SignPred where
   pred: [BytesWellFormed] → [GetUsage] → [GetLabel] → Usage → Bytes → Bytes → ProofTrace → Prop
@@ -370,6 +382,8 @@ theorem SignPredProof.pred_later_fast
 := by grind
 
 grind_pattern [grind_later] SignPredProof.pred_later_fast => tr1 ≤ tr2, SignPred.pred skUsg vk msg tr1
+
+variable [BytesFunctor.Has Signature'.SubF]
 
 public
 def Sign.invariants [SignPred]: Bytes.PartialInvariants Sign.SubF where
@@ -417,14 +431,18 @@ def Sign.invariants [SignPred]: Bytes.PartialInvariants Sign.SubF where
         )
       )
 
+variable [ExecTraceTypes.Has Broken.ExecEntryT]
+
 public
-def Sign.invariantsProofs [BytesInvariants] [BytesInvariants.Has Vk.invariants] [SignPred] [SignPredProof]: Bytes.PartialInvariantsProofs Sign.invariants where
+theorem Sign.invariantsProofs [BytesInvariants] [BytesInvariants.Has Vk.invariants] [SignPred] [SignPredProof]: Bytes.PartialInvariantsProofs Sign.invariants where
   invariant_later := by
     intro _ _ _ _ x rec tr1 tr2
     cases x
     simp_all [invariants, DY.ALaCarte.FunctorSizeOf.sizeOf, BytesInvariantLaterT]
     -- TODO: grind set
     grind [vk.WellFormed]
+
+end Definition
 
 #combine [BytesFunctor.Has SubF] [SignPred] [ExecTraceTypes.Has Broken.ExecEntryT] into
   BytesInvariants,

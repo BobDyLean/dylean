@@ -224,7 +224,7 @@ end
 /-
   Sanity check: computing the root hash from an inclusion proof yields the correct root hash.
 -/
-def inclusionProofToRootHash_mkInclusionProof_correct
+theorem inclusionProofToRootHash_mkInclusionProof_correct
   {Bytes: Type}
   [Comparse.BytesLike Bytes] [DY.Hash.CanHash Bytes]
   {α: Type} (mf: Comparse.ExtensibleMessageFormat Bytes α)
@@ -243,7 +243,7 @@ def inclusionProofToRootHash_mkInclusionProof_correct
   This shows why when checking the inclusion proof,
   we must check that the index is in bounds of the (claimed) list length.
 -/
-def inclusionProofToRootHash_mkInclusionProof_outOfBounds
+theorem inclusionProofToRootHash_mkInclusionProof_outOfBounds
   {Bytes: Type}
   [Comparse.BytesLike Bytes] [DY.Hash.CanHash Bytes]
   {α: Type} (mf: Comparse.ExtensibleMessageFormat Bytes α)

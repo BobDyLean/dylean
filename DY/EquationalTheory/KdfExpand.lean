@@ -105,6 +105,7 @@ end AttackerKnowledge
 
 section Invariants
 
+section Definition
 public
 class KdfExpandInvariant [ExecTraceTypes] [BytesFunctor] where
   usage (prkUsage: Usage) (info: Bytes): Usage
@@ -114,7 +115,7 @@ class KdfExpandInvariant [ExecTraceTypes] [BytesFunctor] where
     := by grind
 
 variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [BytesFunctor]
 
 public
 def KdfExpand.invariants [KdfExpandInvariant] : Bytes.PartialInvariants KdfExpand.SubF where
@@ -131,13 +132,18 @@ def KdfExpand.invariants [KdfExpandInvariant] : Bytes.PartialInvariants KdfExpan
     (rec prk) tr ∧ (rec info) tr
 
 public
-def KdfExpand.invariantsProofs [BytesInvariants] [KdfExpandInvariant]: Bytes.PartialInvariantsProofs KdfExpand.invariants where
+theorem KdfExpand.invariantsProofs [BytesInvariants] [KdfExpandInvariant]: Bytes.PartialInvariantsProofs KdfExpand.invariants where
+
+end Definition
 
 #combine [KdfExpandInvariant] into
   BytesInvariants,
   BytesInvariantsProofs
 from
   KdfExpand,
+
+variable [ExecTraceTypes] [ProofTraceTypes]
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 
 @[simp]
 public

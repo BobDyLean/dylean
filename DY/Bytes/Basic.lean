@@ -281,7 +281,7 @@ theorem Bytes.Proof1.prove
   ALaCarte.Container.rec (ALaCarte.Container.PartialProof1.into pf) x
 
 public
-def Bytes.PartialProof1.combine
+theorem Bytes.PartialProof1.combine
   {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
   {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
   {a: Type}
@@ -315,7 +315,7 @@ theorem Bytes.Proof2.prove
   ALaCarte.Container.rec (ALaCarte.Container.PartialProof2.into pf) x
 
 public
-def Bytes.PartialProof2.combine
+theorem Bytes.PartialProof2.combine
   {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
   {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
   {a: Type} {b: Type}
@@ -423,6 +423,7 @@ macro_rules
       combineName := ``DY.BytesFunctor.combine
       internalOutTypeStx := fun _ _ => `(term| Type → Type)
       outTypeStx := fun _ => `(term| Type → Type)
+      isTheorem := false
     }
 
     let typeclass ← combineTypeclass params sources <| .makeSimple {
@@ -456,6 +457,7 @@ macro_rules
       refereeName := `SubF
       combineName := ``DY.Bytes.PartialLength.combine
       outTypeName := `DY.Bytes.PartialLength
+      isTheorem := false
     }
 
     let hasStep ← mkHasStep params sources <| .makeSimple {

@@ -58,6 +58,7 @@ structure CombineExplicitConfig where
   internalOutTypeStx: (args: TSyntaxArray `term) → (id: TSyntax `term) → MacroM (TSyntax `term)
   -- e.g. Foo (Bar $args*)
   outTypeStx: (args: TSyntaxArray `term) → MacroM (TSyntax `term)
+  isTheorem: Bool
 
 public meta
 structure CombineExplicitSimpleConfig where
@@ -65,6 +66,7 @@ structure CombineExplicitSimpleConfig where
   refereeName: Name
   combineName: Name
   outTypeName: Name
+  isTheorem: Bool
 
 public meta
 def CombineExplicitConfig.makeSimple (config: CombineExplicitSimpleConfig): CombineExplicitConfig :=
@@ -78,6 +80,7 @@ def CombineExplicitConfig.makeSimple (config: CombineExplicitSimpleConfig): Comb
       `(term| $outTypeStx ($refInternalStx $args* $id))
     outTypeStx := fun args =>
       `(term| $outTypeStx ($refStx $args*))
+    isTheorem := config.isTheorem
   }
 
 public meta
@@ -94,20 +97,36 @@ def combineExplicit (params: TSyntaxArray `Lean.Parser.Term.bracketedBinder) (so
   let nSourcesStx: TSyntax `term := quote sources.size
   let internalNameStx := mkIdent (config.name ++ `internal)
   let internalOutTypeStx ← config.internalOutTypeStx argsTarget (← `(ident| id))
-  let defInternalStx ← `(command|
-    @[expose]
-    public
-    def $internalNameStx $params*: (id: Fin $nSourcesStx) → $internalOutTypeStx := fun $arms:matchAlt*
-  )
+  -- TODO: how to avoid duplication below?
+  let defInternalStx ←
+    if config.isTheorem then
+      `(command|
+        public
+        theorem $internalNameStx $params*: (id: Fin $nSourcesStx) → $internalOutTypeStx := fun $arms:matchAlt*
+      )
+    else
+      `(command|
+        @[expose]
+        public
+        def $internalNameStx $params*: (id: Fin $nSourcesStx) → $internalOutTypeStx := fun $arms:matchAlt*
+      )
 
   let nameStx := mkIdent config.name
   let combineStx := mkIdent config.combineName
   let outTypeStx ← config.outTypeStx argsTarget
-  let defStx ← `(command|
-    @[expose, implicit_reducible]
-    public
-    def $nameStx $params*: $outTypeStx := $combineStx ($internalNameStx $argsTarget*)
-  )
+  -- TODO: how to avoid duplication below?
+  let defStx ←
+    if config.isTheorem then
+      `(command|
+        public
+        theorem $nameStx $params*: $outTypeStx := $combineStx ($internalNameStx $argsTarget*)
+      )
+    else
+      `(command|
+        @[expose, implicit_reducible]
+        public
+        def $nameStx $params*: $outTypeStx := $combineStx ($internalNameStx $argsTarget*)
+      )
 
   return #[defInternalStx, defStx]
 
@@ -171,9 +190,8 @@ def combineTypeclass (params: TSyntaxArray `Lean.Parser.Term.bracketedBinder) (s
   let freshInstanceInternalName ← withFreshMacroScope `(declId| wfInstInternal)
   let outTypeInternalStx ← config.internalIdStx argsTarget (← `(ident| id))
   let wfStxInternal ← `(command|
-    @[expose, implicit_reducible, instance]
     public
-    def $freshInstanceInternalName $params*: ∀ id, $outTypeInternalStx
+    instance (priority := default) $freshInstanceInternalName $params*: ∀ id, $outTypeInternalStx
       $arms:matchAlt*
   )
 
@@ -187,9 +205,8 @@ def combineTypeclass (params: TSyntaxArray `Lean.Parser.Term.bracketedBinder) (s
       -- option to work around issue in SubBaseAttackerKnowledgeTheorem
       `(term| (inferInstance: ($combineTypeStx)))
   let wfStx ← `(command|
-    @[expose, implicit_reducible, instance]
     public
-    def $freshInstanceName $params*: $outTypeStx :=
+    instance (priority := default) $freshInstanceName $params*: $outTypeStx :=
       $wfStxAux
   )
 
@@ -233,9 +250,8 @@ def mkHasStep (params: TSyntaxArray `Lean.Parser.Term.bracketedBinder) (sources:
     let hasStepSourceStx ← config.sourceInstanceStx argsTarget (quote i)
     let hasStepTargetStx ← config.targetInstanceStx nameSource argsSource argsTarget
     let inst ← `(command|
-      @[expose, implicit_reducible, instance]
       public
-      def $freshInstanceName $params* : $hasStepTargetStx :=
+      instance (priority := default) $freshInstanceName $params* : $hasStepTargetStx :=
         inferInstanceAs ($hasStepSourceStx)
     )
     cmds := cmds.push inst
@@ -265,9 +281,8 @@ def mkHasCombine (params: TSyntaxArray `Lean.Parser.Term.bracketedBinder) (confi
   let hasCombineStx ← config.hasCombineStx argsTarget
   let hasStx ← config.hasStx argsTarget
   let hasCombineInstStx ← `(command|
-      @[expose, implicit_reducible, instance]
       public
-      def $freshInstanceName $params* [$hasStx]: $hasCombineStx :=
+      instance (priority := default) $freshInstanceName $params* [$hasStx]: $hasCombineStx :=
         inferInstanceAs ($hasStx)
   )
   return #[hasCombineInstStx]

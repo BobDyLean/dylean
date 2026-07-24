@@ -191,8 +191,10 @@ end AttackerKnowledge
 
 section Invariants
 
+section Definition
+
 variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [BytesFunctor]
 
 public
 def Concat.invariants: Bytes.PartialInvariants Concat.SubF where
@@ -208,7 +210,9 @@ def Concat.invariants: Bytes.PartialInvariants Concat.SubF where
     (rec lhs) tr ∧ (rec rhs) tr
 
 public
-def Concat.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Concat.invariants where
+theorem Concat.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Concat.invariants where
+
+end Definition
 
 #combine into
   BytesInvariants,
@@ -216,6 +220,9 @@ def Concat.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Con
 from
   Concat,
 
+
+variable [ExecTraceTypes] [ProofTraceTypes]
+variable [BytesFunctor] [BytesFunctor.Has SubF]
 variable [BytesLength]
 
 @[simp]

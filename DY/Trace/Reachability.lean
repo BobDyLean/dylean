@@ -194,6 +194,7 @@ macro_rules
       combineName := ``DY.ReachabilityConfig.combine
       internalOutTypeStx := fun _ _ => `(term| ReachabilityConfig)
       outTypeStx := fun _ => `(term| ReachabilityConfig)
+      isTheorem := false
     }
 
     let hasStep ← mkHasStep params sources <| .makeSimple {

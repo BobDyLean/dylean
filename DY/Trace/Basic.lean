@@ -21,8 +21,6 @@ public
 instance {α: Type}: LE (Trace α) where
   le := Trace.le
 
-#check Trace.le.recOn
-
 public
 theorem Trace.induct_le {α : Type} {tr1 : Trace α} {motive : (tr2: Trace α) → tr1 ≤ tr2 → Prop} {tr2 : Trace α} (t : tr1 ≤ tr2)
  (equal : motive tr1 (.equal _)) (extend : ∀ (tr2 : Trace α) (e : α) (a : tr1 ≤ tr2), motive tr2 a → motive (tr2.snoc e) (.extend _ _ _ a)) :
@@ -67,7 +65,7 @@ def Trace.append
   .snoc tr (TraceEntryHas.inj entry)
 
 public
-def Trace.append_le
+theorem Trace.append_le
   {EntryT α: Type} [TraceEntryHas EntryT α]
   (tr: Trace α) (entry: EntryT)
   : tr ≤ tr.append entry
@@ -395,6 +393,7 @@ macro_rules
       combineName := ``DY.ExecTraceTypes.combine
       internalOutTypeStx := fun _ _ => `(term| Type)
       outTypeStx := fun _ => `(term| Type)
+      isTheorem := false
     }
 
     let hasStep ← mkHasStep params sources <| .makeSimple {
