@@ -33,8 +33,6 @@ abbrev is_knowable_by (b: Bytes) (l: Label) (tr: ProofTrace): Prop :=
   b.Invariant tr ∧
   (b.label tr).canFlow l tr.erase
 
-set_option trace.Step true
-
 instance:
   HoareTriple
     (pure x: Traceful a)
@@ -109,8 +107,6 @@ example:
   step
   step
   grind
-
-set_option trace.Step false
 
 -- Test mark_non_monotone (hypothesis h_msg1 must be dropped)
 
