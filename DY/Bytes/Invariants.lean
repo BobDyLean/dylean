@@ -19,7 +19,6 @@ variable [ExecTraceTypes] [ProofTraceTypes]
 
 -- Well formed
 
-@[expose]
 public
 abbrev BytesWellFormedT := ProofTrace → Prop
 
@@ -92,7 +91,6 @@ def Usage.nothing: Usage where
   tag := ""
   data := none
 
-@[expose]
 public
 abbrev GetUsageT := ProofTrace → Usage
 
@@ -153,7 +151,6 @@ grind_pattern Bytes.usage_later => Bytes.usage b tr1, tr1 ≤ tr2
 
 -- Label
 
-@[expose]
 public
 abbrev GetLabelT := ProofTrace → Label
 
@@ -214,7 +211,6 @@ grind_pattern Bytes.label_later => Bytes.label b tr1, tr1 ≤ tr2
 
 -- Invariant
 
-@[expose]
 public
 abbrev BytesInvariantT := ProofTrace → Prop
 

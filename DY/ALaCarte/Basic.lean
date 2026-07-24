@@ -285,7 +285,6 @@ decreasing_by
 /--
   `Container ctors` is a type that is, by construction, isomorphic to `FunctorRepr ctors (Container ctors)`.
 -/
-@[expose]
 public
 abbrev Container {CtorId} (ctors: Ctors CtorId): Type :=
   Subtype (BareContainer.wf (ctors := ctors))
