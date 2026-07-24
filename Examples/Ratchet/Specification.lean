@@ -301,7 +301,7 @@ instance: LongTermKeys.ExecConfig "Ratchet PKI" Signature.vk where
 
 def initiate (me other: Participant) (mySigKeyHandle: Nat): Traceful (Nat × Nat) := do
   let dhSk ← Random.genRand 32
-  let dhPk := DiffieHellman.dh_pk dhSk
+  let dhPk := DiffieHellman.dhPk dhSk
 
   let transcriptElement: TranscriptElement := { recipient := other, dhPk }
   let transcript := [transcriptElement]
@@ -338,7 +338,7 @@ def processInitiate (me other: Participant) (otherVerifKeyHandle: Nat) (msgHandl
 def sendUpdate (me: Participant) (mySigKeyHandle: Nat) (stHandle: Nat): Traceful (Nat × Nat) := do
   let st: StateMyTurn ← PersistentLocalState.getLocalState me stHandle
   let dhSk ← Random.genRand 32
-  let dhPk := DiffieHellman.dh_pk dhSk
+  let dhPk := DiffieHellman.dhPk dhSk
 
   let transcriptElement: TranscriptElement := { recipient := st.recipient, dhPk }
   let transcript := transcriptElement::st.transcript

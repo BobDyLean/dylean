@@ -340,7 +340,7 @@ def compromiseSigKeyAttackerLoop (n: Nat) (aliceVkHandle aliceSkHandle bobVkHand
   if n = 0 then return () else
 
   let bobDhSk := Literal.literalToBytes "00000000000000000000000000000000".toByteArray
-  let bobDhPk := DiffieHellman.dh_pk bobDhSk
+  let bobDhPk := DiffieHellman.dhPk bobDhSk
 
   let transcriptElement: TranscriptElement := { recipient := "Alice", dhPk := bobDhPk }
   let transcriptHash := computeTranscriptHash transcriptHash transcriptElement
@@ -411,7 +411,7 @@ theorem compromiseSigKeyAttackerLoop_PreservesReachability
   intro bobDhSk
   have: bobDhSk.AttackerKnows tr := by apply Literal.attacker_knows_literalToBytes
   intro bobDhPk
-  have: bobDhPk.AttackerKnows tr := by apply DiffieHellman.attacker_knows_dh_pk; grind
+  have: bobDhPk.AttackerKnows tr := by apply DiffieHellman.attacker_knows_dhPk; grind
   intro transcriptElement
   intro transcriptHash
   have: transcriptHash.AttackerKnows tr := by

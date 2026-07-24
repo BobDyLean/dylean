@@ -37,13 +37,13 @@ public section BytesInvariants
 
 variable [HasProofTrace]
 
-def client_label
+def clientLabel
   (me: Participant) (xPk: Bytes)
   : Label
 where
   isCorrupt tr := ClientEphemeralStateCompromised me xPk tr
 
-def server_label
+def serverLabel
   (me: Participant) (yPk: Bytes)
   : Label
 where
@@ -60,30 +60,30 @@ instance : ParseableSerializeable LongTermKeyUsage := .make <|
 
 
 @[grind]
-def mk_long_term_usage (me: Participant): Usage := {
+def mkLongTermUsage (me: Participant): Usage := {
   type := "SigKey",
   tag := "SignedDH PKI",
   data := serialize ({ principal := me }: LongTermKeyUsage)
 }
 
 @[grind inj]
-theorem mk_long_term_usage_inj:
-  Function.Injective mk_long_term_usage
+theorem mkLongTermUsage_inj:
+  Function.Injective mkLongTermUsage
   := by
-    simp [Function.Injective, mk_long_term_usage]
+    simp [Function.Injective, mkLongTermUsage]
     grind
 
 instance SignedDHSignPred
   : Signature.SignPred
 where
   pred skUsg _vk msg tr :=
-    ∃ server, skUsg = mk_long_term_usage server ∧ (
+    ∃ server, skUsg = mkLongTermUsage server ∧ (
       match parse msg with
       | none => False
       | some (msg: SigInput) => (
         ∃ ySk,
-          msg.yPk = DiffieHellman.dh_pk ySk ∧
-          ySk.label tr = server_label server msg.yPk ∧
+          msg.yPk = DiffieHellman.dhPk ySk ∧
+          ySk.label tr = serverLabel server msg.yPk ∧
           tr.erase.EventLogged (SignedDHEvent.ServerFinishEvent server msg.xPk msg.yPk (Hash.hash (DiffieHellman.dh msg.xPk ySk)))
       )
     )
@@ -99,7 +99,7 @@ where
     intro _ _ _ _ _ _ _ _ _ _ _
     intro ⟨ server, h ⟩
     exists server
-    grind [DiffieHellman.dh_pk.WellFormed]
+    grind [DiffieHellman.dhPk.WellFormed]
 
 end BytesInvariants
 
@@ -135,15 +135,15 @@ instance ClientInitiateStateInv : PersistentLocalState.CompromisableLocalStateIn
 where
   invariant me st tr :=
     let { xPk, xSk } := st
-    xPk = DiffieHellman.dh_pk xSk ∧
+    xPk = DiffieHellman.dhPk xSk ∧
     xPk.Publishable tr ∧
     xSk.Invariant tr ∧
-    xSk.label tr = client_label me xPk
+    xSk.label tr = clientLabel me xPk
   invariant_later := by grind
   invariant_implies_KnowableBy participant state tr := by
-    have: (client_label participant state.xPk).canFlow (PersistentLocalState.label participant state) tr.erase := by
+    have: (clientLabel participant state.xPk).canFlow (PersistentLocalState.label participant state) tr.erase := by
       cases state
-      simp [Label.canFlow, client_label, ClientEphemeralStateCompromised]
+      simp [Label.canFlow, clientLabel, ClientEphemeralStateCompromised]
       grind
     grind [canFlowTrans]
 
@@ -166,12 +166,12 @@ where
     let { xPk, kC } := st
     xPk.Publishable tr ∧
     kC.Invariant tr ∧
-    (kC.label tr).canFlow (client_label me xPk) tr.erase
+    (kC.label tr).canFlow (clientLabel me xPk) tr.erase
   invariant_later := by grind
   invariant_implies_KnowableBy participant state tr := by
-    have: (client_label participant state.xPk).canFlow (PersistentLocalState.label participant state) tr.erase := by
+    have: (clientLabel participant state.xPk).canFlow (PersistentLocalState.label participant state) tr.erase := by
       cases state
-      simp [Label.canFlow, client_label, ClientEphemeralStateCompromised]
+      simp [Label.canFlow, clientLabel, ClientEphemeralStateCompromised]
       grind
     grind [canFlowTrans]
 
@@ -181,22 +181,22 @@ where
     let { yPk, kS } := st
     yPk.Publishable tr ∧
     kS.Invariant tr ∧
-    (kS.label tr).canFlow (server_label me yPk) tr.erase
+    (kS.label tr).canFlow (serverLabel me yPk) tr.erase
   invariant_later := by grind
   invariant_implies_KnowableBy participant state tr := by
-    have: (server_label participant state.yPk).canFlow (PersistentLocalState.label participant state) tr.erase := by
+    have: (serverLabel participant state.yPk).canFlow (PersistentLocalState.label participant state) tr.erase := by
       cases state
-      simp [Label.canFlow, server_label, ServerEphemeralStateCompromised]
+      simp [Label.canFlow, serverLabel, ServerEphemeralStateCompromised]
       grind
     grind [canFlowTrans]
 
 @[grind]
-instance : LongTermKeys.ProofConfig "SignedDH PKI" mk_long_term_usage (LongTermKeys.label "SignedDH PKI")
+instance : LongTermKeys.ProofConfig "SignedDH PKI" mkLongTermUsage (LongTermKeys.label "SignedDH PKI")
 where
   IsLongTermPublicKey who vk tr :=
     vk.Publishable tr ∧
     vk.signkeyLabel tr = LongTermKeys.label "SignedDH PKI" who vk ∧
-    vk.SignkeyHasUsage (mk_long_term_usage who) tr
+    vk.SignkeyHasUsage (mkLongTermUsage who) tr
 
   IsLongTermPublicKey_implied := by
     simp_all [Bytes.Publishable]
@@ -208,18 +208,18 @@ where
     match ev with
     | SignedDHEvent.ClientInitiateEvent client xPk => (
       xPk.Invariant tr ∧
-      xPk.dhSkLabel tr = client_label client xPk
+      xPk.dhSkLabel tr = clientLabel client xPk
     )
     | SignedDHEvent.ServerFinishEvent server xPk yPk kS => (
       kS.Invariant tr ∧
       xPk.Invariant tr ∧
-      kS.label tr = (server_label server yPk).join (xPk.dhSkLabel tr)
+      kS.label tr = (serverLabel server yPk).join (xPk.dhSkLabel tr)
     )
     | SignedDHEvent.ClientFinishEvent client server xPk yPk kC => (
       (
         tr.erase.EventLogged (SignedDHEvent.ServerFinishEvent server xPk yPk kC) ∧
         kC.Invariant tr ∧
-        kC.label tr = (client_label client xPk).join (server_label server yPk)
+        kC.label tr = (clientLabel client xPk).join (serverLabel server yPk)
       ) ∨ (∃ spk, (LongTermKeys.label "SignedDH PKI" server spk).isCorrupt tr.erase)
     )
 
@@ -278,7 +278,7 @@ theorem Client.initiate.spec (me: Participant):
 := by
   apply HoareTriple.mk
   unfold Client.initiate
-  step with ⟨ fun xSk => client_label me (DiffieHellman.dh_pk xSk), Usage.nothing ⟩
+  step with ⟨ fun xSk => clientLabel me (DiffieHellman.dhPk xSk), Usage.nothing ⟩
   step
   step
   step by
@@ -301,7 +301,7 @@ theorem Server.receive.spec (me: Participant) (skHandle: Nat) (msgHandle: Nat):
   step
   step_intro
   step
-  step with ⟨ fun ySk => server_label me (DiffieHellman.dh_pk ySk), Usage.nothing ⟩
+  step with ⟨ fun ySk => serverLabel me (DiffieHellman.dhPk ySk), Usage.nothing ⟩
   step
   hoist
   step
@@ -311,7 +311,7 @@ theorem Server.receive.spec (me: Participant) (skHandle: Nat) (msgHandle: Nat):
   step_intro
   step_intro -- interesting stuff: we will prove things on `sig` later on, because we need to log the event before
   step
-  step_let sig with ⟨ mk_long_term_usage me ⟩
+  step_let sig with ⟨ mkLongTermUsage me ⟩
   step by
     simp only [PersistentLocalState.LocalStateInv.invariant]
     grind
@@ -335,7 +335,7 @@ theorem Client.finish.spec (me: Participant) (server: Participant) (pkHandle: Na
   step
   split
   step
-  step with ⟨ mk_long_term_usage server ⟩ by
+  step with ⟨ mkLongTermUsage server ⟩ by
     simp_all only [PersistentLocalState.LocalStateInv.invariant]
     grind
   hoist

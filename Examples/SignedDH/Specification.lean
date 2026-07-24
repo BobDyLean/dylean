@@ -249,7 +249,7 @@ instance: LongTermKeys.ExecConfig "SignedDH PKI" Signature.vk where
 
 def Client.initiate (me: Participant): Traceful (Nat × Nat) := do
   let xSk ← Random.genRand 32
-  let xPk := DiffieHellman.dh_pk xSk
+  let xPk := DiffieHellman.dhPk xSk
 
   ProtocolEvent.logEvent (SignedDHEvent.ClientInitiateEvent me xPk)
   let stHandle ← PersistentLocalState.storeLocalState me ({ xPk, xSk }: ClientInitiateState)
@@ -263,7 +263,7 @@ def Server.receive (me: Participant) (skHandle: Nat) (msgHandle: Nat): Traceful 
   let serverSigKey ← LongTermKeys.getPrivateKey "SignedDH PKI" me skHandle
 
   let ySk ← Random.genRand 32
-  let yPk := DiffieHellman.dh_pk ySk
+  let yPk := DiffieHellman.dhPk ySk
   let kS := Hash.hash (DiffieHellman.dh xPk ySk)
   let sigNonce ← Random.genRand 32
   let sig := Signature.sign serverSigKey sigNonce (serialize ({xPk, yPk}: SigInput))

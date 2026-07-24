@@ -54,7 +54,7 @@ theorem client_secrecy
   intro tr h_trinv h_pub h_ev
   have := Trace.EventLoggedAt_imp_EventInv _ _ _ h_trinv h_ev
   simp [ProtocolEvent.EventInv.invariant] at this
-  simp_all [client_label, server_label, LongTermKeys.label]
+  simp_all [clientLabel, serverLabel, LongTermKeys.label]
   grind
 
 /--

@@ -98,7 +98,7 @@ where
         ∃ ySk entropy,
           let dhss := DiffieHellman'.dh msg.xPk ySk
           let encapResult := KEM.kemEncap msg.zPk entropy
-          msg.yPk = DiffieHellman'.dh_pk ySk ∧
+          msg.yPk = DiffieHellman'.dhPk ySk ∧
           ySk.label tr = (serverLabel server msg.xPk msg.yPk msg.zPk).join (DiffieHellman'.Broken.label msg.yPk) ∧
           msg.ct = encapResult.fst ∧
           entropy.WellFormed tr ∧
@@ -119,7 +119,7 @@ where
     intro _ _ _ _ _ _ _ _ _ _ _
     intro ⟨ server, h ⟩
     exists server
-    grind [DiffieHellman'.dh_pk.WellFormed]
+    grind [DiffieHellman'.dhPk.WellFormed]
 
 end BytesInvariants
 
@@ -157,7 +157,7 @@ instance ClientInitiateDHStateInv : PersistentLocalState.CompromisableLocalState
 where
   invariant me st tr :=
     let { xPk, xSk } := st
-    xPk = DiffieHellman'.dh_pk xSk ∧
+    xPk = DiffieHellman'.dhPk xSk ∧
     xPk.Publishable tr ∧
     xSk.Invariant tr ∧
     xSk.label tr = (clientDhLabel me xPk).join (DiffieHellman'.Broken.label xPk)
@@ -346,7 +346,7 @@ theorem Client.initiate.spec (me: Participant):
     (fun _ _ => True)
 := by
   unfold Client.initiate
-  step with ⟨ fun xSk => (clientDhLabel me (DiffieHellman'.dh_pk xSk)).join (DiffieHellman'.Broken.label (DiffieHellman'.dh_pk xSk)), Usage.nothing ⟩
+  step with ⟨ fun xSk => (clientDhLabel me (DiffieHellman'.dhPk xSk)).join (DiffieHellman'.Broken.label (DiffieHellman'.dhPk xSk)), Usage.nothing ⟩
   step
   step with ⟨ fun zSk => (clientKemLabel me (KEM.kemPk zSk)).join (KEM.Broken.label (KEM.kemPk zSk)), Usage.nothing ⟩
   step
@@ -388,10 +388,10 @@ theorem Server.receive.spec (me: Participant) (skHandle: Nat) (msgHandle: Nat):
   step_intro
   step_intro
   step
-  step with ⟨ fun ySk => (serverLabel me xPk (DiffieHellman'.dh_pk ySk) zPk).join (DiffieHellman'.Broken.label (DiffieHellman'.dh_pk ySk)), Usage.nothing ⟩
+  step with ⟨ fun ySk => (serverLabel me xPk (DiffieHellman'.dhPk ySk) zPk).join (DiffieHellman'.Broken.label (DiffieHellman'.dhPk ySk)), Usage.nothing ⟩
   step
   step
-  step with ⟨ fun entropy => (serverLabel me xPk (DiffieHellman'.dh_pk ySk) zPk).join (zPk.kemSkLabel tr), Usage.nothing ⟩
+  step with ⟨ fun entropy => (serverLabel me xPk (DiffieHellman'.dhPk ySk) zPk).join (zPk.kemSkLabel tr), Usage.nothing ⟩
   step
   dsimp -zeta at *
   hoist

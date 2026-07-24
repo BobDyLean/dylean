@@ -111,7 +111,7 @@ theorem Trace.prefix_length
 grind_pattern Trace.prefix_length => (tr.prefix i).length
 
 public
-theorem Trace.prefix_le
+theorem Trace.prefix_le_self
   {α: Type}
   (tr: Trace α) (i: Nat)
   : tr.prefix i ≤ tr
@@ -122,10 +122,10 @@ theorem Trace.prefix_le
   · apply Trace.le.extend
     assumption
 
-grind_pattern Trace.prefix_le => tr.prefix i
+grind_pattern Trace.prefix_le_self => tr.prefix i
 
 public
-theorem Trace.prefix_le'
+theorem Trace.prefix_le_prefix
   {α: Type}
   (tr: Trace α) (i1 i2: Nat)
   : i1 ≤ i2 →
@@ -133,11 +133,11 @@ theorem Trace.prefix_le'
 := by
   fun_induction Trace.prefix tr i2 <;> grind [Trace.prefix]
 
-grind_pattern Trace.prefix_le' => tr.prefix i1 ≤ tr.prefix i2
+grind_pattern Trace.prefix_le_prefix => tr.prefix i1 ≤ tr.prefix i2
 
 @[simp, grind =]
 public
-theorem Trace.prefix_eq
+theorem Trace.prefix_length_eq_self
   {α: Type}
   (tr: Trace α)
   : tr.prefix tr.length = tr
@@ -146,7 +146,7 @@ theorem Trace.prefix_eq
   simp
 
 public
-theorem Trace.prefix_eq'
+theorem Trace.prefix_ge_length_eq_self
   {α: Type}
   (tr: Trace α) (i: Nat)
   : tr.length ≤ i →
@@ -156,7 +156,7 @@ theorem Trace.prefix_eq'
   grind
 
 public
-theorem Trace.prefix_eq''
+theorem Trace.le_imp_prefix_eq
   {α: Type}
   (tr1 tr2: Trace α)
   : tr1 ≤ tr2 →
@@ -177,10 +177,10 @@ theorem Trace.prefix_eq''
     cases h_le using Trace.induct_le <;>
     grind
 
-grind_pattern Trace.prefix_eq'' => tr1 ≤ tr2, tr2.prefix (tr1.length)
+grind_pattern Trace.le_imp_prefix_eq => tr1 ≤ tr2, tr2.prefix (tr1.length)
 
 public
-theorem Trace.prefix_eq'''
+theorem Trace.le_imp_prefix_le_length_eq
   {α: Type}
   (tr1 tr2: Trace α)
   (i: Nat)
@@ -194,7 +194,7 @@ theorem Trace.prefix_eq'''
   dsimp only [Trace.prefix, Trace.length]
   grind
 
-grind_pattern Trace.prefix_eq''' => tr1 ≤ tr2, tr1.prefix i, tr2.prefix i
+grind_pattern Trace.le_imp_prefix_le_length_eq => tr1 ≤ tr2, tr1.prefix i, tr2.prefix i
 
 public
 theorem Trace.prefix_prefix_le
@@ -211,7 +211,7 @@ theorem Trace.prefix_prefix_le
   split
   · rename_i h_length
     unfold Trace.length at h_length
-    have := Trace.prefix_eq' tr2 i (by grind)
+    have := Trace.prefix_ge_length_eq_self tr2 i (by grind)
     apply Trace.le.extend; change (tr1.prefix i) ≤ tr2
     grind
   grind

@@ -282,7 +282,7 @@ def breakSigKeyAttacker: Traceful Unit := do
   let zPk := msgClient.zPk
 
   let ySk := Literal.literalToBytes "00000000000000000000000000000000".toByteArray
-  let yPk := DiffieHellman'.dh_pk ySk
+  let yPk := DiffieHellman'.dhPk ySk
   let dhss := DiffieHellman'.dh xPk ySk
   let entropy := Literal.literalToBytes "00000000000000000000000000000000".toByteArray
   let (ct, kemss) := KEM.kemEncap zPk entropy
@@ -346,7 +346,7 @@ theorem breakSigKeyAttacker_PreservesReachability
   · assumption
   · simp only [Comparse.AttackerKnows_serialize, ServerMessage.IsWellFormed_eq]
     apply And.intro
-    · apply DiffieHellman'.attacker_knows_dh_pk
+    · apply DiffieHellman'.attacker_knows_dhPk
       apply Literal.attacker_knows_literalToBytes
     apply And.intro
     · have := KEM.kemEncap.attacker_knows
@@ -359,7 +359,7 @@ theorem breakSigKeyAttacker_PreservesReachability
       apply And.intro
       · grind
       apply And.intro
-      · apply DiffieHellman'.attacker_knows_dh_pk
+      · apply DiffieHellman'.attacker_knows_dhPk
         apply Literal.attacker_knows_literalToBytes
       apply And.intro
       · grind

@@ -114,7 +114,7 @@ def isKeyMyTurn (l: Transcript) (k: Bytes): Prop :=
   | e1::e2::rest =>
     ∃ kPrev dhSk,
       isKeyOtherTurn (e2::rest) kPrev ∧
-      DiffieHellman.dh_pk dhSk = e2.dhPk ∧
+      DiffieHellman.dhPk dhSk = e2.dhPk ∧
       k = KdfExpand.kdfExpand (KdfExtract.kdfExtract (DiffieHellman.dh e1.dhPk dhSk) kPrev) (transcriptToHash l) 32
 
 def isKeyOtherTurn (l: Transcript) (k: Bytes): Prop :=
@@ -123,7 +123,7 @@ def isKeyOtherTurn (l: Transcript) (k: Bytes): Prop :=
   | e1::e2::rest =>
     ∃ kPrev dhSk,
       isKeyMyTurn (e2::rest) kPrev ∧
-      DiffieHellman.dh_pk dhSk = e1.dhPk ∧
+      DiffieHellman.dhPk dhSk = e1.dhPk ∧
       k = KdfExpand.kdfExpand (KdfExtract.kdfExtract (DiffieHellman.dh e2.dhPk dhSk) kPrev) (transcriptToHash l) 32
 end
 
@@ -333,7 +333,7 @@ where
           ) ∧
           (∃ dhSk h, -- work around dhSkLabel :|
             dhSk.WellFormed tr ∧ -- TODO could be removed?
-            DiffieHellman.dh_pk dhSk = (transcript.head h).dhPk ∧
+            DiffieHellman.dhPk dhSk = (transcript.head h).dhPk ∧
             dhSk.label tr = stateLabel signer transcript
           )
     )
@@ -349,7 +349,7 @@ where
     intro _ _ _ _ _ _ _ _ _ _ _
     intro ⟨ server, h ⟩
     exists server
-    grind [DiffieHellman.dh_pk.WellFormed]
+    grind [DiffieHellman.dhPk.WellFormed]
 
 end BytesInvariants
 
@@ -430,7 +430,7 @@ where
     transcriptHash.Publishable tr ∧
     (∀ elem ∈ transcript, elem.dhPk.Publishable tr) ∧
     (∃ h, (transcript.head h).recipient = recipient) ∧
-    (∃ h, (transcript.head h).dhPk = DiffieHellman.dh_pk myDhSk) ∧
+    (∃ h, (transcript.head h).dhPk = DiffieHellman.dhPk myDhSk) ∧
     isKeyOtherTurn transcript k ∧
     myDhSk.Invariant tr ∧
     myDhSk.label tr = stateLabel me transcript ∧
@@ -592,7 +592,7 @@ theorem initiate.spec (me other: Participant) (mySigKeyHandle: Nat)
     (fun _ _ => True)
 := by
   unfold initiate
-  step with ⟨ fun dhSk => stateLabel me [{ recipient := other, dhPk := (DiffieHellman.dh_pk dhSk)}], Usage.nothing ⟩
+  step with ⟨ fun dhSk => stateLabel me [{ recipient := other, dhPk := (DiffieHellman.dhPk dhSk)}], Usage.nothing ⟩
   step
   step_intro
   step_intro
@@ -709,7 +709,7 @@ theorem sendUpdate.spec (me: Participant) (mySigKeyHandle: Nat) (stHandle: Nat)
 := by
   unfold sendUpdate
   step
-  step with ⟨ fun dhSk => stateLabel me ({ recipient := st.recipient, dhPk := (DiffieHellman.dh_pk dhSk)}::st.transcript), Usage.nothing ⟩
+  step with ⟨ fun dhSk => stateLabel me ({ recipient := st.recipient, dhPk := (DiffieHellman.dhPk dhSk)}::st.transcript), Usage.nothing ⟩
   step
   step_intro
   step_intro
@@ -1125,7 +1125,7 @@ theorem labelBeforeEvent_ltkLabel_isCorrupt_implies
   have ⟨ i', ev, ⟨ k', h_ev' ⟩, h_ev'_logged ⟩ := event_minimum_prefix (fun ev => ∃ k, ev = (RatchetEvent.ReceiveUpdate me recipient transcript k)) tr (by grind)
   intro i k h_ev
   obtain ⟨ trBefore, _ ⟩ := h_corrupt
-  have := Trace.prefix_eq'' trBefore tr (by grind)
+  have := Trace.le_imp_prefix_eq trBefore tr (by grind)
   have: ¬ tr.prefix (i'+1) ≤ trBefore := by grind
   have := DY.Trace.EventLoggedAt_le' (RatchetEvent.ReceiveUpdate me recipient transcript k) i (tr.prefix (i+1)) tr
   have := fun h => h_ev'_logged.right.right (i+1) (RatchetEvent.ReceiveUpdate me recipient transcript k) h (by grind) (by grind)

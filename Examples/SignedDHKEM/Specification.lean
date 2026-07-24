@@ -312,7 +312,7 @@ instance: LongTermKeys.ExecConfig "SignedDHKEM PKI" Signature'.vk where
 
 def Client.initiate (me: Participant): Traceful (Nat × Nat × Nat) := do
   let xSk ← Random.genRand 32
-  let xPk := DiffieHellman'.dh_pk xSk
+  let xPk := DiffieHellman'.dhPk xSk
 
   let zSk ← Random.genRand 64 -- ML-KEM-512 keypair seed size
   let zPk := KEM.kemPk zSk
@@ -331,7 +331,7 @@ def Server.receive (me: Participant) (skHandle: Nat) (msgHandle: Nat): Traceful 
   let sigKey ← LongTermKeys.getPrivateKey "SignedDHKEM PKI" me skHandle
 
   let ySk ← Random.genRand 32
-  let yPk := DiffieHellman'.dh_pk ySk
+  let yPk := DiffieHellman'.dhPk ySk
   let dhss := DiffieHellman'.dh xPk ySk
   let entropy ← Random.genRand 32 -- ML-KEM-512 encapsulation seed size
   let kemResult := KEM.kemEncap zPk entropy
