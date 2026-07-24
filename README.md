@@ -14,6 +14,10 @@ We are actively working on DyLean, expect breaking changes. If you want to use D
 
 ## Papers linked to DyLean
 
+Papers about DyLean:
+
+- Bob DyLean: A Framework for the Symbolic Analysis of Cryptographic Protocols in Lean ([eprint](https://eprint.iacr.org/2026/1493))
+
 Papers related to DyLean:
 
 - Introduction to the proof methodology: [A Verification Framework for Secure Group Messaging](https://hal.science/tel-05455122v1/document) (Chapter 2)
