@@ -232,6 +232,8 @@ elab "hoist" : tactic => do
   replaceMainGoal ([← hoist (← getMainGoal)])
 
 namespace Test
+  set_option warn.sorry false
+
   variable [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   def g (foo: Bytes) (bar: Bytes) := foo
   def send_message (b: Bytes): Traceful Nat := sorry

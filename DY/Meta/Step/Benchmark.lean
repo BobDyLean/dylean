@@ -11,6 +11,10 @@ variable [BytesFunctor]
 variable [BytesInvariants]
 variable [BytesInvariantsProofs]
 
+section Axiomatization
+
+set_option warn.sorry false
+
 def send_message (b:Bytes) : Traceful Unit := sorry
 def receive_message (n:Nat) : Traceful Bytes := sorry
 
@@ -29,6 +33,7 @@ instance:
   where
     pf := sorry
 
+end Axiomatization
 
 def test: Traceful Unit := do
   let msg0 ← receive_message 0
