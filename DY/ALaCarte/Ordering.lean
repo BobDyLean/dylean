@@ -53,7 +53,7 @@ theorem Array.compareLex_wfParam
 := by
   cases arr1; rename_i l1
   cases arr2; rename_i l2
-  simp only [Array.compareLex_eq_compareLex_toList, Array.toList_unattach, Array.attachWithSize_eq_attachWithSize_toList, wfParam, Array.mk.sizeOf_spec]
+  simp only [Array.compareLex_eq_compareLex_toList, Array.toList_unattach, Array.attachWithSize_eq_attachWithSize_toList, wfParam]
   fun_induction List.compareLex cmp l1 l2
   all_goals
   conv => rhs; unfold List.compareLex
