@@ -90,7 +90,7 @@ theorem mkLongTermUsage_inj:
 instance SignedDHKEMSignPred
   : Signature'.SignPred
 where
-  pred skUsg vk msg tr :=
+  pred skUsg _vk msg tr :=
     ∃ server, skUsg = mkLongTermUsage server ∧ (
       match parse msg with
       | none => False
@@ -266,7 +266,7 @@ instance SignedDHKEMEventInv : ProtocolEvent.EventInv (SignedDHKEMEvent)
 where
   invariant tr ev :=
     match ev with
-    | .ClientInitiateEvent client xPk zPk => (
+    | .ClientInitiateEvent client xPk _zPk => (
       xPk.Invariant tr ∧
       xPk.dhSkLabel' tr = (clientDhLabel client xPk).join (DiffieHellman'.Broken.label xPk)
     )

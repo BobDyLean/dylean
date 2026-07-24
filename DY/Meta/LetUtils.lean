@@ -235,7 +235,7 @@ namespace Test
   set_option warn.sorry false
 
   variable [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-  def g (foo: Bytes) (bar: Bytes) := foo
+  def g (foo: Bytes) (_bar: Bytes) := foo
   def send_message (b: Bytes): Traceful Nat := sorry
 
   -- test hoisting in a let

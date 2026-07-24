@@ -742,18 +742,18 @@ def evalStep (args: StepArgs): TacticM Unit := do
   let goalType ← Tactic.getMainTarget
   trace[Step] "step on goal: {goalType}"
   match ← preservesInvariantTelescope goalType with
-  | (_, .wp func post tr) =>
+  | (_, .wp func _post _tr) =>
     trace[Step] "goal is `preserves_invariant_on` on function {func}"
     match ← specTypeTelescope func with
-    | .let_binding x xName =>
+    | .let_binding _x _xName =>
       evalStepLet args
     | .bind x f xName =>
       trace[Step] "function is a bind, x={x}, x name={xName}, f={f}"
       evalStepBind args xName
-    | .final x =>
+    | .final _x =>
       trace[Step] "function is a final operation"
       evalStepFinal args
-  | (_, .hoareTriple func pre post) =>
+  | (_, .hoareTriple func _pre _post) =>
     trace[Step] "goal is `preserves_invariant` on function {func}, unfolding and recursing"
     let goal ← getMainGoal
     let goal ← Lean.Meta.unfoldTarget goal ``DY.hoareTriple

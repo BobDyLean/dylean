@@ -76,7 +76,7 @@ theorem mk_long_term_usage_inj:
 instance SignedDHSignPred
   : Signature.SignPred
 where
-  pred skUsg vk msg tr :=
+  pred skUsg _vk msg tr :=
     ∃ server, skUsg = mk_long_term_usage server ∧ (
       match parse msg with
       | none => False
