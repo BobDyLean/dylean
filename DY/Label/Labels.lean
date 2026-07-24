@@ -13,7 +13,7 @@ def Label.pub : Label := {
   isCorrupt tr := True
 }
 
-@[simp, grind]
+@[simp, grind .]
 public
 theorem Label.pubIsCorrupt (tr: ExecTrace): Label.pub.isCorrupt tr := by
   grind [Label.pub]
@@ -25,7 +25,7 @@ theorem canFlowPubEqIsCorrupt (l: Label) (tr: ExecTrace):
   := by
   grind [Label.canFlow]
 
-@[grind]
+@[grind .]
 public
 theorem Label.pubCanFlow (l: Label) (tr: ExecTrace): Label.pub.canFlow l tr := by
   grind [Label.pub, canFlow]
@@ -35,12 +35,12 @@ def Label.secret : Label := {
   isCorrupt tr := False
 }
 
-@[simp, grind]
+@[simp, grind .]
 public
 theorem Label.secretIsCorrupt (tr: ExecTrace): ¬ Label.secret.isCorrupt tr := by
   grind [secret]
 
-@[grind]
+@[grind .]
 public
 theorem Label.secret.canFlow (l: Label) (tr: ExecTrace):
   l.canFlow secret tr
@@ -52,7 +52,7 @@ def Label.join (l1 l2: Label): Label := {
   isCorrupt tr := l1.isCorrupt tr ∨ l2.isCorrupt tr
 }
 
-@[simp, grind]
+@[simp, grind =]
 public
 theorem Label.joinIsCorrupt (l1 l2: Label) (tr: ExecTrace):
   (l1.join l2).isCorrupt tr = (l1.isCorrupt tr ∨ l2.isCorrupt tr)
@@ -64,7 +64,7 @@ def Label.meet (l1 l2: Label): Label := {
   isCorrupt tr := l1.isCorrupt tr ∧ l2.isCorrupt tr
 }
 
-@[simp, grind]
+@[simp, grind =]
 public
 theorem Label.meetIsCorrupt (l1 l2: Label) (tr: ExecTrace):
   (l1.meet l2).isCorrupt tr = (l1.isCorrupt tr ∧ l2.isCorrupt tr)
@@ -85,7 +85,7 @@ theorem Label.joinEq (l1: Label) (l2: Label) (l3: Label) (tr: ExecTrace):
   := by
   grind [canFlow]
 
-@[grind]
+@[grind .]
 public
 theorem Label.joinCanFlowLeft (l1: Label) (l2: Label) (tr: ExecTrace):
   (l1.join l2).canFlow l1 tr
@@ -93,7 +93,7 @@ theorem Label.joinCanFlowLeft (l1: Label) (l2: Label) (tr: ExecTrace):
   have := joinEq (l1.join l2) l1 l2 tr
   grind
 
-@[grind]
+@[grind .]
 public
 theorem Label.joinCanFlowRight (l1: Label) (l2: Label) (tr: ExecTrace):
   (l1.join l2).canFlow l2 tr
@@ -101,13 +101,13 @@ theorem Label.joinCanFlowRight (l1: Label) (l2: Label) (tr: ExecTrace):
   have := joinEq (l1.join l2) l1 l2 tr
   grind
 
-@[grind]
+@[grind =]
 public
 theorem Label.join_pub_left (l: Label): Label.join Label.pub l = Label.pub := by
   ext
   grind
 
-@[grind]
+@[grind =]
 public
 theorem Label.join_pub_right (l: Label): Label.join l Label.pub = Label.pub := by
   ext

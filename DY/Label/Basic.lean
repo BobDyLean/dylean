@@ -53,7 +53,7 @@ theorem Label.canFlowLater (l1: Label) (l2: Label) (tr1 tr2: ExecTrace):
     unfold Label.canFlow
     grind [Trace.le_trans]
 
-@[grind]
+@[grind .]
 public
 theorem canFlowRefl (l: Label) (tr: ExecTrace):
   l.canFlow l tr
