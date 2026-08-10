@@ -308,7 +308,7 @@ instance
   dsimp only [subtype]
   have: SubsetRightInverse g (f (p := p)) := by
     apply SubsetRightInverse.mk
-    simp [f, g]
+    grind [f, g]
   infer_instance
 
 public
@@ -392,7 +392,7 @@ instance
   dsimp only [subtype]
   have: SubsetRightInverse g (f (p := p)) := by
     apply SubsetRightInverse.mk
-    simp [f, g]
+    grind [f, g]
   infer_instance
 
 public
@@ -624,7 +624,8 @@ def NonExtensibleMessageFormat.fixedLengthBytes
   : NonExtensibleMessageFormat Bytes ({ b: Bytes // BytesLike.length b = len})
 :=
   (ExtensibleMessageFormat.subtype ExtensibleMessageFormat.bytes (fun b => BytesLike.length b = len)).toNonExtensible len (by
-    simp [ExtensibleMessageFormat.subtype, ExtensibleMessageFormat.subsetIsomorphic, ExtensibleMessageFormat.bytes, ExtensibleMessageFormat.subtype.g]
+    simp only [ExtensibleMessageFormat.subtype, ExtensibleMessageFormat.subsetIsomorphic, ExtensibleMessageFormat.bytes, ExtensibleMessageFormat.subtype.g]
+    grind
   )
 deriving IsNonAmbiguous, HasUniqueRepresentation
 

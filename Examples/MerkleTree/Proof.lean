@@ -156,8 +156,7 @@ variable [HasProofTrace]
 structure LongTermKeyUsage where
   principal: Participant
 
-open Comparse in
-instance : ParseableSerializeable LongTermKeyUsage := .make <|
+instance : Comparse.ParseableSerializeable LongTermKeyUsage := .make <|
   .triviallyIsomorphic
     (.string)
     (fun principal => { principal })

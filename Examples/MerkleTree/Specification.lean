@@ -344,7 +344,7 @@ end Structures
 -- Future work: the following section is boilerplate that could be meta-programmed
 public section Formats
 
-open Comparse
+open DY.Comparse
 
 variable [HasExecBytes]
 

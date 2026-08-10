@@ -38,7 +38,7 @@ public
 def Traceful.mk [ExecTraceTypes] {α: Type} (f: (tr: ExecTrace) → (Option α × { trOut: ExecTrace // tr ≤ trOut})): Traceful α :=
   f
 
-@[expose]
+@[expose, implicit_reducible]
 public
 def Err := OptionT Id
 deriving Monad, Alternative

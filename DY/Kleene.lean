@@ -7,9 +7,8 @@ module
 
 namespace DY.Kleene
 
-@[expose]
 public
-def Set (α: Type u) := α → Prop
+abbrev Set (α: Type u) := α → Prop
 
 public
 instance: HasSubset (Set α) where

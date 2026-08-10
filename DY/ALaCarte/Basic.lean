@@ -236,9 +236,8 @@ structure Ctor where
   Data: Type
   nRec: Nat
 
-@[expose]
 public
-def Ctors (CtorId: Type) := CtorId -> Ctor
+abbrev Ctors (CtorId: Type) := CtorId -> Ctor
 
 public
 structure FunctorRepr {CtorId} (ctors: Ctors CtorId) (a: Type) where
@@ -520,18 +519,16 @@ theorem Container.sizeOf_view
   have: pack f y = x := by grind [Container.pack_view]
   grind [Container.sizeOf_pack]
 
-@[expose]
 public
-def Container.PartialFunDep
+abbrev Container.PartialFunDep
   (f: Type → Type) {g: Type → Type} [FunctorSizeOf f] [FunctorSizeOf g] [Representable g] [SubFunctorTC f g]
   (motive: ContainerFor g → Sort u)
 :=
   (∀ x: f (ContainerFor g), (∀ y: ContainerFor g, sizeOf y ≤ FunctorSizeOf.sizeOf x → motive y) → motive (pack f x))
 
 -- This one does not require the typeclass instance [SubFunctorTC f g]
-@[expose]
 public
-def Container.PartialFun
+abbrev Container.PartialFun
   (f: Type → Type) (g: Type → Type) [FunctorSizeOf f] [FunctorSizeOf g] [Representable g]
   (a: Type)
 :=

@@ -123,7 +123,7 @@ def combineExplicit (params: TSyntaxArray `Lean.Parser.Term.bracketedBinder) (so
       )
     else
       `(command|
-        @[expose, implicit_reducible]
+        @[expose, instance_reducible]
         public
         def $nameStx $params*: $outTypeStx := $combineStx ($internalNameStx $argsTarget*)
       )

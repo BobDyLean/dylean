@@ -62,6 +62,7 @@ def Bytes := ALaCarte.ContainerFor BytesF
 -- In this file, we need to "defeq abuse" the definition of Bytes.
 -- However, outside this file, it should not be needed.
 unseal Bytes
+attribute [local instance_reducible] Bytes
 
 public
 noncomputable
@@ -111,9 +112,8 @@ public instance
   : BytesFunctor.HasStep (SubFs id) (BytesFunctor.combine SubFs)
 where
 
-@[expose]
 public
-def BytesView (SubF: Type → Type) := SubF Bytes
+abbrev BytesView (SubF: Type → Type) := SubF Bytes
 
 public
 def Bytes.view? (b: Bytes) (SubF: Type → Type) [SubBytesFunctor SubF] [BytesFunctor.Has SubF] : Option (BytesView SubF) :=
@@ -147,8 +147,7 @@ theorem BytesView.view_pack
   (b: BytesView SubF)
   : (b.pack).view? SubF = some b
 := by
-  simp only [BytesView.pack, Bytes.view?, ALaCarte.Container.view_pack]
-  rfl
+  simp [BytesView.pack, Bytes.view?, ALaCarte.Container.view_pack]
 
 grind_pattern BytesView.view_pack => b.pack
 
@@ -172,14 +171,13 @@ grind_pattern Bytes.sizeOf_view => b.view? SubF
 
 -- Unfolding of `ALaCarte.Container.PartialFun SubF BytesF a` that use the type `Bytes` instead of `ContainerFor BytesF`,
 -- and with an autoParam to prove well-founded recursion automatically.
-@[expose]
+@[expose, local implicit_reducible]
 public
 def Bytes.PartialFunction (SubF: Type → Type) [SubBytesFunctor SubF] (a: Type) :=
   ∀ x: SubF Bytes, (∀ y: Bytes, (h: sizeOf y ≤ DY.ALaCarte.FunctorSizeOf.sizeOf x := by simp_all +arith [DY.ALaCarte.FunctorSizeOf.sizeOf] <;> grind) → a) → a
 
-@[expose]
 public
-def Bytes.Function (a: Type) := Bytes.PartialFunction BytesF a
+abbrev Bytes.Function (a: Type) := Bytes.PartialFunction BytesF a
 
 public
 def Bytes.rec {a: Type} (f: Bytes.Function a) (x: Bytes) : a :=
@@ -335,9 +333,8 @@ public
 def Bytes.length [BytesLength] (b: Bytes): Nat :=
   Bytes.rec BytesLength.funs b
 
-@[expose]
 public
-def Bytes.PartialLength [BytesFunctor] (SubF: Type → Type) [SubBytesFunctor SubF] := (Bytes.PartialFunction SubF Nat)
+abbrev Bytes.PartialLength [BytesFunctor] (SubF: Type → Type) [SubBytesFunctor SubF] := Bytes.PartialFunction SubF Nat
 
 public
 class BytesLength.HasStep
