@@ -94,6 +94,9 @@ def combineExplicit (params: TSyntaxArray `Lean.Parser.Term.bracketedBinder) (so
     let arm ← `(Parser.Term.matchAltExpr| | $(quote i) => $fullIdSource $argsSource*)
     arms := arms.push arm
 
+  -- workaround for https://github.com/leanprover/lean4/issues/9292
+  arms := arms.push (← `(Parser.Term.matchAltExpr| | ⟨ _+$(quote sources.size), _ ⟩ => False.elim (by grind)))
+
   let nSourcesStx: TSyntax `term := quote sources.size
   let internalNameStx := mkIdent (config.name ++ `internal)
   let internalOutTypeStx ← config.internalOutTypeStx argsTarget (← `(ident| id))
@@ -186,6 +189,9 @@ def combineTypeclass (params: TSyntaxArray `Lean.Parser.Term.bracketedBinder) (s
         `(term| (inferInstance: ($internalStx)))
     let arm ← `(Parser.Term.matchAltExpr| | $(quote i) => $armStxAux)
     arms := arms.push arm
+
+  -- workaround for https://github.com/leanprover/lean4/issues/9292
+  arms := arms.push (← `(Parser.Term.matchAltExpr| | ⟨ _+$(quote sources.size), _ ⟩ => False.elim (by grind)))
 
   let freshInstanceInternalName ← withFreshMacroScope `(declId| wfInstInternal)
   let outTypeInternalStx ← config.internalIdStx argsTarget (← `(ident| id))
