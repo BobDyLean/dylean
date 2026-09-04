@@ -116,14 +116,17 @@ def sign.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKn
   pred p out :=
     ∃ sk nonce msg,
       out = Signature.sign sk nonce msg ∧
-      Fixpoint.Forall p [sk, nonce, msg]
+      p sk ∧
+      p nonce ∧
+      p msg
 
 public
 def deogen.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
   pred p out :=
     ∃ msg sig,
       out = deogen msg sig ∧
-      Fixpoint.Forall p [msg, sig]
+      p msg ∧
+      p sig
 
 #combine [BytesFunctor.Has SubF] into attackerKnowledge' from
   vk,
@@ -155,7 +158,7 @@ theorem attacker_knows_sign
 := by
   intro h_inp h_nonce h_msg
   apply Bytes.AttackerKnows.prove sign.attackerKnowledge
-  simp only [sign.attackerKnowledge, Fixpoint.Forall]
+  simp only [sign.attackerKnowledge]
   grind
 
 public
@@ -167,7 +170,7 @@ theorem attacker_knows_deogen
 := by
   intro h_msg h_sig
   apply Bytes.AttackerKnows.prove deogen.attackerKnowledge
-  simp only [deogen.attackerKnowledge, Fixpoint.Forall]
+  simp only [deogen.attackerKnowledge]
   grind
 
 end AttackerKnowledge

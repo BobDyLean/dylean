@@ -165,7 +165,8 @@ def dh.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnow
   pred p out :=
     ∃ pk sk,
       out = dh pk sk ∧
-      Fixpoint.Forall p [pk, sk]
+      p pk ∧
+      p sk
 
 #combine [BytesFunctor.Has SubF] into attackerKnowledge' from
   dhPk,
@@ -195,7 +196,7 @@ theorem attacker_knows_dh
 := by
   intro h_pk h_sk
   apply Bytes.AttackerKnows.prove dh.attackerKnowledge
-  simp only [dh.attackerKnowledge, Fixpoint.Forall]
+  simp only [dh.attackerKnowledge]
   grind
 
 end AttackerKnowledge
@@ -511,7 +512,7 @@ instance: SubAttackerKnowledgeTheorem dh.attackerKnowledge where
     simp only [dh.attackerKnowledge]
     intro out tr h_tr ⟨pk, sk, ⟨ h_out, h_inputs ⟩⟩
     subst h_out
-    simp_all [Bytes.Publishable, Fixpoint.Forall]
+    simp_all [Bytes.Publishable]
     grind
 
 end AttackerKnowledgeTheorem

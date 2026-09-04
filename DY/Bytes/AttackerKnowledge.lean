@@ -30,17 +30,6 @@ variable [BytesFunctor]
         p lhs ∧ -- the attacker knows lhs and
         p rhs   -- the attacker knows rhs.
 
-  To prove the scott-continuity of `pred` (a technical requirement for fixpoint theorem)
-  it is better to use the `Forall` predicate like this:
-
-    pred p out :=
-      ∃ lhs rhs,
-        out = concat lhs rhs ∧
-        DY.Fixpoint.Forall p [lhs, rhs]
-
-  This allows to rely on the lemma `DY.Fixpoint.isScottContinuous_Forall_lemma`,
-  and allow for `pred_isScottContinuous` to be proved automatically by our tactic script.
-
   The `SubF` parameter is not useful in this definition.
   It is only for hygiene, to make sure we don't miss equational theories
   by using `SubAttackerKnowledge.combine`
@@ -49,16 +38,9 @@ variable [BytesFunctor]
 public
 structure SubAttackerKnowledge (SubF: Type → Type) where
   pred: (Bytes → Prop) → Bytes → Prop
-  pred_isScottContinuous: DY.Fixpoint.IsScottContinuous pred := by
-    intro chain h_chain
-    funext buf
-    simp only [eq_iff_iff]
-    constructor
-    · try simp [DY.Fixpoint.isScottContinuous_Forall_lemma chain h_chain]
-      try simp [DY.Fixpoint.Chain.union, DY.Fixpoint.Chain.map]
-      try grind
-    · try simp [DY.Fixpoint.Forall, DY.Fixpoint.Chain.union, DY.Fixpoint.Chain.map]
-      try grind
+  pred_isMonotonic: DY.Fixpoint.IsMonotonic pred := by
+    try simp [Fixpoint.IsMonotonic]
+    try grind
 
 public
 class AttackerKnowledge where
@@ -112,7 +94,7 @@ def SubAttackerKnowledge.combine
   : SubAttackerKnowledge (BytesFunctor.combine SubFs)
 where
   pred := DY.Fixpoint.combine (fun id => (atts id).pred)
-  pred_isScottContinuous := DY.Fixpoint.combine_isScottContinuous (fun id => (atts id).pred) (fun id => (atts id).pred_isScottContinuous)
+  pred_isMonotonic := DY.Fixpoint.combine_isMonotonic (fun id => (atts id).pred) (fun id => (atts id).pred_isMonotonic)
 
 public
 def SubAttackerKnowledge.combine'
@@ -122,7 +104,7 @@ def SubAttackerKnowledge.combine'
   : SubAttackerKnowledge SubF
 where
   pred := DY.Fixpoint.combine (fun id => (atts id).pred)
-  pred_isScottContinuous := DY.Fixpoint.combine_isScottContinuous (fun id => (atts id).pred) (fun id => (atts id).pred_isScottContinuous)
+  pred_isMonotonic := DY.Fixpoint.combine_isMonotonic (fun id => (atts id).pred) (fun id => (atts id).pred_isMonotonic)
 
 @[expose]
 public
@@ -172,7 +154,7 @@ def Bytes.AttackerKnows.attackerKnowledge [ExecTraceTypes] [BaseAttackerKnowledg
 
 public
 def Bytes.AttackerKnows [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge] (b: Bytes) (tr: ExecTrace): Prop :=
-  Fixpoint.mkWeakestFixpoint ((Bytes.AttackerKnows.attackerKnowledge tr).pred) b
+  Fixpoint.mkLeastFixpoint ((Bytes.AttackerKnows.attackerKnowledge tr).pred) b
 
 theorem Bytes.AttackerKnows.attackerKnow.prove
   [ExecTraceTypes]
@@ -212,18 +194,18 @@ theorem Bytes.AttackerKnows_le
     b.AttackerKnows tr2
 := by
   intro h_le
-  apply Fixpoint.mkWeakestFixpoint_is_weakest ((Bytes.AttackerKnows.attackerKnowledge tr1).pred) ((Bytes.AttackerKnows.attackerKnowledge tr1).pred_isScottContinuous)
-  simp only [Subset, AttackerKnows.attackerKnowledge, SubAttackerKnowledge.combine', Fixpoint.combine, Fin.exists_fin_two]
+  apply Fixpoint.mkLeastFixpoint_is_least ((Bytes.AttackerKnows.attackerKnowledge tr1).pred) ((Bytes.AttackerKnows.attackerKnowledge tr1).pred_isMonotonic)
+  simp only [AttackerKnows.attackerKnowledge, SubAttackerKnowledge.combine', Fixpoint.combine, Fin.exists_fin_two]
   intro b
   intro h; cases h
-  · have h2 := Fixpoint.mkWeakestFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr2).pred (Bytes.AttackerKnows.attackerKnowledge tr2).pred_isScottContinuous
+  · have h2 := Fixpoint.mkLeastFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr2).pred (Bytes.AttackerKnows.attackerKnowledge tr2).pred_isMonotonic
     unfold Bytes.AttackerKnows at *
     rewrite [← h2]
     simp_all [AttackerKnows.attackerKnowledge, SubAttackerKnowledge.combine', Fixpoint.combine]
   · have h0: Trace.BaseAttackerKnows tr2 b := by
       grind [AttackerKnows.baseKnowledge, SubAttackerKnowledge.fromPred, AttackerKnows.baseKnowledge]
     have h1 := Bytes.AttackerKnows.attackerKnow.prove_from_base (Bytes.AttackerKnows · tr2) b tr2 h0
-    have h2 := Fixpoint.mkWeakestFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr2).pred (Bytes.AttackerKnows.attackerKnowledge tr2).pred_isScottContinuous
+    have h2 := Fixpoint.mkLeastFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr2).pred (Bytes.AttackerKnows.attackerKnowledge tr2).pred_isMonotonic
     unfold Bytes.AttackerKnows at *
     simp_all
 
@@ -245,7 +227,7 @@ theorem Bytes.AttackerKnows.prove
 := by
   intro h
   have h1 := Bytes.AttackerKnows.attackerKnow.prove att (Bytes.AttackerKnows · tr) b tr h
-  have h2 := Fixpoint.mkWeakestFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr).pred (Bytes.AttackerKnows.attackerKnowledge tr).pred_isScottContinuous
+  have h2 := Fixpoint.mkLeastFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr).pred (Bytes.AttackerKnows.attackerKnowledge tr).pred_isMonotonic
   unfold Bytes.AttackerKnows at *
   simp_all
 
@@ -258,7 +240,7 @@ theorem Bytes.AttackerKnows.prove_from_base
 := by
   intro h
   have h1 := Bytes.AttackerKnows.attackerKnow.prove_from_base (Bytes.AttackerKnows · tr) b tr h
-  have h2 := Fixpoint.mkWeakestFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr).pred (Bytes.AttackerKnows.attackerKnowledge tr).pred_isScottContinuous
+  have h2 := Fixpoint.mkLeastFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr).pred (Bytes.AttackerKnows.attackerKnowledge tr).pred_isMonotonic
   unfold Bytes.AttackerKnows at *
   simp_all
 
@@ -318,8 +300,8 @@ theorem Bytes.AttackerKnows.is_least_fixpoint
   : Bytes.AttackerKnows b tr →
     pred b
 :=
-  Fixpoint.mkWeakestFixpoint_is_weakest ((Bytes.AttackerKnows.attackerKnowledge tr).pred) ((Bytes.AttackerKnows.attackerKnowledge tr).pred_isScottContinuous) pred (by
-    simp [Subset, attackerKnowledge, SubAttackerKnowledge.combine', Fixpoint.combine]
+  Fixpoint.mkLeastFixpoint_is_least ((Bytes.AttackerKnows.attackerKnowledge tr).pred) ((Bytes.AttackerKnows.attackerKnowledge tr).pred_isMonotonic) pred (by
+    simp [attackerKnowledge, SubAttackerKnowledge.combine', Fixpoint.combine]
     intro b
     have := pf1 b
     have := pf2 b

@@ -78,7 +78,8 @@ def kdfExtract.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAtta
   pred p out :=
     ∃ salt ikm,
       out = kdfExtract salt ikm ∧
-      DY.Fixpoint.Forall p [salt, ikm]
+      p salt ∧
+      p ikm
 
 #combine [BytesFunctor.Has SubF] into attackerKnowledge' from
   kdfExtract,
@@ -96,7 +97,7 @@ theorem attacker_knows_kdfExtract
 := by
   intro h_salt h_ikm
   apply Bytes.AttackerKnows.prove kdfExtract.attackerKnowledge
-  simp only [kdfExtract.attackerKnowledge, Fixpoint.Forall]
+  simp only [kdfExtract.attackerKnowledge]
   grind
 
 end AttackerKnowledge
@@ -203,7 +204,6 @@ instance: SubAttackerKnowledgeTheorem kdfExtract.attackerKnowledge where
     simp only [kdfExtract.attackerKnowledge]
     intro out tr h_tr ⟨salt, ikm, ⟨ h_out, h_inputs ⟩⟩
     subst h_out
-    simp [Fixpoint.Forall] at h_inputs
     simp [Bytes.Publishable]
     grind
 
