@@ -80,7 +80,7 @@ def kdfExpand.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttac
   pred p out :=
     ∃ prk info len,
       out = kdfExpand prk info len ∧
-      DY.Kleene.Forall p [prk, info]
+      DY.Fixpoint.Forall p [prk, info]
 
 #combine [BytesFunctor.Has SubF] into attackerKnowledge' from
   kdfExpand,
@@ -98,7 +98,7 @@ theorem attacker_knows_kdfExpand
 := by
   intro h_prk h_info
   apply Bytes.AttackerKnows.prove kdfExpand.attackerKnowledge
-  simp only [kdfExpand.attackerKnowledge, Kleene.Forall]
+  simp only [kdfExpand.attackerKnowledge, Fixpoint.Forall]
   grind
 
 end AttackerKnowledge
@@ -244,7 +244,7 @@ instance: SubAttackerKnowledgeTheorem kdfExpand.attackerKnowledge where
     simp only [kdfExpand.attackerKnowledge]
     intro out tr h_tr ⟨prk, info, len, ⟨ h_out, h_inputs ⟩⟩
     subst h_out
-    simp [Kleene.Forall] at h_inputs
+    simp [Fixpoint.Forall] at h_inputs
     simp [Bytes.Publishable]
     have: prk.HasUsage (prk.usage tr) tr := by simp [Bytes.HasUsage]
     have := KdfExpandInvariant.label_sound (prk.usage tr) (prk.label tr) info tr.erase

@@ -153,7 +153,7 @@ def sign.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKn
   pred p out :=
     ∃ sk nonce msg,
       out = sign sk nonce msg ∧
-      Kleene.Forall p [sk, nonce, msg]
+      Fixpoint.Forall p [sk, nonce, msg]
 
 #combine [BytesFunctor.Has SubF] into attackerKnowledge' from
   vk,
@@ -184,7 +184,7 @@ theorem attacker_knows_sign
 := by
   intro h_inp h_nonce h_msg
   apply Bytes.AttackerKnows.prove sign.attackerKnowledge
-  simp only [sign.attackerKnowledge, Kleene.Forall]
+  simp only [sign.attackerKnowledge, Fixpoint.Forall]
   grind
 
 end AttackerKnowledge
@@ -747,7 +747,7 @@ instance: SubAttackerKnowledgeTheorem sign.attackerKnowledge where
     simp only [sign.attackerKnowledge]
     intro out tr h_tr ⟨sk, nonce, msg, ⟨ h_out, h_inputs ⟩⟩
     subst h_out
-    simp_all [Bytes.Publishable, Kleene.Forall]
+    simp_all [Bytes.Publishable, Fixpoint.Forall]
     simp [sign, Bytes.Invariant.eq, Sign.invariants]
     grind
 

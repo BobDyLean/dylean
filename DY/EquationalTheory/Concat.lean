@@ -127,21 +127,21 @@ def concat.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF] [BytesLength
   pred p out :=
     ∃ lhs rhs,
       out = concat lhs rhs ∧
-      DY.Kleene.Forall p [lhs, rhs]
+      DY.Fixpoint.Forall p [lhs, rhs]
 
 public
 def splitLeft.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF] [BytesLength]: SubAttackerKnowledge SubF where
   pred p out :=
     ∃ inp rhs i,
       some (out, rhs) = split inp i ∧
-      DY.Kleene.Forall p [inp]
+      DY.Fixpoint.Forall p [inp]
 
 public
 def splitRight.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF] [BytesLength]: SubAttackerKnowledge SubF where
   pred p out :=
     ∃ inp lhs i,
       some (lhs, out) = split inp i ∧
-      DY.Kleene.Forall p [inp]
+      DY.Fixpoint.Forall p [inp]
 
 #combine [BytesFunctor.Has SubF] [BytesLength] into attackerKnowledge' from
   concat,
@@ -162,7 +162,7 @@ theorem attacker_knows_concat
 := by
   intro h_lhs h_rhs
   apply Bytes.AttackerKnows.prove concat.attackerKnowledge
-  simp only [concat.attackerKnowledge, Kleene.Forall]
+  simp only [concat.attackerKnowledge, Fixpoint.Forall]
   grind
 
 public
@@ -181,10 +181,10 @@ theorem attacker_knows_split
   rename_i lhs rhs _
   constructor
   · apply Bytes.AttackerKnows.prove splitLeft.attackerKnowledge
-    simp only [splitLeft.attackerKnowledge, Kleene.Forall]
+    simp only [splitLeft.attackerKnowledge, Fixpoint.Forall]
     grind
   · apply Bytes.AttackerKnows.prove splitRight.attackerKnowledge
-    simp only [splitRight.attackerKnowledge, Kleene.Forall]
+    simp only [splitRight.attackerKnowledge, Fixpoint.Forall]
     grind
 
 end AttackerKnowledge
@@ -318,7 +318,7 @@ instance: SubAttackerKnowledgeTheorem concat.attackerKnowledge where
     simp only [concat.attackerKnowledge]
     intro out tr h_tr ⟨lhs, rhs, ⟨ h_out, h_inputs ⟩⟩
     subst h_out
-    simp [Kleene.Forall] at h_inputs
+    simp [Fixpoint.Forall] at h_inputs
     simp [Bytes.Publishable]
     grind
 
@@ -327,7 +327,7 @@ instance: SubAttackerKnowledgeTheorem splitLeft.attackerKnowledge where
   pf := by
     simp only [splitLeft.attackerKnowledge]
     intro out tr h_tr ⟨inp, rhs, i, ⟨ h_out, h_inputs ⟩⟩
-    simp [Kleene.Forall] at h_inputs
+    simp [Fixpoint.Forall] at h_inputs
     simp [Bytes.Publishable]
     have := split.label inp i tr
     have := split.Invariant inp i tr
@@ -338,7 +338,7 @@ instance: SubAttackerKnowledgeTheorem splitRight.attackerKnowledge where
   pf := by
     simp only [splitRight.attackerKnowledge]
     intro out tr h_tr ⟨inp, lhs, i, ⟨ h_out, h_inputs ⟩⟩
-    simp [Kleene.Forall] at h_inputs
+    simp [Fixpoint.Forall] at h_inputs
     simp [Bytes.Publishable]
     have := split.label inp i tr
     have := split.Invariant inp i tr

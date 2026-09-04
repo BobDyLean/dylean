@@ -5,7 +5,7 @@
 
 module
 
-namespace DY.Kleene
+namespace DY.Fixpoint
 
 public
 abbrev Set (α: Type u) := α → Prop
@@ -261,4 +261,4 @@ theorem isScottContinuous_Forall_lemma
     · simp [Forall, Chain.union]
       grind
 
-end DY.Kleene
+end DY.Fixpoint
