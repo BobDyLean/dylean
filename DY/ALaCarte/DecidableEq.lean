@@ -45,9 +45,9 @@ def BareContainer.decideEquality
       intro x h_x
       have := Array.sizeOf_lt_of_mem h_x
       grind
-    · left
+    · apply Decidable.isFalse
       simp_all
-  · left
+  · apply Decidable.isFalse
     simp_all
 termination_by max (sizeOf x1) (sizeOf x2)
 
@@ -88,11 +88,11 @@ instance {a: Type} [DecidableEq a] (fs: a → Type → Type) [∀ id, FunctorSiz
       subst h_idHead
       have := RepresentableDecidableEq.ctorid_deq (f := fs idHead1)
       by_cases (decide (idTail1 = idTail2))
-      · right
+      · apply Decidable.isTrue
         grind
-      · left
+      · apply Decidable.isFalse
         grind
-    · left
+    · apply Decidable.isFalse
       grind
   ctor_data_deq id := (RepresentableDecidableEq.ctor_data_deq (f := fs id.idHead)) id.idTail
 
