@@ -65,16 +65,13 @@ theorem Trace.BaseAttackerKnows_implies_Publishable
     Trace.BaseAttackerKnows tr.erase b →
     b.Publishable tr
 := by
-  induction tr
-  · simp [Trace.BaseAttackerKnows, Trace.erase]
-  rename_i trBefore entry ih
-  have h_le: trBefore ≤ trBefore.snoc entry := by apply Trace.le.extend; apply Trace.le.equal
-  simp only [Trace.Invariant, Trace.BaseAttackerKnows, Trace.erase]
-  intro h_inv h_att
-  cases h_att
-  · have := BaseAttackerKnowledgeTheorem.pf.pf trBefore entry b (by grind [ProofTrace.Entry.Invariant]) (by grind [ProofTrace.Entry.erase])
-    grind
-  · grind
+  dsimp only [Trace.Invariant, Trace.BaseAttackerKnows]
+  intro h_inv ⟨ i, h_i, h_att ⟩
+  suffices b.Publishable (tr.prefix i) by grind
+  refine BaseAttackerKnowledgeTheorem.pf.pf (tr.prefix i) (tr.at i (by grind)) b ?_ ?_
+  · grind [ProofTrace.Entry.Invariant]
+  · simp_all only [Trace.erase_at, Trace.prefix_erase]
+    grind [ProofTrace.Entry.erase]
 
 namespace Meta.CombineMacro
 
