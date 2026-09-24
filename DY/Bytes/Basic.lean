@@ -101,15 +101,15 @@ where
 end BytesFunctor
 
 public
-abbrev BytesFunctor.combine {a: Type} (SubFs: a → Type → Type): Type → Type :=
+abbrev BytesFunctor.combine {n: Nat} (SubFs: Fin n → Type → Type): Type → Type :=
   ALaCarte.FunctorUnion SubFs
 
-public instance {a: Type} [DecidableEq a] [Ord a] [Std.LawfulEqOrd a] [Std.TransOrd a] (SubFs: a → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]: SubBytesFunctor (BytesFunctor.combine SubFs) where
+public instance {n: Nat} (SubFs: Fin n → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]: SubBytesFunctor (BytesFunctor.combine SubFs) where
 
 public instance
-  {a: Type} [DecidableEq a] [Ord a] [Std.LawfulEqOrd a] [Std.TransOrd a]
-  (SubFs: a → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]
-  (id: a)
+  {n: Nat}
+  (SubFs: Fin n → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]
+  (id: Fin n)
   : BytesFunctor.HasStep (SubFs id) (BytesFunctor.combine SubFs)
 where
 
@@ -233,21 +233,21 @@ where
 
 public
 def Bytes.PartialFunction.combine
-  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
-  {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {n: Nat}
+  {SubFs: Fin n → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
   {a: Type}
-  (funs: (id: t) → Bytes.PartialFunction (SubFs id) a)
+  (funs: (id: Fin n) → Bytes.PartialFunction (SubFs id) a)
   : Bytes.PartialFunction (BytesFunctor.combine SubFs) a
 :=
   ALaCarte.Container.PartialFun.combine funs
 
 public
 instance
-  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
-  {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {n: Nat}
+  {SubFs: Fin n → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
   {a: Type}
-  (funs: (id: t) → Bytes.PartialFunction (SubFs id) a)
-  (id: t)
+  (funs: (id: Fin n) → Bytes.PartialFunction (SubFs id) a)
+  (id: Fin n)
   : Bytes.SubFunctionStep (funs id) (Bytes.PartialFunction.combine funs)
 where
   toALaCarte := DY.ALaCarte.instSubPartialFun_combine _ _
@@ -287,12 +287,12 @@ theorem Bytes.Proof1.prove
 
 public
 theorem Bytes.PartialProof1.combine
-  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
-  {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {n: Nat}
+  {SubFs: Fin n → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
   {a: Type}
-  {funs: (id: t) → Bytes.PartialFunction (SubFs id) a}
+  {funs: (id: Fin n) → Bytes.PartialFunction (SubFs id) a}
   {rec: Bytes → a} {p: a → Prop}
-  (pfs: (id: t) → Bytes.PartialProof1 (funs id) rec p)
+  (pfs: (id: Fin n) → Bytes.PartialProof1 (funs id) rec p)
   : Bytes.PartialProof1 (Bytes.PartialFunction.combine funs) rec p
 :=
   ALaCarte.Container.PartialProof1.combine pfs
@@ -321,13 +321,13 @@ theorem Bytes.Proof2.prove
 
 public
 theorem Bytes.PartialProof2.combine
-  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
-  {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {n: Nat}
+  {SubFs: Fin n → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
   {a: Type} {b: Type}
-  {funs1: (id: t) → Bytes.PartialFunction (SubFs id) a}
-  {funs2: (id: t) → Bytes.PartialFunction (SubFs id) b}
+  {funs1: (id: Fin n) → Bytes.PartialFunction (SubFs id) a}
+  {funs2: (id: Fin n) → Bytes.PartialFunction (SubFs id) b}
   {rec1: Bytes → a} {rec2: Bytes → b} {p: a × b → Prop}
-  (pfs: (id: t) → Bytes.PartialProof2 (funs1 id) (funs2 id) rec1 rec2 p)
+  (pfs: (id: Fin n) → Bytes.PartialProof2 (funs1 id) (funs2 id) rec1 rec2 p)
   : Bytes.PartialProof2 (Bytes.PartialFunction.combine funs1) (Bytes.PartialFunction.combine funs2) rec1 rec2 p
 :=
   ALaCarte.Container.PartialProof2.combine pfs
@@ -363,8 +363,8 @@ class BytesLength.Has
 
 public
 abbrev Bytes.PartialLength.combine
-  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
-  {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {n: Nat}
+  {SubFs: Fin n → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
   (lens: ∀ id, Bytes.PartialLength (SubFs id))
   : Bytes.PartialLength (BytesFunctor.combine SubFs)
 :=
@@ -391,10 +391,10 @@ where
 
 public
 instance
-  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
-  (SubFs: t → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]
+  {n: Nat}
+  (SubFs: Fin n → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]
   (invs: ∀ id, Bytes.PartialLength (SubFs id))
-  (id: t)
+  (id: Fin n)
   : BytesLength.HasStep (invs id) (Bytes.PartialLength.combine invs)
 where
 

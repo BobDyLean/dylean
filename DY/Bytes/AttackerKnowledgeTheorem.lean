@@ -34,8 +34,8 @@ section AttackerKnowledgeTheorem
 public
 instance
   {SubF: Type → Type}
-  {t: Type}
-  (atts: t → SubAttackerKnowledge SubF)
+  {n: Nat}
+  (atts: Fin n → SubAttackerKnowledge SubF)
   [pfs: ∀ id, SubAttackerKnowledgeTheorem (atts id)]
   : SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine' atts)
 where
@@ -47,8 +47,8 @@ where
 
 public
 instance
-  {t: Type}
-  {SubFs: t → Type → Type}
+  {n: Nat}
+  {SubFs: Fin n → Type → Type}
   (atts: ∀ id, SubAttackerKnowledge (SubFs id))
   [pfs: ∀ id, SubAttackerKnowledgeTheorem (atts id)]
   : SubAttackerKnowledgeTheorem (SubAttackerKnowledge.combine atts)

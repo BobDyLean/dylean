@@ -88,8 +88,8 @@ end AttackerKnowledge
 
 public
 def SubAttackerKnowledge.combine
-  {t: Type}
-  {SubFs: t → Type → Type}
+  {n: Nat}
+  {SubFs: Fin n → Type → Type}
   (atts: ∀ id, SubAttackerKnowledge (SubFs id))
   : SubAttackerKnowledge (BytesFunctor.combine SubFs)
 where
@@ -98,9 +98,9 @@ where
 
 public
 def SubAttackerKnowledge.combine'
+  {n: Nat}
   {SubF: Type → Type}
-  {t: Type}
-  (atts: t → SubAttackerKnowledge SubF)
+  (atts: Fin n → SubAttackerKnowledge SubF)
   : SubAttackerKnowledge SubF
 where
   pred := DY.Fixpoint.combine (fun id => (atts id).pred)
@@ -115,10 +115,10 @@ namespace AttackerKnowledge
 
 public
 instance
-  {t: Type}
-  {SubFs: t → Type → Type}
-  (atts: (id: t) → SubAttackerKnowledge (SubFs id))
-  (id: t)
+  {n: Nat}
+  {SubFs: Fin n → Type → Type}
+  (atts: (id: Fin n) → SubAttackerKnowledge (SubFs id))
+  (id: Fin n)
   : AttackerKnowledge.HasStep (atts id) (SubAttackerKnowledge.combine atts)
 where
   pf p b := by
@@ -128,10 +128,10 @@ where
 
 public
 instance
+  {n: Nat}
   {SubF: Type → Type}
-  {t: Type}
-  (atts: t → SubAttackerKnowledge SubF)
-  (id: t)
+  (atts: Fin n → SubAttackerKnowledge SubF)
+  (id: Fin n)
   : AttackerKnowledge.HasStep (atts id) (SubAttackerKnowledge.combine' atts)
 where
   pf p b := by
@@ -263,9 +263,9 @@ def SubAttackerKnowledge.Implies {SubF: Type → Type} (att: SubAttackerKnowledg
 
 public
 theorem SubAttackerKnowledge.combine'.implies
+  {n: Nat}
   {SubF: Type → Type}
-  {t: Type}
-  (atts: t → SubAttackerKnowledge SubF)
+  (atts: Fin n → SubAttackerKnowledge SubF)
   (p: Bytes → Prop)
   (pfs: ∀ id, SubAttackerKnowledge.Implies (atts id) p)
   : SubAttackerKnowledge.Implies (SubAttackerKnowledge.combine' atts) p
@@ -277,8 +277,8 @@ theorem SubAttackerKnowledge.combine'.implies
 
 public
 theorem SubAttackerKnowledge.combine.implies
-  {t: Type}
-  {SubFs: t → Type → Type}
+  {n: Nat}
+  {SubFs: Fin n → Type → Type}
   (atts: ∀ id, SubAttackerKnowledge (SubFs id))
   (p: Bytes → Prop)
   (pfs: ∀ id, SubAttackerKnowledge.Implies (atts id) p)

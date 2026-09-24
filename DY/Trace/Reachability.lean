@@ -64,9 +64,9 @@ where
 
 public
 instance instReachabilityConfigCombineHasStep
-  {α: Type}
-  (configs: α → ReachabilityConfig)
-  (id: α)
+  {n: Nat}
+  (configs: Fin n → ReachabilityConfig)
+  (id: Fin n)
   : ReachabilityConfig.HasStep (configs id) (.combine configs)
 where
   inj x := ⟨ id, x ⟩

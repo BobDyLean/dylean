@@ -423,8 +423,8 @@ where
 
 public
 def Bytes.PartialInvariants.combine
-  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
-  {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {n: Nat}
+  {SubFs: Fin n → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
   (invs: ∀ id, Bytes.PartialInvariants (SubFs id))
   : Bytes.PartialInvariants (BytesFunctor.combine SubFs)
 where
@@ -436,8 +436,8 @@ where
 public
 theorem Bytes.PartialInvariantsProofs.combine
   [BytesInvariants]
-  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
-  {SubFs: t → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {n: Nat}
+  {SubFs: Fin n → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
   {invs: ∀ id, Bytes.PartialInvariants (SubFs id)}
   (pfs: ∀ id, Bytes.PartialInvariantsProofs (invs id))
   : Bytes.PartialInvariantsProofs (Bytes.PartialInvariants.combine invs)
@@ -470,10 +470,10 @@ public instance
 
 public instance
   [BytesInvariants]
-  {t: Type} [DecidableEq t] [Ord t] [Std.LawfulEqOrd t] [Std.TransOrd t]
-  (SubFs: t → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]
+  {n: Nat}
+  (SubFs: Fin n → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]
   (invs: ∀ id, Bytes.PartialInvariants (SubFs id))
-  (id: t)
+  (id: Fin n)
   : BytesInvariants.HasStep (invs id) (Bytes.PartialInvariants.combine invs)
 :=
   let wfs := (fun id => (invs id).well_formed)
