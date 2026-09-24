@@ -8,24 +8,17 @@ namespace DY
 -- Generic trace definition
 
 public
-inductive Trace (α: Type) where
-  | nil: Trace α
-  | snoc: Trace α -> α -> Trace α
+structure Trace (α: Type) where
+  toArray: Array α
 
 public
-inductive Trace.le {α: Type} : Trace α -> Trace α -> Prop where
-  | equal: (tr: Trace α) -> Trace.le tr tr
-  | extend: (tr1: Trace α) -> (tr2: Trace α) -> (e: α) -> Trace.le tr1 tr2 -> Trace.le tr1 (.snoc tr2 e)
+def Trace.nil {α: Type}: Trace α :=
+  ⟨ #[] ⟩
 
 public
 instance {α: Type}: LE (Trace α) where
-  le := Trace.le
-
-public
-theorem Trace.induct_le {α : Type} {tr1 : Trace α} {motive : (tr2: Trace α) → tr1 ≤ tr2 → Prop} {tr2 : Trace α} (t : tr1 ≤ tr2)
- (equal : motive tr1 (.equal _)) (extend : ∀ (tr2 : Trace α) (e : α) (a : tr1 ≤ tr2), motive tr2 a → motive (tr2.snoc e) (.extend _ _ _ a)) :
-  motive tr2 t
-:= Trace.le.recOn t equal extend
+  le tr1 tr2 :=
+    tr1.toArray = tr2.toArray.take tr1.toArray.size
 
 @[refl]
 public
@@ -33,8 +26,10 @@ theorem Trace.le_refl
   {α: Type}
   (tr: Trace α)
   : tr ≤ tr
-:=
-  Trace.le.equal tr
+:= by
+  cases tr
+  dsimp only [LE.le]
+  grind
 
 grind_pattern Trace.le_refl => tr ≤ tr
 
@@ -44,11 +39,9 @@ theorem Trace.le_trans
   (tr1 tr2 tr3: Trace α)
   : tr1 ≤ tr2 → tr2 ≤ tr3 → tr1 ≤ tr3
 := by
-  intros hxy hyz
-  induction hyz with
-  | equal => exact hxy
-  | extend tr3 e _ ih =>
-    exact (Trace.le.extend tr1 tr3 e ih)
+  cases tr1; cases tr2; cases tr3
+  dsimp only [LE.le]
+  grind
 
 public
 class TraceEntryHas (EntryT: Type) (α: Type) where
@@ -62,7 +55,7 @@ def Trace.append
   (tr: Trace α) (entry: EntryT)
   : Trace α
 :=
-  .snoc tr (TraceEntryHas.inj entry)
+  ⟨ tr.toArray.push (TraceEntryHas.inj entry) ⟩
 
 public
 theorem Trace.append_le
@@ -70,14 +63,13 @@ theorem Trace.append_le
   (tr: Trace α) (entry: EntryT)
   : tr ≤ tr.append entry
 := by
-  apply Trace.le.extend
-  apply Trace.le.equal
+  cases tr
+  dsimp only [LE.le, Trace.append]
+  grind
 
 public
 def Trace.length {α: Type} (tr: Trace α) : Nat :=
-  match tr with
-  | .nil => 0
-  | .snoc trBefore _ => trBefore.length + 1
+  tr.toArray.size
 
 public
 theorem Trace.length_le
@@ -85,20 +77,27 @@ theorem Trace.length_le
   : tr1 ≤ tr2 →
     tr1.length ≤ tr2.length
 := by
-  intro h
-  induction h <;>
-  grind [Trace.length]
+  cases tr1; cases tr2
+  dsimp only [LE.le, Trace.length]
+  grind
 
 grind_pattern Trace.length_le => tr1 ≤ tr2, tr1.length
 
 public
+theorem Trace.append_length
+  {EntryT α: Type} [TraceEntryHas EntryT α]
+  (tr: Trace α) (entry: EntryT)
+  : (tr.append entry).length = tr.length + 1
+:= by
+  cases tr
+  dsimp only [Trace.append, Trace.length]
+  grind
+
+grind_pattern Trace.append_length => (tr.append entry).length
+
+public
 def Trace.prefix {α: Type} (tr: Trace α) (i: Nat): Trace α :=
-  if tr.length ≤ i then
-    tr
-  else
-    match tr with
-    | .nil => .nil
-    | .snoc trBefore _ => trBefore.prefix i
+  ⟨ tr.toArray.take i ⟩
 
 public
 theorem Trace.prefix_length
@@ -106,7 +105,9 @@ theorem Trace.prefix_length
   (tr: Trace α) (i: Nat)
   : (tr.prefix i).length = min tr.length i
 := by
-  fun_induction Trace.prefix <;> grind [Trace.length]
+  cases tr
+  dsimp only [Trace.prefix, Trace.length]
+  grind
 
 grind_pattern Trace.prefix_length => (tr.prefix i).length
 
@@ -116,11 +117,9 @@ theorem Trace.prefix_le_self
   (tr: Trace α) (i: Nat)
   : tr.prefix i ≤ tr
 := by
-  fun_induction Trace.prefix
-  · apply Trace.le_refl
-  · apply Trace.le_refl
-  · apply Trace.le.extend
-    assumption
+  cases tr
+  dsimp only [Trace.prefix, LE.le]
+  grind
 
 grind_pattern Trace.prefix_le_self => tr.prefix i
 
@@ -131,7 +130,9 @@ theorem Trace.prefix_le_prefix
   : i1 ≤ i2 →
     tr.prefix i1 ≤ tr.prefix i2
 := by
-  fun_induction Trace.prefix tr i2 <;> grind [Trace.prefix]
+  cases tr
+  dsimp only [Trace.prefix, LE.le]
+  grind
 
 grind_pattern Trace.prefix_le_prefix => tr.prefix i1 ≤ tr.prefix i2
 
@@ -142,7 +143,8 @@ theorem Trace.prefix_length_eq_self
   (tr: Trace α)
   : tr.prefix tr.length = tr
 := by
-  unfold Trace.prefix
+  cases tr
+  dsimp only [Trace.prefix, Trace.length]
   simp
 
 public
@@ -152,7 +154,9 @@ theorem Trace.prefix_ge_length_eq_self
   : tr.length ≤ i →
     tr.prefix i = tr
 := by
-  unfold Trace.prefix
+  cases tr
+  dsimp only [Trace.prefix, Trace.length, LE.le]
+  simp
   grind
 
 public
@@ -162,20 +166,9 @@ theorem Trace.le_imp_prefix_eq
   : tr1 ≤ tr2 →
     tr2.prefix (tr1.length) = tr1
 := by
-  fun_induction Trace.prefix
-  · intro h_le
-    cases h_le using Trace.induct_le
-    · grind
-    simp_all [Trace.length]
-    exfalso; grind
-  · intro h_le
-    cases h_le using Trace.induct_le
-    grind
-  · rename_i ih
-    intro h_le
-    apply ih
-    cases h_le using Trace.induct_le <;>
-    grind
+  cases tr1; cases tr2
+  dsimp only [Trace.prefix, Trace.length, LE.le]
+  grind
 
 grind_pattern Trace.le_imp_prefix_eq => tr1 ≤ tr2, tr2.prefix (tr1.length)
 
@@ -188,10 +181,8 @@ theorem Trace.le_imp_prefix_le_length_eq
     i ≤ tr1.length →
     tr1.prefix i = tr2.prefix i
 := by
-  intro h_le h_i
-  induction h_le using Trace.induct_le
-  · grind
-  dsimp only [Trace.prefix, Trace.length]
+  cases tr1; cases tr2
+  dsimp only [Trace.prefix, Trace.length, LE.le]
   grind
 
 grind_pattern Trace.le_imp_prefix_le_length_eq => tr1 ≤ tr2, tr1.prefix i, tr2.prefix i
@@ -203,30 +194,27 @@ theorem Trace.prefix_prefix_le
   : tr1 ≤ tr2 →
     tr1.prefix i ≤ tr2.prefix i
 := by
-  intro h_le
-  induction h_le using Trace.induct_le
-  · grind
-  conv => rhs; unfold Trace.prefix
-  rename_i tr2 e a ih
-  split
-  · rename_i h_length
-    unfold Trace.length at h_length
-    have := Trace.prefix_ge_length_eq_self tr2 i (by grind)
-    apply Trace.le.extend; change (tr1.prefix i) ≤ tr2
-    grind
+  cases tr1; cases tr2
+  dsimp only [Trace.prefix, LE.le]
   grind
 
 grind_pattern Trace.prefix_prefix_le => tr1 ≤ tr2, tr1.prefix i, tr2.prefix i
 
 public
+theorem Trace.append_prefix
+  {EntryT α: Type} [TraceEntryHas EntryT α]
+  (tr: Trace α) (entry: EntryT)
+  (i: Nat) (h_i: i ≤ tr.length)
+  : (tr.append entry).prefix i = tr.prefix i
+:= by
+  revert h_i
+  cases tr
+  dsimp only [Trace.prefix, Trace.append, Trace.length]
+  grind
+
+public
 def Trace.at {α: Type} (tr: Trace α) (i: Nat) (h_i: i < tr.length): α :=
-  match tr with
-  | .nil => False.elim (by simp_all [Trace.length])
-  | .snoc trBefore entry =>
-    if h: i = trBefore.length then
-      entry
-    else
-      trBefore.at i (by grind [Trace.length])
+  tr.toArray[i]
 
 public
 theorem Trace.at_le
@@ -234,8 +222,10 @@ theorem Trace.at_le
   (h_le: tr1 ≤ tr2)
   : tr1.at i h_i = tr2.at i (by grind)
 := by
-  induction h_le <;>
-  grind [Trace.at]
+  revert h_i h_le
+  cases tr1; cases tr2
+  dsimp only [Trace.at, Trace.length, LE.le]
+  grind
 
 grind_pattern Trace.at_le => tr1 ≤ tr2, tr1.at i h_i
 grind_pattern [grind_later] Trace.at_le => tr1 ≤ tr2, tr1.at i h_i
