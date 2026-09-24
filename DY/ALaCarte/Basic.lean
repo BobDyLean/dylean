@@ -581,12 +581,16 @@ where
   pf (f1 f2): ∀ x rec, f1 x rec = f2 (SubFunctorTC.inj x) (fun y h => rec y (by simp_all [SubFunctorTC.sizeOf_inj x]))
 
 public
-instance {f: Type → Type} [FunctorSizeOf f] [Representable f] {a: Type} (f: Container.PartialFun f f a): SubPartialFunTC f f where
+instance instSubPartialFunTC_refl
+  {f: Type → Type} [FunctorSizeOf f] [Representable f] {a: Type}
+  (f: Container.PartialFun f f a)
+  : SubPartialFunTC f f
+where
   pf := by
     simp [SubFunctorTC.inj]
 
 public
-instance
+instance instSubPartialFunTC_trans
   {f g h i: Type → Type}
   [FunctorSizeOf f] [FunctorSizeOf g] [FunctorSizeOf h] [FunctorSizeOf i]
   [Representable i]
@@ -650,7 +654,7 @@ def Container.PartialFunDep.combine
     funs id val rec
 
 public
-instance
+instance instSubPartialFun_combine
   {t: Type} [DecidableEq t]
   {functors: t → Type → Type} [∀ id, FunctorSizeOf (functors id)]
   {g: Type → Type} [FunctorSizeOf g] [Representable g]

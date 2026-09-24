@@ -54,6 +54,8 @@ variable [BytesFunctor]
 -- We want to prevent DefEq abuse with Bytes,
 -- but on the other hand we cannot box it into a `structure`
 -- because we need defeq when dealing with `SubF Bytes`.
+-- Furthermore, we need to expose definition because of compiler stuff,
+-- hence this defeq abuse leaks to downstream modules.
 -- As a middle ground, we mark it irreducible.
 @[irreducible, expose]
 public
@@ -61,8 +63,7 @@ def Bytes := ALaCarte.ContainerFor BytesF
 
 -- In this file, we need to "defeq abuse" the definition of Bytes.
 -- However, outside this file, it should not be needed.
-unseal Bytes
-attribute [local instance_reducible] Bytes
+attribute [local semireducible] Bytes
 
 public
 noncomputable
@@ -147,7 +148,7 @@ theorem BytesView.view_pack
   (b: BytesView SubF)
   : (b.pack).view? SubF = some b
 := by
-  simp [BytesView.pack, Bytes.view?, ALaCarte.Container.view_pack]
+  grind [BytesView.pack, Bytes.view?, ALaCarte.Container.view_pack]
 
 grind_pattern BytesView.view_pack => b.pack
 
@@ -171,9 +172,8 @@ grind_pattern Bytes.sizeOf_view => b.view? SubF
 
 -- Unfolding of `ALaCarte.Container.PartialFun SubF BytesF a` that use the type `Bytes` instead of `ContainerFor BytesF`,
 -- and with an autoParam to prove well-founded recursion automatically.
-@[expose, local implicit_reducible]
 public
-def Bytes.PartialFunction (SubF: Type → Type) [SubBytesFunctor SubF] (a: Type) :=
+abbrev Bytes.PartialFunction (SubF: Type → Type) [SubBytesFunctor SubF] (a: Type) :=
   ∀ x: SubF Bytes, (∀ y: Bytes, (h: sizeOf y ≤ DY.ALaCarte.FunctorSizeOf.sizeOf x := by simp_all +arith [DY.ALaCarte.FunctorSizeOf.sizeOf] <;> grind) → a) → a
 
 public
@@ -190,7 +190,10 @@ class Bytes.SubFunctionStep
   [BytesFunctor.HasStep SubF1 SubF2]
   (partialFun1: Bytes.PartialFunction SubF1 a)
   (partialFun2: semiOutParam (Bytes.PartialFunction SubF2 a))
-  extends ALaCarte.SubPartialFun partialFun1 partialFun2
+where
+  [toALaCarte: ALaCarte.SubPartialFun partialFun1 partialFun2]
+
+attribute [local instance] Bytes.SubFunctionStep.toALaCarte
 
 public
 class Bytes.SubFunction
@@ -199,7 +202,10 @@ class Bytes.SubFunction
   {a: Type}
   (partialFun: Bytes.PartialFunction SubF a)
   (totalFun: Bytes.Function a)
-  extends ALaCarte.SubPartialFunTC partialFun totalFun
+where
+  [toALaCarte: ALaCarte.SubPartialFunTC partialFun totalFun]
+
+attribute [local instance] Bytes.SubFunction.toALaCarte
 
 public
 instance
@@ -207,6 +213,7 @@ instance
   (totalFun: Bytes.Function a)
   : Bytes.SubFunction totalFun totalFun
 where
+  toALaCarte := DY.ALaCarte.instSubPartialFunTC_refl _
 
 public
 instance
@@ -222,6 +229,7 @@ instance
   [Bytes.SubFunction partialFun2 totalFun]
   : Bytes.SubFunction partialFun1 totalFun
 where
+  toALaCarte := DY.ALaCarte.instSubPartialFunTC_trans _ partialFun2 _
 
 public
 def Bytes.PartialFunction.combine
@@ -241,9 +249,8 @@ instance
   (funs: (id: t) → Bytes.PartialFunction (SubFs id) a)
   (id: t)
   : Bytes.SubFunctionStep (funs id) (Bytes.PartialFunction.combine funs)
-:= by
-  unfold Bytes.PartialFunction.combine
-  exact {}
+where
+  toALaCarte := DY.ALaCarte.instSubPartialFun_combine _ _
 
 public
 theorem Bytes.rec_eq
@@ -399,11 +406,10 @@ theorem Bytes.length.eq
   {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
   [BytesLength]
   {subLength: Bytes.PartialLength SubF}
-  [tc: BytesLength.Has subLength]
+  [BytesLength.Has subLength]
   (b: BytesView SubF)
   : b.pack.length = subLength b (fun y _ => y.length)
 := by
-  have := tc.pf
   apply Bytes.rec_eq
 
 grind_pattern Bytes.length.eq => b.pack.length
