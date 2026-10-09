@@ -113,7 +113,7 @@ end State
 
 @[instance]
 public
-theorem storeLocalState.spec
+theorem storeLocalState.proof
   {StateT: Type}
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [LocalStateInv StateT]
@@ -131,7 +131,7 @@ theorem storeLocalState.spec
 
 @[instance]
 public
-theorem getLocalState.spec
+theorem getLocalState.proof
   {StateT: Type}
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [LocalStateInv StateT]
@@ -279,7 +279,7 @@ where
 
 @[instance]
 public
-theorem compromise.spec
+theorem compromise.proof
   {StateT: Type}
   [BytesFunctor] [BytesLength]
   [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]

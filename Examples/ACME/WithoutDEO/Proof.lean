@@ -267,7 +267,7 @@ public section Proofs
 variable [HasTraceInvariant]
 
 @[instance]
-theorem Owner.generateKeyPair.spec (owner: Participant):
+theorem Owner.generateKeyPair.proof (owner: Participant):
   HoareTriple
     (Owner.generateKeyPair owner)
     (fun _ => True)
@@ -283,7 +283,7 @@ theorem Owner.generateKeyPair.spec (owner: Participant):
   grind
 
 @[instance]
-theorem Owner.claimAddress.spec (owner: Participant) (address: String) (oSkHandle: Nat):
+theorem Owner.claimAddress.proof (owner: Participant) (address: String) (oSkHandle: Nat):
   HoareTriple
     (Owner.claimAddress owner address oSkHandle)
     (fun _ => True)
@@ -298,7 +298,7 @@ theorem Owner.claimAddress.spec (owner: Participant) (address: String) (oSkHandl
   grind
 
 @[instance]
-theorem LetsEncrypt.initiate.spec (server: Participant) (address: String) (skHandle: Nat):
+theorem LetsEncrypt.initiate.proof (server: Participant) (address: String) (skHandle: Nat):
   HoareTriple
     (LetsEncrypt.initiate server address skHandle)
     (fun _ => True)
@@ -316,7 +316,7 @@ theorem LetsEncrypt.initiate.spec (server: Participant) (address: String) (skHan
   grind
 
 @[instance]
-theorem Owner.respond.spec (owner server: Participant) (msgHandle lePkHandle stHandle: Nat):
+theorem Owner.respond.proof (owner server: Participant) (msgHandle lePkHandle stHandle: Nat):
   HoareTriple
     (Owner.respond owner server msgHandle lePkHandle stHandle)
     (fun _ => True)
@@ -369,7 +369,7 @@ theorem sign_injective
   grind
 
 @[instance]
-theorem LetsEncrypt.finish.spec (server: Participant) (msgHandle pendingStHandle dnsEntryHandle: Nat):
+theorem LetsEncrypt.finish.proof (server: Participant) (msgHandle pendingStHandle dnsEntryHandle: Nat):
   HoareTriple
     (LetsEncrypt.finish server msgHandle pendingStHandle dnsEntryHandle)
     (fun _ => True)
@@ -390,19 +390,19 @@ theorem LetsEncrypt.finish.spec (server: Participant) (msgHandle pendingStHandle
   grind
 
 @[instance]
-theorem OwnerKeyState.compromise.spec (stHandle: Nat): HoareTriple (OwnerKeyState.compromise stHandle) (fun _ => True) (fun _ _ => True)
+theorem OwnerKeyState.compromise.proof (stHandle: Nat): HoareTriple (OwnerKeyState.compromise stHandle) (fun _ => True) (fun _ _ => True)
 := by unfold OwnerKeyState.compromise; step; grind
 
 @[instance]
-theorem OwnerAddressState.compromise.spec (stHandle: Nat): HoareTriple (OwnerAddressState.compromise stHandle) (fun _ => True) (fun _ _ => True)
+theorem OwnerAddressState.compromise.proof (stHandle: Nat): HoareTriple (OwnerAddressState.compromise stHandle) (fun _ => True) (fun _ _ => True)
 := by unfold OwnerAddressState.compromise; step; grind
 
 @[instance]
-theorem LetsEncryptPendingChallengeState.compromise.spec (stHandle: Nat): HoareTriple (LetsEncryptPendingChallengeState.compromise stHandle) (fun _ => True) (fun _ _ => True)
+theorem LetsEncryptPendingChallengeState.compromise.proof (stHandle: Nat): HoareTriple (LetsEncryptPendingChallengeState.compromise stHandle) (fun _ => True) (fun _ _ => True)
 := by unfold LetsEncryptPendingChallengeState.compromise; step; grind
 
 @[instance]
-theorem DNSEntry.compromise.spec (stHandle: Nat): HoareTriple (DNSEntry.compromise stHandle) (fun _ => True) (fun _ _ => True)
+theorem DNSEntry.compromise.proof (stHandle: Nat): HoareTriple (DNSEntry.compromise stHandle) (fun _ => True) (fun _ _ => True)
 := by unfold DNSEntry.compromise; step; grind
 
 end Proofs
@@ -413,15 +413,15 @@ variable [HasTraceInvariant]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 section
-public instance: ReachableImpliesInvariant Owner.generateKeyPair.reachability := .mk (fun owner => Owner.generateKeyPair.spec owner)
-public instance: ReachableImpliesInvariant Owner.claimAddress.reachability := .mk (fun (owner, address, oSkHandle) => Owner.claimAddress.spec owner address oSkHandle)
-public instance: ReachableImpliesInvariant LetsEncrypt.initiate.reachability := .mk (fun (server, address, skHandle) => LetsEncrypt.initiate.spec server address skHandle)
-public instance: ReachableImpliesInvariant Owner.respond.reachability := .mk (fun (owner, server, msgHandle, lePkHandle, stHandle) => Owner.respond.spec owner server msgHandle lePkHandle stHandle)
-public instance: ReachableImpliesInvariant LetsEncrypt.finish.reachability := .mk (fun (server, msgHandle, pendingStHandle, dnsEntryHandle) => LetsEncrypt.finish.spec server msgHandle pendingStHandle dnsEntryHandle)
-public instance: ReachableImpliesInvariant OwnerKeyState.compromise.reachability := .mk (fun stHandle => OwnerKeyState.compromise.spec stHandle)
-public instance: ReachableImpliesInvariant OwnerAddressState.compromise.reachability := .mk (fun stHandle => OwnerAddressState.compromise.spec stHandle)
-public instance: ReachableImpliesInvariant LetsEncryptPendingChallengeState.compromise.reachability := .mk (fun stHandle => LetsEncryptPendingChallengeState.compromise.spec stHandle)
-public instance: ReachableImpliesInvariant DNSEntry.compromise.reachability := .mk (fun stHandle => DNSEntry.compromise.spec stHandle)
+public instance: ReachableImpliesInvariant Owner.generateKeyPair.reachability := .mk (fun owner => Owner.generateKeyPair.proof owner)
+public instance: ReachableImpliesInvariant Owner.claimAddress.reachability := .mk (fun (owner, address, oSkHandle) => Owner.claimAddress.proof owner address oSkHandle)
+public instance: ReachableImpliesInvariant LetsEncrypt.initiate.reachability := .mk (fun (server, address, skHandle) => LetsEncrypt.initiate.proof server address skHandle)
+public instance: ReachableImpliesInvariant Owner.respond.reachability := .mk (fun (owner, server, msgHandle, lePkHandle, stHandle) => Owner.respond.proof owner server msgHandle lePkHandle stHandle)
+public instance: ReachableImpliesInvariant LetsEncrypt.finish.reachability := .mk (fun (server, msgHandle, pendingStHandle, dnsEntryHandle) => LetsEncrypt.finish.proof server msgHandle pendingStHandle dnsEntryHandle)
+public instance: ReachableImpliesInvariant OwnerKeyState.compromise.reachability := .mk (fun stHandle => OwnerKeyState.compromise.proof stHandle)
+public instance: ReachableImpliesInvariant OwnerAddressState.compromise.reachability := .mk (fun stHandle => OwnerAddressState.compromise.proof stHandle)
+public instance: ReachableImpliesInvariant LetsEncryptPendingChallengeState.compromise.reachability := .mk (fun stHandle => LetsEncryptPendingChallengeState.compromise.proof stHandle)
+public instance: ReachableImpliesInvariant DNSEntry.compromise.reachability := .mk (fun stHandle => DNSEntry.compromise.proof stHandle)
 end
 
 #combine into ReachabilityTheorem from

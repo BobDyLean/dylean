@@ -215,7 +215,7 @@ where
 
 @[instance]
 public
-theorem genRand.spec
+theorem genRand.proof
   [BytesFunctor]
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]

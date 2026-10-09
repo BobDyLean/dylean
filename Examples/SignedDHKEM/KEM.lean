@@ -853,7 +853,7 @@ variable [ExecTraceTypes.Has Broken.ExecEntryT]
 variable [BytesInvariants.Has KEM.invariants]
 
 @[instance]
-theorem kemPkInvert.spec (pk: Bytes)
+theorem kemPkInvert.proof (pk: Bytes)
   : HoareTriple
     (kemPkInvert pk)
     (fun tr => tr.erase.EventLogged ({brokenPk := pk}: Broken.BrokenKemEvent) ∧ pk.Publishable tr)
@@ -890,7 +890,7 @@ variable [TraceInvariant.Has Network.ProofEntryT]
 variable [TraceInvariant.Has Broken.ProofEntryT]
 
 @[instance]
-theorem breakKemPk.spec (msgHandle: Nat)
+theorem breakKemPk.proof (msgHandle: Nat)
   : HoareTriple
     (breakKemPk msgHandle)
     (fun _ => True)
@@ -903,7 +903,7 @@ theorem breakKemPk.spec (msgHandle: Nat)
   step
   grind
 
-public instance: ReachableImpliesInvariant breakKemPk.reachability := .mk (fun (msgHandle) => breakKemPk.spec msgHandle)
+public instance: ReachableImpliesInvariant breakKemPk.reachability := .mk (fun (msgHandle) => breakKemPk.proof msgHandle)
 
 end Broken
 

@@ -207,7 +207,7 @@ def logEvent
 
 @[instance]
 public
-theorem logEvent.spec
+theorem logEvent.proof
   {EventT: Type}
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [EventInv EventT]

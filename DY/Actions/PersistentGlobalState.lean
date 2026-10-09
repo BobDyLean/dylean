@@ -98,7 +98,7 @@ end State
 
 @[instance]
 public
-theorem storeGlobalState.spec
+theorem storeGlobalState.proof
   {StateT: Type}
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [GlobalStateInv StateT]
@@ -117,7 +117,7 @@ theorem storeGlobalState.spec
 
 @[instance]
 public
-theorem getGlobalState.spec
+theorem getGlobalState.proof
   {StateT: Type}
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [GlobalStateInv StateT]
@@ -261,7 +261,7 @@ where
 
 @[instance]
 public
-theorem compromise.spec
+theorem compromise.proof
   {StateT: Type}
   [BytesFunctor] [BytesLength]
   [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]

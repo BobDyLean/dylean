@@ -646,7 +646,7 @@ variable [ExecTraceTypes.Has Broken.ExecEntryT]
 variable [BytesInvariants.Has DiffieHellman'.invariants]
 
 @[instance]
-theorem dhPkInvert.spec (pk: Bytes)
+theorem dhPkInvert.proof (pk: Bytes)
   : HoareTriple
     (dhPkInvert pk)
     (fun tr => tr.erase.EventLogged ({brokenPk := pk}: Broken.BrokenDhEvent) ∧ pk.Publishable tr)
@@ -683,7 +683,7 @@ variable [TraceInvariant.Has Network.ProofEntryT]
 variable [TraceInvariant.Has Broken.ProofEntryT]
 
 @[instance]
-theorem breakDhPk.spec (msgHandle: Nat)
+theorem breakDhPk.proof (msgHandle: Nat)
   : HoareTriple
     (breakDhPk msgHandle)
     (fun _ => True)
@@ -696,7 +696,7 @@ theorem breakDhPk.spec (msgHandle: Nat)
   step
   grind
 
-public instance: ReachableImpliesInvariant breakDhPk.reachability := .mk (fun (msgHandle) => breakDhPk.spec msgHandle)
+public instance: ReachableImpliesInvariant breakDhPk.reachability := .mk (fun (msgHandle) => breakDhPk.proof msgHandle)
 
 end Broken
 

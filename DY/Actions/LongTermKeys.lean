@@ -323,7 +323,7 @@ end
 
 @[instance]
 public
-theorem generateKeyPair.spec
+theorem generateKeyPair.proof
   [BytesFunctor]
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
@@ -373,7 +373,7 @@ theorem generateKeyPair.spec
 
 @[instance]
 public
-theorem getPublicKey.spec
+theorem getPublicKey.proof
   [BytesFunctor]
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
@@ -401,7 +401,7 @@ theorem getPublicKey.spec
 
 @[instance]
 public
-theorem getPrivateKey.spec
+theorem getPrivateKey.proof
   [BytesFunctor]
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
@@ -428,7 +428,7 @@ theorem getPrivateKey.spec
 
 @[instance]
 public
-theorem compromisePrivateKey.spec
+theorem compromisePrivateKey.proof
   [BytesFunctor]
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
@@ -522,11 +522,11 @@ variable
 
 public
 instance: ReachableImpliesInvariant (generateKeyPair.reachability name) where
-  pf p := generateKeyPair.spec name p
+  pf p := generateKeyPair.proof name p
 
 public
 instance: ReachableImpliesInvariant (compromisePrivateKey.reachability name) where
-  pf p := compromisePrivateKey.spec name p
+  pf p := compromisePrivateKey.proof name p
 
 public instance: ∀ id, ReachableImpliesInvariant (reachability.internal name id)
   | 0 => inferInstanceAs <| ReachableImpliesInvariant (generateKeyPair.reachability name)
