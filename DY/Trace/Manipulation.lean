@@ -385,7 +385,7 @@ where
 
 @[instance]
 public
-theorem appendEntry.spec
+theorem appendEntry.proof
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   {ExecEntryT ProofEntryT: Type}
   [ExecEntryAssociatedWithProofEntry ExecEntryT ProofEntryT]
@@ -426,7 +426,7 @@ def getEntry
 
 @[instance]
 public
-theorem getEntry.spec
+theorem getEntry.proof
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   {ExecEntryT ProofEntryT: Type}
   [ExecEntryAssociatedWithProofEntry ExecEntryT ProofEntryT]
@@ -487,7 +487,7 @@ def getTimestamp [ExecTraceTypes]: Traceful Nat
 
 @[instance]
 public
-theorem getTimestamp.spec [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]:
+theorem getTimestamp.proof [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]:
   HoareTriple
     (getTimestamp)
     (fun _ => True)
@@ -528,7 +528,7 @@ where
 
 @[instance]
 public
-theorem forIn'.spec
+theorem forIn'.proof
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   {α β: Type}
   (xs: List α) (init: β) {f : (a: α) → a ∈ xs → β → Traceful (ForInStep β)}
@@ -596,7 +596,7 @@ where
 
 @[instance]
 public
-theorem forIn.spec
+theorem forIn.proof
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   {α β: Type}
   (xs: List α) (init: β) {f : (a: α) → β → Traceful (ForInStep β)}
@@ -609,6 +609,6 @@ theorem forIn.spec
 := by
   apply HoareTripleGhost.mk
   simp only [← forIn'_eq_forIn]
-  exact (forIn'.spec xs init ⟨ invAndProof.inv, invAndProof.step ⟩).pf
+  exact (forIn'.proof xs init ⟨ invAndProof.inv, invAndProof.step ⟩).pf
 
 end DY

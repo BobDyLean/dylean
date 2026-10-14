@@ -536,7 +536,7 @@ attribute [local grind] LongTermKeys.IsLongTermPublicKey
 attribute [local grind] LongTermKeys.IsLongTermSecretKey
 
 @[instance]
-theorem initialTranscriptHash.spec
+theorem initialTranscriptHash.proof
   : HoareTriplePure
     (initialTranscriptHash)
     (fun _ => True)
@@ -551,7 +551,7 @@ theorem initialTranscriptHash.spec
   grind
 
 @[instance]
-theorem computeTranscriptHash.spec
+theorem computeTranscriptHash.proof
   (previousTranscriptHash: Bytes) (elem: TranscriptElement)
   : HoareTriplePure
       (computeTranscriptHash previousTranscriptHash elem)
@@ -571,7 +571,7 @@ theorem computeTranscriptHash.spec
   grind [Hash.hash.Invariant, Hash.hash.label]
 
 @[instance]
-theorem firstKey.spec
+theorem firstKey.proof
   : HoareTriplePure
     (firstKey)
     (fun _ => True)
@@ -585,7 +585,7 @@ theorem firstKey.spec
   grind
 
 @[instance]
-theorem initiate.spec (me other: Participant) (mySigKeyHandle: Nat)
+theorem initiate.proof (me other: Participant) (mySigKeyHandle: Nat)
   : HoareTriple
     (initiate me other mySigKeyHandle)
     (fun _ => True)
@@ -642,7 +642,7 @@ theorem initiate.spec (me other: Participant) (mySigKeyHandle: Nat)
   grind
 
 @[instance]
-theorem processInitiate.spec (me other: Participant) (otherVerifKeyHandle: Nat) (msgHandle: Nat)
+theorem processInitiate.proof (me other: Participant) (otherVerifKeyHandle: Nat) (msgHandle: Nat)
   : HoareTriple
     (processInitiate me other otherVerifKeyHandle msgHandle)
     (fun _ => True)
@@ -701,7 +701,7 @@ theorem processInitiate.spec (me other: Participant) (otherVerifKeyHandle: Nat) 
   grind
 
 @[instance]
-theorem sendUpdate.spec (me: Participant) (mySigKeyHandle: Nat) (stHandle: Nat)
+theorem sendUpdate.proof (me: Participant) (mySigKeyHandle: Nat) (stHandle: Nat)
   : HoareTriple
     (sendUpdate me mySigKeyHandle stHandle)
     (fun _ => True)
@@ -828,7 +828,7 @@ theorem eventLogged_receiveUpdate_key_label
   grind [Trace.le_trans]
 
 @[instance]
-theorem processUpdate.spec (me: Participant) (otherVerifKeyHandle: Nat) (stHandle msgHandle: Nat)
+theorem processUpdate.proof (me: Participant) (otherVerifKeyHandle: Nat) (stHandle msgHandle: Nat)
   : HoareTriple
     (processUpdate me otherVerifKeyHandle stHandle msgHandle)
     (fun _ => True)
@@ -907,11 +907,11 @@ theorem processUpdate.spec (me: Participant) (otherVerifKeyHandle: Nat) (stHandl
   grind
 
 @[instance]
-theorem StateMyTurn.compromise.spec (stHandle: Nat): HoareTriple (StateMyTurn.compromise stHandle) (fun _ => True) (fun _ _ => True)
+theorem StateMyTurn.compromise.proof (stHandle: Nat): HoareTriple (StateMyTurn.compromise stHandle) (fun _ => True) (fun _ _ => True)
 := by unfold StateMyTurn.compromise; step; grind
 
 @[instance]
-theorem StateOtherTurn.compromise.spec (stHandle: Nat): HoareTriple (StateOtherTurn.compromise stHandle) (fun _ => True) (fun _ _ => True)
+theorem StateOtherTurn.compromise.proof (stHandle: Nat): HoareTriple (StateOtherTurn.compromise stHandle) (fun _ => True) (fun _ _ => True)
 := by unfold StateOtherTurn.compromise; step; grind
 
 end Proofs
@@ -922,12 +922,12 @@ variable [HasTraceInvariant]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 section
-public instance: ReachableImpliesInvariant initiate.reachability := .mk (fun (me, other, mySigKeyHandle) => initiate.spec me other mySigKeyHandle)
-public instance: ReachableImpliesInvariant processInitiate.reachability := .mk (fun (me, other, otherVerifKeyHandle, msgHandle) => processInitiate.spec me other otherVerifKeyHandle msgHandle)
-public instance: ReachableImpliesInvariant sendUpdate.reachability := .mk (fun (me, mySigKeyHandle, stHandle) => sendUpdate.spec me mySigKeyHandle stHandle)
-public instance: ReachableImpliesInvariant processUpdate.reachability := .mk (fun (me, otherVerifKeyHandle, stHandle, msgHandle) => processUpdate.spec me otherVerifKeyHandle stHandle msgHandle)
-public instance: ReachableImpliesInvariant StateMyTurn.compromise.reachability := .mk (fun (stHandle) => StateMyTurn.compromise.spec stHandle)
-public instance: ReachableImpliesInvariant StateOtherTurn.compromise.reachability := .mk (fun (stHandle) => StateOtherTurn.compromise.spec stHandle)
+public instance: ReachableImpliesInvariant initiate.reachability := .mk (fun (me, other, mySigKeyHandle) => initiate.proof me other mySigKeyHandle)
+public instance: ReachableImpliesInvariant processInitiate.reachability := .mk (fun (me, other, otherVerifKeyHandle, msgHandle) => processInitiate.proof me other otherVerifKeyHandle msgHandle)
+public instance: ReachableImpliesInvariant sendUpdate.reachability := .mk (fun (me, mySigKeyHandle, stHandle) => sendUpdate.proof me mySigKeyHandle stHandle)
+public instance: ReachableImpliesInvariant processUpdate.reachability := .mk (fun (me, otherVerifKeyHandle, stHandle, msgHandle) => processUpdate.proof me otherVerifKeyHandle stHandle msgHandle)
+public instance: ReachableImpliesInvariant StateMyTurn.compromise.reachability := .mk (fun (stHandle) => StateMyTurn.compromise.proof stHandle)
+public instance: ReachableImpliesInvariant StateOtherTurn.compromise.reachability := .mk (fun (stHandle) => StateOtherTurn.compromise.proof stHandle)
 end
 
 #combine into ReachabilityTheorem from

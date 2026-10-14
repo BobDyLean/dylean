@@ -120,7 +120,7 @@ def test: Traceful Unit := do
   send_message msg38
   send_message msg39
 
-theorem test.spec:
+theorem test.proof:
   HoareTriple
     (test)
     (fun _ => True)

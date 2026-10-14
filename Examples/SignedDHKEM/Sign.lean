@@ -827,7 +827,7 @@ variable [SignPred]
 variable [BytesInvariants.Has Signature'.invariants]
 
 @[instance]
-theorem vkInvert.spec (pk: Bytes)
+theorem vkInvert.proof (pk: Bytes)
   : HoareTriple
     (vkInvert pk)
     (fun tr => tr.erase.EventLogged ({brokenPk := pk}: Broken.BrokenDhEvent) ∧ pk.Publishable tr)
@@ -864,7 +864,7 @@ variable [TraceInvariant.Has Network.ProofEntryT]
 variable [TraceInvariant.Has Broken.ProofEntryT]
 
 @[instance]
-theorem breakVk.spec (msgHandle: Nat)
+theorem breakVk.proof (msgHandle: Nat)
   : HoareTriple
     (breakVk msgHandle)
     (fun _ => True)
@@ -877,7 +877,7 @@ theorem breakVk.spec (msgHandle: Nat)
   step
   grind
 
-public instance: ReachableImpliesInvariant breakVk.reachability := .mk (fun (msgHandle) => breakVk.spec msgHandle)
+public instance: ReachableImpliesInvariant breakVk.reachability := .mk (fun (msgHandle) => breakVk.proof msgHandle)
 
 end Broken
 

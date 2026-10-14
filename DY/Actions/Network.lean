@@ -118,7 +118,7 @@ where
 
 @[instance]
 public
-theorem sendMessage.spec
+theorem sendMessage.proof
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
   [ExecTraceTypes.Has ExecEntryT]
@@ -138,7 +138,7 @@ theorem sendMessage.spec
 
 @[instance]
 public
-theorem receiveMessage.spec
+theorem receiveMessage.proof
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   [BytesInvariants] [BytesInvariantsProofs]
   [ExecTraceTypes.Has ExecEntryT]
@@ -204,7 +204,7 @@ instance: ReachableImpliesInvariant reachability
 where
   pf b := by
     apply HoareTriple.mk
-    have := (sendMessage.spec b).pf
+    have := (sendMessage.proof b).pf
     unfold hoareTriple at *
     grind [Bytes.AttackerKnows_implies_Publishable]
 
