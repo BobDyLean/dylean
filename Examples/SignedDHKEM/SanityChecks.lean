@@ -37,7 +37,7 @@ def honestAttacker: Traceful Unit := do
   let (_stServerHandle, msgServerHandle) ← Server.receive "Bob" skHandle msgClientHandle -- 6
   let _ ← Client.finish "Alice" "Bob" pkHandle msgServerHandle dhStClientHandle kemStClientHandle -- 2
 
-#guard (honestAttacker.run Trace.nil).fst = some ()
+#guard (honestAttacker.run Trace.empty).fst = some ()
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem honestAttacker_PreservesReachability
@@ -77,7 +77,7 @@ theorem honestAttacker_PreservesReachability
 
 public
 theorem honestAttacker_properties:
-  let tr := (honestAttacker.run (Trace.nil)).snd.val
+  let tr := (honestAttacker.run (Trace.empty)).snd.val
   tr.Reachable reachability ∧
   ∃ t1 t2 xPk yPk zPk k,
     t1 < t2 ∧
@@ -130,7 +130,7 @@ def breakDhAndKemAttacker: Traceful Unit := do
   let _ ← Network.sendMessage k
   return ()
 
-#guard (breakDhAndKemAttacker.run Trace.nil).fst = some ()
+#guard (breakDhAndKemAttacker.run Trace.empty).fst = some ()
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem breakDhAndKemAttacker_PreservesReachability
@@ -232,7 +232,7 @@ theorem breakDhAndKemAttacker_PreservesReachability
 
 public
 theorem breakDhAndKemAttacker_properties:
-  let tr := (breakDhAndKemAttacker.run (Trace.nil)).snd.val
+  let tr := (breakDhAndKemAttacker.run (Trace.empty)).snd.val
   tr.Reachable reachability ∧
   ∃ t1 xPk yPk zPk k,
     tr.EventLoggedAt (SignedDHKEMEvent.ClientFinishEvent "Alice" "Bob" xPk yPk zPk k) t1 ∧
@@ -295,7 +295,7 @@ def breakSigKeyAttacker: Traceful Unit := do
   let _ ← Network.sendMessage k -- 1
   return ()
 
-#guard (breakSigKeyAttacker.run Trace.nil).fst = some ()
+#guard (breakSigKeyAttacker.run Trace.empty).fst = some ()
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem breakSigKeyAttacker_PreservesReachability
@@ -395,7 +395,7 @@ theorem breakSigKeyAttacker_PreservesReachability
 
 public
 theorem breakSigKeyAttacker_properties:
-  let tr := (breakSigKeyAttacker.run (Trace.nil)).snd.val
+  let tr := (breakSigKeyAttacker.run (Trace.empty)).snd.val
   tr.Reachable reachability ∧
   ∃ t1 xPk yPk zPk k,
     tr.EventLoggedAt (SignedDHKEMEvent.ClientFinishEvent "Alice" "Bob" xPk yPk zPk k) t1 ∧

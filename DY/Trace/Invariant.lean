@@ -283,7 +283,14 @@ theorem ProofTrace.Entry.at?_eq_some_erase
   grind
 
 public
-theorem Trace.append_erase
+theorem Trace.erase_empty
+  [ExecTraceTypes] [ProofTraceTypes]
+  : (Trace.empty: ProofTrace).erase = (Trace.empty: ExecTrace)
+:= by
+  simp [Trace.erase, Trace.empty]
+
+public
+theorem Trace.erase_append
   [ExecTraceTypes] [ProofTraceTypes]
   {ExecEntryT ProofEntryT: Type}
   [ErasableProofEntry ExecEntryT ProofEntryT]
@@ -407,6 +414,13 @@ instance instTraceInvariantCombineHasStep
   : TraceInvariant.HasStep (ProofTypes id) (ProofTraceTypes.combine ProofTypes)
 where
   inv_commutes trBefore entry := by rfl
+
+public
+theorem Trace.invariant_empty
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  : (Trace.empty: ProofTrace).Invariant
+:= by
+  simp [Trace.Invariant, Trace.empty, Trace.length]
 
 public
 theorem Trace.invariant_append

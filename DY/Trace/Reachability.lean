@@ -76,7 +76,7 @@ where
 public
 inductive Trace.Reachable (config: ReachabilityConfig): ExecTrace → Prop where
   | Base:
-    Trace.Reachable config Trace.nil
+    Trace.Reachable config Trace.empty
   | Step:
     {tr: ExecTrace} →
     (input: config.Input) →
@@ -176,11 +176,11 @@ theorem Traceful.PreservesReachability_to_Reachable
   {pre: ExecTrace → Prop}
   {post: a → ExecTrace → Prop}
   (h: f.PreservesReachability config pre post)
-  : pre Trace.nil →
-    (f.run Trace.nil).snd.val.Reachable config
+  : pre Trace.empty →
+    (f.run Trace.empty).snd.val.Reachable config
 := by
   simp_all [Traceful.PreservesReachability, Traceful.PreservesReachabilityFrom]
-  have := h Trace.nil (.Base)
+  have := h Trace.empty (.Base)
   grind
 
 namespace Meta.CombineMacro

@@ -12,7 +12,7 @@ structure Trace (α: Type) where
   toArray: Array α
 
 public
-def Trace.nil {α: Type}: Trace α :=
+def Trace.empty {α: Type}: Trace α :=
   ⟨ #[] ⟩
 
 public
