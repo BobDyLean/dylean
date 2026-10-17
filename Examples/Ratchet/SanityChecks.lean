@@ -36,7 +36,7 @@ def honestAttacker: Traceful Unit := do
 
   honestAttackerLoop 10 aliceVkHandle aliceSkHandle bobVkHandle bobSkHandle aliceStHandle bobStHandle
 
-#guard (honestAttacker.run Trace.nil).fst = some ()
+#guard (honestAttacker.run Trace.empty).fst = some ()
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem honestAttackerLoop_PreservesReachability
@@ -119,7 +119,7 @@ theorem honestAttacker_PreservesReachability
 
 public
 theorem honestAttacker_properties:
-  let tr := (honestAttacker.run (Trace.nil)).snd.val
+  let tr := (honestAttacker.run (Trace.empty)).snd.val
   tr.Reachable reachability ∧
   ∃ t1 t2 transcript k,
     transcript.length = 21 ∧
@@ -159,7 +159,7 @@ def compromiseStateMyTurnAttacker: Traceful Unit := do
   let st: StateMyTurn := globalSt.state
   let _ ← Network.sendMessage st.k
 
-#guard (compromiseStateMyTurnAttacker.run Trace.nil).fst = some ()
+#guard (compromiseStateMyTurnAttacker.run Trace.empty).fst = some ()
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseStateMyTurnAttacker_PreservesReachability
@@ -205,7 +205,7 @@ theorem compromiseStateMyTurnAttacker_PreservesReachability
 
 public
 theorem compromiseStateMyTurnAttacker_properties:
-  let tr := (compromiseStateMyTurnAttacker.run (Trace.nil)).snd.val
+  let tr := (compromiseStateMyTurnAttacker.run (Trace.empty)).snd.val
   tr.Reachable reachability ∧
   ∃ t transcript k,
     transcript.length = 21 ∧
@@ -253,7 +253,7 @@ def compromiseStateOtherTurnAttacker: Traceful Unit := do
   let st := globalSt.state
   let _ ← Network.sendMessage st.k
 
-#guard (compromiseStateOtherTurnAttacker.run Trace.nil).fst = some ()
+#guard (compromiseStateOtherTurnAttacker.run Trace.empty).fst = some ()
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseStateOtherTurnAttacker_PreservesReachability
@@ -299,7 +299,7 @@ theorem compromiseStateOtherTurnAttacker_PreservesReachability
 
 public
 theorem compromiseStateOtherTurnAttacker_properties:
-  let tr := (compromiseStateOtherTurnAttacker.run (Trace.nil)).snd.val
+  let tr := (compromiseStateOtherTurnAttacker.run (Trace.empty)).snd.val
   tr.Reachable reachability ∧
   ∃ t transcript k,
     transcript.length = 21 ∧
@@ -390,7 +390,7 @@ def compromiseSigKeyAttacker: Traceful Unit := do
 
   compromiseSigKeyAttackerLoop 10 aliceVkHandle aliceSkHandle bobVkHandle aliceStHandle bobSigKey msg.dhPk transcriptHash firstKey
 
-#guard (compromiseSigKeyAttacker.run Trace.nil).fst = some ()
+#guard (compromiseSigKeyAttacker.run Trace.empty).fst = some ()
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseSigKeyAttackerLoop_PreservesReachability
@@ -574,7 +574,7 @@ theorem compromiseSigKeyAttacker_PreservesReachability
 
 public
 theorem compromiseSigKeyAttacker_properties:
-  let tr := (compromiseSigKeyAttacker.run (Trace.nil)).snd.val
+  let tr := (compromiseSigKeyAttacker.run (Trace.empty)).snd.val
   tr.Reachable reachability ∧
   ∃ t transcript k,
     transcript.length = 21 ∧

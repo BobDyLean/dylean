@@ -42,7 +42,8 @@ theorem Trace.Reachable_implies_Invariant
 := by
   intro h_reach
   induction h_reach
-  · exists Trace.nil
+  · exists Trace.empty
+    simp [Trace.erase_empty, Trace.invariant_empty]
   rename_i input h_pre h_reach ih
   obtain ⟨ trProofMid, _, _ ⟩ := ih
   have h_wp := (inst.pf input).pf trProofMid (by simp_all) (by simp_all)

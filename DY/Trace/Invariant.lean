@@ -49,9 +49,7 @@ def Trace.erase
   (tr: ProofTrace)
   : ExecTrace
 :=
-  match tr with
-  | .nil => .nil
-  | .snoc trBefore entry => .snoc trBefore.erase entry.erase
+  ⟨ tr.toArray.map ProofTrace.Entry.erase ⟩
 
 public
 theorem Trace.erase_le
@@ -60,11 +58,9 @@ theorem Trace.erase_le
   : tr1 ≤ tr2 →
     tr1.erase ≤ tr2.erase
 := by
-  intro h_le
-  induction h_le
-  · apply Trace.le.equal
-  · apply Trace.le.extend
-    assumption
+  cases tr1; cases tr2
+  dsimp only [Trace.erase, LE.le]
+  grind
 
 grind_pattern Trace.erase_le => tr1 ≤ tr2, tr1.erase
 grind_pattern [grind_later] Trace.erase_le => tr1 ≤ tr2, tr1.erase
@@ -76,8 +72,9 @@ theorem Trace.erase_length
   (tr: ProofTrace)
   : tr.erase.length = tr.length
 := by
-  induction tr <;>
-  simp_all [Trace.length, Trace.erase]
+  cases tr
+  dsimp only [Trace.erase, Trace.length, LE.le]
+  grind
 
 grind_pattern Trace.erase_length => tr.erase.length
 
@@ -88,11 +85,10 @@ theorem Trace.erase_at
   (i: Nat) (h_i: i < tr.erase.length)
   : tr.erase.at i h_i = (tr.at i (Trace.erase_length tr ▸ h_i)).erase
 := by
-  induction tr <;>
-  simp only [Trace.at, Trace.erase]
-  · grind
-  split <;>
-  grind [Trace.erase_length]
+  revert h_i
+  cases tr
+  dsimp only [Trace.length, Trace.erase, Trace.length, Trace.at, LE.le]
+  grind
 
 @[simp]
 public
@@ -102,19 +98,9 @@ theorem Trace.prefix_erase
   (i: Nat)
   : (tr.prefix i).erase = tr.erase.prefix i
 := by
-  induction tr
-  · unfold Trace.prefix Trace.erase
-    simp
-  rename_i trBefore entry ih
-  unfold Trace.prefix Trace.erase
-  simp_all [Trace.length]
-  split
-  · split
-    · simp_all
-    · simp_all [Trace.erase]
-  · split
-    · simp_all
-    · simp_all [Trace.erase]
+  cases tr
+  dsimp only [Trace.prefix, Trace.erase]
+  grind
 
 -- TODO test coercion
 example [ExecTraceTypes] [ProofTraceTypes]: Coe ProofTrace ExecTrace where
@@ -297,7 +283,14 @@ theorem ProofTrace.Entry.at?_eq_some_erase
   grind
 
 public
-theorem Trace.append_erase
+theorem Trace.erase_empty
+  [ExecTraceTypes] [ProofTraceTypes]
+  : (Trace.empty: ProofTrace).erase = (Trace.empty: ExecTrace)
+:= by
+  simp [Trace.erase, Trace.empty]
+
+public
+theorem Trace.erase_append
   [ExecTraceTypes] [ProofTraceTypes]
   {ExecEntryT ProofEntryT: Type}
   [ErasableProofEntry ExecEntryT ProofEntryT]
@@ -306,7 +299,9 @@ theorem Trace.append_erase
   (tr: ProofTrace) (entry: ProofEntryT)
   : (tr.append entry).erase = tr.erase.append (ErasableProofEntry.erase entry)
 := by
-  simp [Trace.append, Trace.erase, ProofTraceTypes.Has.erase_commutes]
+  cases tr
+  dsimp only [Trace.append, Trace.erase]
+  simp [ProofTraceTypes.Has.erase_commutes]
 
 -- Invariant
 
@@ -337,11 +332,7 @@ def Trace.Invariant
   (tr: ProofTrace)
   : Prop
 :=
-  match tr with
-  | .nil => True
-  | .snoc trBefore entry =>
-    trBefore.Invariant ∧
-    entry.Invariant trBefore
+  ∀ i h_i, (tr.at i h_i).Invariant (tr.prefix i)
 
 public
 class TraceInvariant.Has
@@ -425,6 +416,13 @@ where
   inv_commutes trBefore entry := by rfl
 
 public
+theorem Trace.invariant_empty
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  : (Trace.empty: ProofTrace).Invariant
+:= by
+  simp [Trace.Invariant, Trace.empty, Trace.length]
+
+public
 theorem Trace.invariant_append
   [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
   {ExecEntryT ProofEntryT: Type}
@@ -436,8 +434,12 @@ theorem Trace.invariant_append
   (tr: ProofTrace) (entry: ProofEntryT)
   : (tr.append entry).Invariant = (tr.Invariant ∧ SubTraceInvariant.invariant tr entry)
 := by
-  have := TraceInvariant.Has.inv_commutes (ProofEntryT := ProofEntryT)
-  simp_all [Trace.Invariant, Trace.append]
+  dsimp only [Trace.Invariant]
+  rewrite [← TraceInvariant.Has.inv_commutes (ProofEntryT := ProofEntryT) tr entry]
+  have: (append tr entry).at (length tr) (by grind) = TraceEntryHas.inj entry := by grind [Trace.at?_append, Trace.at?_eq_some]
+  have: ∀ i, i ≤ tr.length → (tr.append entry).prefix i = tr.prefix i := by grind [Trace.append_prefix]
+  have: (tr.append entry).prefix tr.length = tr := by grind
+  grind
 
 public
 theorem Trace.invariant_at
@@ -448,8 +450,9 @@ theorem Trace.invariant_at
   : tr.Invariant →
     (tr.at i h_i).Invariant (tr.prefix i)
 := by
-  fun_induction Trace.at <;>
-  grind [Trace.Invariant, Trace.prefix, Trace.length]
+  cases tr
+  dsimp only [Trace.append, Trace.Invariant]
+  grind
 
 namespace Meta.CombineMacro
 

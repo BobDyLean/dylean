@@ -25,7 +25,7 @@ def honestAttacker: Traceful Unit := do
   let (_stServerHandle, msgServerHandle) ← Server.receive "Bob" skHandle msgClientHandle -- 5
   let _ ← Client.finish "Alice" "Bob" pkHandle msgServerHandle stClientHandle -- 2
 
-#guard (honestAttacker.run Trace.nil).fst = some ()
+#guard (honestAttacker.run Trace.empty).fst = some ()
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem honestAttacker_PreservesReachability
@@ -65,7 +65,7 @@ theorem honestAttacker_PreservesReachability
 
 public
 theorem honestAttacker_properties:
-  let tr := (honestAttacker.run (Trace.nil)).snd.val
+  let tr := (honestAttacker.run (Trace.empty)).snd.val
   tr.Reachable reachability ∧
   ∃ t1 t2 xPk yPk k,
     t1 < t2 ∧
@@ -111,7 +111,7 @@ def compromiseClientEphAttacker: Traceful Unit := do
   let _ ← Network.sendMessage k
   return ()
 
-#guard (compromiseClientEphAttacker.run Trace.nil).fst = some ()
+#guard (compromiseClientEphAttacker.run Trace.empty).fst = some ()
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseClientEphAttacker_PreservesReachability
@@ -173,7 +173,7 @@ theorem compromiseClientEphAttacker_PreservesReachability
 
 public
 theorem compromiseClientEphAttacker_properties:
-  let tr := (compromiseClientEphAttacker.run (Trace.nil)).snd.val
+  let tr := (compromiseClientEphAttacker.run (Trace.empty)).snd.val
   tr.Reachable reachability ∧
   ∃ t1 xPk yPk k,
     tr.EventLoggedAt (SignedDHEvent.ClientFinishEvent "Alice" "Bob" xPk yPk k) t1 ∧
@@ -232,7 +232,7 @@ def compromiseSigKeyAttacker: Traceful Unit := do
   let _ ← Network.sendMessage k -- 1
   return ()
 
-#guard (compromiseSigKeyAttacker.run Trace.nil).fst = some ()
+#guard (compromiseSigKeyAttacker.run Trace.empty).fst = some ()
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseSigKeyAttacker_PreservesReachability
@@ -324,7 +324,7 @@ theorem compromiseSigKeyAttacker_PreservesReachability
 
 public
 theorem compromiseSigKeyAttacker_properties:
-  let tr := (compromiseSigKeyAttacker.run (Trace.nil)).snd.val
+  let tr := (compromiseSigKeyAttacker.run (Trace.empty)).snd.val
   tr.Reachable reachability ∧
   ∃ t1 xPk yPk k,
     tr.EventLoggedAt (SignedDHEvent.ClientFinishEvent "Alice" "Bob" xPk yPk k) t1 ∧

@@ -411,7 +411,7 @@ theorem appendEntry.proof
   simp only [hoareTriple, wp, appendEntry, Traceful.run_mk]
   intro trProof h_pre h_inv
   exists trProof.append (mkProofEntry trProof.length)
-  simp_all [Trace.append_erase, Trace.append_le, Trace.invariant_append, Trace.at?_append, Trace.erase_length]
+  simp_all [Trace.erase_append, Trace.append_le, Trace.invariant_append, Trace.at?_append, Trace.erase_length]
 
 public
 def getEntry
