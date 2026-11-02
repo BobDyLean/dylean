@@ -1,4 +1,4 @@
 module
 
-public import Tests.Meta
-public import Tests.Benchmark
+import Tests.Meta
+import Tests.Benchmark

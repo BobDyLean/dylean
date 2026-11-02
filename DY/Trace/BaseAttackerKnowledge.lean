@@ -95,11 +95,7 @@ def Trace.BaseAttackerKnows
   (tr: ExecTrace) (b: Bytes)
   : Prop
 :=
-  match tr with
-  | .nil => False
-  | .snoc trBefore entry =>
-    BaseAttackerKnowledge.attackerKnows.attackerKnows trBefore entry b ∨
-    Trace.BaseAttackerKnows trBefore b
+  ∃ i h_i, BaseAttackerKnowledge.attackerKnows.attackerKnows (tr.prefix i) (tr.at i h_i) b
 
 public
 theorem Trace.BaseAttackerKnows_le
@@ -109,8 +105,6 @@ theorem Trace.BaseAttackerKnows_le
     Trace.BaseAttackerKnows tr1 b →
     Trace.BaseAttackerKnows tr2 b
 := by
-  intro h
-  induction h <;>
   grind [Trace.BaseAttackerKnows]
 
 grind_pattern Trace.BaseAttackerKnows_le => tr1 ≤ tr2, Trace.BaseAttackerKnows tr1 b
@@ -128,12 +122,9 @@ theorem Trace.prove_BaseAttackerKnows
     sub.attackerKnows (tr.prefix time) entry b →
     Trace.BaseAttackerKnows tr b
 := by
-  simp only [tr.at?_eq_some]
-  induction tr
-  · grind [Trace.length]
-  rename_i tr entry' ih
-  have := BaseAttackerKnowledge.Has.pf (sub := sub) tr entry b
-  simp_all [Trace.prefix, Trace.at, Trace.BaseAttackerKnows]
+  dsimp only [Trace.BaseAttackerKnows]
+  simp only [Trace.at?_eq_some]
+  have := BaseAttackerKnowledge.Has.pf (sub := sub) (tr.prefix time) entry b
   grind
 
 namespace Meta.CombineMacro

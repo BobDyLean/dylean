@@ -18,7 +18,7 @@ def honestAttacker: Traceful Unit := do
   LetsEncrypt.finish "LetsEncrypt" msgHandle' pendingStHandle dnsEntryHandle -- 1
   return ()
 
-#guard (honestAttacker.run Trace.nil).fst = some ()
+#guard (honestAttacker.run Trace.empty).fst = some ()
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem honestAttacker_PreservesReachability
@@ -70,7 +70,7 @@ theorem honestAttacker_PreservesReachability
 
 public
 theorem honestAttacker_properties:
-  let tr := (honestAttacker.run (Trace.nil)).snd.val
+  let tr := (honestAttacker.run (Trace.empty)).snd.val
   tr.Reachable reachability ∧
   ∃ t1 t2 oPk,
     t1 < t2 ∧

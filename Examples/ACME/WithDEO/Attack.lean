@@ -40,7 +40,7 @@ def attacker: Traceful Unit := do
   LetsEncrypt.finish "LetsEncrypt" msgHandle pendingStHandle' dnsEntryHandle -- 1
   return ()
 
-#guard (attacker.run Trace.nil).fst = some ()
+#guard (attacker.run Trace.empty).fst = some ()
 
 -- TODO: move, but where?
 theorem liftM_parse_preserves_reachability
@@ -163,7 +163,7 @@ theorem rewrite_forall_nat_into_forall_fin {P: Nat → Prop} (n: Nat) (h: ∀ i,
 
 public
 theorem attacker_properties:
-  let tr := (attacker.run (Trace.nil)).snd.val
+  let tr := (attacker.run (Trace.empty)).snd.val
   tr.Reachable reachability ∧
   ∃ t oPk,
     tr.EventLoggedAt (ACMEEvent.LetsEncryptAcceptAddress "example.com" oPk) t ∧
