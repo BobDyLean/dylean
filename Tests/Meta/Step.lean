@@ -380,7 +380,6 @@ tr : Trace ProofTrace.Entry
 h : tr.Invariant
 b : Bytes
 h_b✝ : b.Publishable tr
-__r✝ : PUnit
 h___r✝ : __r✝ = PUnit.unit
 ⊢ wp
     (do

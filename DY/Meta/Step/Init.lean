@@ -409,7 +409,7 @@ def monotonizeContext
           | .closed => pure ()
           | .failed newGoal =>
             -- TODO: could open a new goal with it, to allow for easier debugging in interactive mode?
-            goal.withContext do throwError "cannot monotonize {← hypFv.getType}.\n grind failure: {← goalToMessageData newGoal config}"
+            goal.withContext do throwError "cannot monotonize {← hypFv.getType}.\n grind failure: {← goalToMessageData newGoal config #[]}"
         trace[Step] "intro new hypothesis"
         let .goal _ newGoal ← goal.introN 1 | failure
         goal := newGoal
