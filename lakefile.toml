@@ -1,6 +1,6 @@
 name = "dylean"
 version = "0.1.0"
-defaultTargets = ["Comparse", "DY", "Examples"]
+defaultTargets = ["Comparse", "DY", "Examples", "Tests"]
 
 [[lean_lib]]
 name = "Comparse"
@@ -10,3 +10,6 @@ name = "DY"
 
 [[lean_lib]]
 name = "Examples"
+
+[[lean_lib]]
+name = "Tests"
