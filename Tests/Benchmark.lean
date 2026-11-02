@@ -1,3 +1,4 @@
 module
 
-public import Tests.Benchmark.Step
+import Tests.Benchmark.Step
+import Tests.Benchmark.TraceRuntime
