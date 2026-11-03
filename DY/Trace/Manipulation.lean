@@ -352,7 +352,7 @@ instance
   : HoareTriple
     (failure: Traceful a)
     (fun _ => True)
-    (fun _ _ => True)
+    (fun _ _ => False)
 where
   pf := by
     simp only [hoareTriple, forall_const]

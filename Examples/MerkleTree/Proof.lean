@@ -413,7 +413,7 @@ theorem Server.proveInclusion.proof
   step
   step_intro
   split
-  · step; grind
+  · step
   step_intro
   have: elements[i].Publishable tr := by simp_all [PersistentLocalState.LocalStateInv.invariant]; grind
   have: ∀ element, element ∈ mkInclusionProof .bytes elements i (by grind) → element.Publishable tr := by
