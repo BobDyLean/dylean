@@ -131,7 +131,7 @@ where
   serialize_parse_inv buf := by
     dsimp only [toExtensible]
     split
-    · trivial
+    · grind
     rename_i x heq
     split at heq
     · contradiction
@@ -203,7 +203,7 @@ where
     dsimp only [toNonExtensible]
     dsimp only [concatPrefixes, List.foldr_cons, List.foldr_nil]
     split
-    · trivial
+    · grind
     rename_i x suffix heq
     split at heq
     · contradiction
@@ -299,7 +299,7 @@ where
   serialize_parse_inv buf := by
     dsimp only [sigma]
     split
-    · trivial
+    · grind
     rename_i x bufSuffixSuffix heq
     obtain ⟨xa,xb⟩ := x
     split at heq
@@ -405,7 +405,7 @@ where
   serialize_parse_inv buf := by
     dsimp only [sigma]
     split
-    · trivial
+    · grind
     rename_i x heq
     obtain ⟨xa,xb⟩ := x
     split at heq

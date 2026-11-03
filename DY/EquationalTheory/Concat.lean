@@ -178,7 +178,7 @@ theorem attacker_knows_split
 := by
   intro h_buf
   split
-  · trivial
+  · grind
   rename_i lhs rhs _
   constructor
   · apply Bytes.AttackerKnows.prove splitLeft.attackerKnowledge
@@ -264,7 +264,7 @@ theorem split.WellFormed
       buf.WellFormed tr = (lhs.WellFormed tr ∧ rhs.WellFormed tr)
 := by
   split
-  · trivial
+  · grind
   rename_i lhs rhs heq
   rewrite [← concat_split buf i lhs rhs heq]
   simp
@@ -280,7 +280,7 @@ theorem split.label
       buf.label tr = Label.meet (lhs.label tr) (rhs.label tr)
 := by
   split
-  · trivial
+  · grind
   rename_i lhs rhs heq
   rewrite [← concat_split buf i lhs rhs heq]
   simp
@@ -298,7 +298,7 @@ theorem split.Invariant
 := by
   intro h_buf
   split
-  · trivial
+  · grind
   rename_i lhs rhs heq
   rewrite [← concat_split buf i lhs rhs heq] at h_buf
   simp_all

@@ -112,7 +112,7 @@ theorem storeGlobalState.proof
   unfold storeGlobalState
   dsimp only
   step with ⟨ fun _ => State.ExecEntryT.mk st ⟩ by simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]
-  trivial
+  grind
 
 @[instance]
 public
@@ -291,7 +291,7 @@ theorem compromise.proof
     have := CompromisableGlobalStateInv.invariant_implies_KnowableBy state tr
     have : (label state).isCorrupt tr.erase := by simp_all [label, ProtocolEvent.label_isCorrupt]
     grind [Comparse.IsWellFormed, canFlowTrans]
-  trivial
+  grind
 
 end Proof
 

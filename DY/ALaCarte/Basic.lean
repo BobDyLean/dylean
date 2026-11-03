@@ -480,7 +480,7 @@ theorem Container.pack_view
 := by
   unfold view pack
   split
-  · trivial
+  · grind
   · have := SubFunctorTC.inj_proj (f := f) (Representable.fromRepr x.intoFunctor)
     have := Representable.to_from x.intoFunctor
     have := Container.fromFunctor_intoFunctor x
@@ -514,7 +514,7 @@ theorem Container.sizeOf_view
     | some y => FunctorSizeOf.sizeOf y ≤ sizeOf x
 := by
   split
-  · trivial
+  · grind
   rename_i y heq
   have: pack f y = x := by grind [Container.pack_view]
   grind [Container.sizeOf_pack]

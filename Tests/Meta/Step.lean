@@ -191,7 +191,7 @@ HoareTriple
   trace_state
   step
   step
-  trivial
+  grind
 
 end NonMonotoneHypothesis
 
@@ -212,7 +212,7 @@ HoareTriple
   step
   step
   step
-  trivial
+  grind
 
 end AdmitMono
 
@@ -238,7 +238,7 @@ HoareTriple
     exfalso
     simp_all [Bytes.Publishable]
     -- proof is not finished
-  trivial
+  grind
 
 end UnprovedPrecondition
 
@@ -277,7 +277,7 @@ HoareTriple
   unfold testUnifyGhostType
   step with ⟨ fun _ => Label.pub, "" ⟩
   step
-  trivial
+  grind
 
 end UnifyGhostArgumentType
 
@@ -339,7 +339,7 @@ HoareTriple
   step
   step
   trace_state
-  trivial
+  grind
 
 -- Test that we do not support post-conditions that actually reference the Unit value
 -- (we could add support, but why?)
@@ -402,7 +402,7 @@ HoareTriple
   trace_state -- unit is not cleared because precondition depends on it
   step
   step
-  trivial
+  grind
 
 end IncrementalCleanup
 
@@ -456,7 +456,7 @@ example (n: Nat):
   cleanup
   trace_state
   step
-  trivial
+  grind
 
 end BrutalCleanup
 

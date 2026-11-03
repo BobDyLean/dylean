@@ -369,7 +369,7 @@ theorem generateKeyPair.proof
     simp [PersistentLocalState.LocalStateInv.invariant, IsLongTermSecretKey]
     grind
   step
-  trivial
+  grind
 
 @[instance]
 public
@@ -453,7 +453,7 @@ theorem compromisePrivateKey.proof
 := by
   unfold compromisePrivateKey
   step
-  trivial
+  grind
 
 end Proof
 

@@ -126,7 +126,7 @@ theorem storeLocalState.proof
 := by
   unfold storeLocalState
   step by simp_all [PersistentGlobalState.GlobalStateInv.invariant]
-  trivial
+  grind
 
 @[instance]
 public
@@ -306,7 +306,7 @@ theorem compromise.proof
 := by
   unfold compromise
   step
-  trivial
+  grind
 
 end Proof
 

@@ -211,6 +211,6 @@ theorem test.proof:
   step
   step
   step
-  trivial
+  grind
 
 end DY.Step.Benchmark

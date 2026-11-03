@@ -133,7 +133,7 @@ theorem sendMessage.proof
   unfold sendMessage
   dsimp only
   step with ⟨ fun _ => ExecEntryT.mk msg ⟩ by simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]
-  trivial
+  grind
 
 @[instance]
 public

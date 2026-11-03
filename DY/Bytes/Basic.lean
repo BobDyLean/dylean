@@ -166,7 +166,7 @@ theorem Bytes.sizeOf_view
   · have := ALaCarte.Container.sizeOf_view SubF b
     simp only [*] at this
     exact this
-  · trivial
+  · grind
 
 grind_pattern Bytes.sizeOf_view => b.view? SubF
 
