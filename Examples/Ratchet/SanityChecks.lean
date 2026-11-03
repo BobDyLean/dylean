@@ -36,6 +36,7 @@ def honestAttacker: Traceful Unit := do
 
   honestAttackerLoop 10 aliceVkHandle aliceSkHandle bobVkHandle bobSkHandle aliceStHandle bobStHandle
 
+
 #guard (honestAttacker.run Trace.empty).fst = some ()
 
 -- Future work: we could design a step-like tactic to automate this proof

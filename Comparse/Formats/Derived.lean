@@ -947,108 +947,199 @@ theorem NonExtensibleMessageFormat.bool.wf_eq
 := by
   simp [bool]
 
-def NonExtensibleMessageFormat.slowNat.f (l: ListUntil (false = ·)): Nat :=
-  l.init.length
+def NonExtensibleMessageFormat.unboundedNat.encodingWf (l: ListUntil (UInt32.toNat · < 2^31)): Prop :=
+  match l.init with
+  | [] => True
+  | h::_ => h.val.toNat ≠ 2^31
 
-def NonExtensibleMessageFormat.slowNat.g (n: Nat): ListUntil (false = ·) :=
-  {
-    init := List.replicate n (⟨ true, by simp ⟩)
-    last := ⟨ false, rfl ⟩
-  }
+instance : DecidablePred NonExtensibleMessageFormat.unboundedNat.encodingWf :=
+  fun l => by
+    unfold NonExtensibleMessageFormat.unboundedNat.encodingWf
+    split <;> infer_instance
 
-local instance: LeftInverse (NonExtensibleMessageFormat.slowNat.g) (NonExtensibleMessageFormat.slowNat.f) where
-  left_inv := by
-    simp only [Function.LeftInverse, NonExtensibleMessageFormat.slowNat.f, NonExtensibleMessageFormat.slowNat.g]
-    intro ⟨ init, last ⟩
-    simp only [ListUntil.mk.injEq]
-    constructor
-    · ext
-      grind
+def NonExtensibleMessageFormat.unboundedNat.f (l: Subtype encodingWf): Nat :=
+  (l.val.init.foldl (fun acc n => acc*(2^31) + (n.val.toNat - 2^31)) 0)*(2^31) + l.val.last.val.toNat
+
+def NonExtensibleMessageFormat.unboundedNat.g_aux (acc: List {x: UInt32 // ¬ (UInt32.toNat x < 2^31)}) (n: Nat): List {x: UInt32 // ¬ (UInt32.toNat x < 2^31)} :=
+  if n = 0 then acc
+  else
+    g_aux (⟨ UInt32.ofNat (n%(2^31) + 2^31), by grind ⟩::acc) (n / 2^31)
+decreasing_by grind
+
+theorem NonExtensibleMessageFormat.unboundedNat.g_aux_wf
+  (acc: List {x: UInt32 // ¬ (UInt32.toNat x < 2^31)}) (n: Nat)
+  : (n = 0 → match acc with | [] => True | h::_ => h.val.toNat ≠ 2^31) →
+    match g_aux acc n with | [] => True | h::_ => h.val.toNat ≠ 2^31
+:= by
+  fun_induction g_aux <;> grind
+
+def NonExtensibleMessageFormat.unboundedNat.g (n: Nat): Subtype encodingWf :=
+  ⟨
+    {
+      init := NonExtensibleMessageFormat.unboundedNat.g_aux [] (n / (2^31))
+      last := ⟨ UInt32.ofNat (n % 2^31), by grind ⟩
+    }
+  ,
+    by grind [encodingWf, g_aux_wf]
+  ⟩
+
+theorem NonExtensibleMessageFormat.unboundedNat.g_aux_append (acc: List {x: UInt32 // ¬ (UInt32.toNat x < 2^31)}) (n: Nat)
+  : g_aux acc n = g_aux [] n ++ acc
+:= by
+  induction n using Nat.strongRecOn generalizing acc with
+  | _ n ih =>
+    rewrite [g_aux.eq_def acc, g_aux.eq_def []]
+    split
+    · simp
+    · rewrite [ih _ (by grind) (_ :: acc), ih _ (by grind) [_]]
+      simp
+
+theorem NonExtensibleMessageFormat.unboundedNat.foldl_g_aux (n: Nat)
+  : (g_aux [] n).foldl (fun acc n => acc*(2^31) + (n.val.toNat - 2^31)) 0 = n
+:= by
+  induction n using Nat.strongRecOn with
+  | _ n ih =>
+    rewrite [g_aux.eq_def]
+    split
     · grind
+    · rewrite [g_aux_append, List.foldl_append]
+      grind
 
-local instance: RightInverse (NonExtensibleMessageFormat.slowNat.g) (NonExtensibleMessageFormat.slowNat.f) where
-  right_inv := by
-    simp [Function.RightInverse, Function.LeftInverse, NonExtensibleMessageFormat.slowNat.f, NonExtensibleMessageFormat.slowNat.g]
+theorem NonExtensibleMessageFormat.unboundedNat.g_aux_step (acc: List {x: UInt32 // ¬ (UInt32.toNat x < 2^31)}) (m: Nat) (x: {x: UInt32 // ¬ (UInt32.toNat x < 2^31)})
+  (h: m*(2^31) + (x.val.toNat - 2^31) ≠ 0)
+  : g_aux acc (m*(2^31) + (x.val.toNat - 2^31)) = g_aux (x::acc) m
+:= by
+  have hx := x.property
+  have hx' := x.val.toNat_lt
+  rw [g_aux.eq_def, ite_eq_right h]
+  have hd : (⟨UInt32.ofNat ((m*(2^31) + (x.val.toNat - 2^31)) % 2^31 + 2^31), by grind⟩ : {x: UInt32 // ¬ (UInt32.toNat x < 2^31)}) = x := by
+    ext
+    grind
+  have hm : (m*(2^31) + (x.val.toNat - 2^31)) / 2^31 = m := by omega
+  rewrite [hm, hd]
+  rfl
 
--- Slow unary coding
+theorem NonExtensibleMessageFormat.unboundedNat.g_aux_foldl (l acc: List {x: UInt32 // ¬ (UInt32.toNat x < 2^31)}) (a: Nat)
+  (h_wf: a ≠ 0 ∨ ∀ h ∈ l.head?, h.val.toNat ≠ 2^31)
+  : g_aux acc (l.foldl (fun acc n => acc*(2^31) + (n.val.toNat - 2^31)) a) = g_aux (l ++ acc) a
+:= by
+  induction l generalizing a acc with
+  | nil => grind
+  | cons x l ih =>
+    have h_ne : a*(2^31) + (x.val.toNat - 2^31) ≠ 0 := by
+      rcases h_wf with h_wf | h_wf
+      · grind
+      · have := h_wf x rfl
+        grind
+    rewrite [List.foldl_cons, ih _ _ (Or.inl h_ne), g_aux_step _ _ _ h_ne]
+    rfl
+
+theorem NonExtensibleMessageFormat.unboundedNat.left_inv: Function.LeftInverse NonExtensibleMessageFormat.unboundedNat.g NonExtensibleMessageFormat.unboundedNat.f := by
+  intro ⟨⟨init, last⟩, hwf⟩
+  ext
+  have hl := last.property
+  have hl' : last.val.toNat < 2^31 := hl
+  show ListUntil.mk (g_aux [] ((init.foldl (fun acc n => acc*(2^31) + (n.val.toNat - 2^31)) 0 * 2^31 + last.val.toNat) / 2^31)) _ = ⟨init, last⟩
+  congr 1
+  · rewrite [show (init.foldl (fun acc n => acc*(2^31) + (n.val.toNat - 2^31)) 0 * 2^31 + last.val.toNat) / 2^31 = init.foldl (fun acc n => acc*(2^31) + (n.val.toNat - 2^31)) 0 by grind]
+    rewrite [g_aux_foldl _ _ _ (Or.inr _), List.append_nil]
+    · rewrite [g_aux.eq_def, ite_eq_left rfl]; grind
+    · intro h hh
+      unfold encodingWf at hwf
+      cases init with
+      | nil => cases hh
+      | cons y _ => cases hh; grind
+  · ext
+    grind [f]
+
+local instance: LeftInverse (NonExtensibleMessageFormat.unboundedNat.g) (NonExtensibleMessageFormat.unboundedNat.f) where
+  left_inv := NonExtensibleMessageFormat.unboundedNat.left_inv
+
+theorem NonExtensibleMessageFormat.unboundedNat.right_inv: Function.RightInverse NonExtensibleMessageFormat.unboundedNat.g NonExtensibleMessageFormat.unboundedNat.f := by
+  grind [f, g, foldl_g_aux]
+
+local instance: RightInverse (NonExtensibleMessageFormat.unboundedNat.g) (NonExtensibleMessageFormat.unboundedNat.f) where
+  right_inv := NonExtensibleMessageFormat.unboundedNat.right_inv
+
+-- unbounded unary coding
 public
-def NonExtensibleMessageFormat.slowNat: NonExtensibleMessageFormat Bytes Nat :=
-  isomorphic (listUntil bool (false = ·)) slowNat.f slowNat.g
+def NonExtensibleMessageFormat.unboundedNat: NonExtensibleMessageFormat Bytes Nat :=
+  isomorphic (subtype (listUntil uint32 (UInt32.toNat · < 2^31)) unboundedNat.encodingWf) unboundedNat.f unboundedNat.g
 deriving IsNonAmbiguous, HasUniqueRepresentation, ParseConsumes
 
 @[simp]
 public
-theorem NonExtensibleMessageFormat.slowNat.wf_eq
+theorem NonExtensibleMessageFormat.unboundedNat.wf_eq
   (pred: Bytes → Prop) [BytesCompatiblePred pred]
   (x: Nat)
-  : slowNat.wf pred x
+  : unboundedNat.wf pred x
 := by
-  simp [slowNat]
+  simp [unboundedNat]
 
-def NonExtensibleMessageFormat.slowBytes.f (x: (len: Nat) × { b: Bytes // BytesLike.length b = len}): Bytes :=
+def NonExtensibleMessageFormat.unboundedBytes.f (x: (len: Nat) × { b: Bytes // BytesLike.length b = len}): Bytes :=
   x.snd.val
 
-def NonExtensibleMessageFormat.slowBytes.g (b: Bytes): (len: Nat) × { b: Bytes // BytesLike.length b = len} :=
+def NonExtensibleMessageFormat.unboundedBytes.g (b: Bytes): (len: Nat) × { b: Bytes // BytesLike.length b = len} :=
   ⟨ BytesLike.length b, ⟨ b, rfl ⟩ ⟩
 
-local instance: LeftInverse (NonExtensibleMessageFormat.slowBytes.g (Bytes := Bytes)) (NonExtensibleMessageFormat.slowBytes.f) where
+local instance: LeftInverse (NonExtensibleMessageFormat.unboundedBytes.g (Bytes := Bytes)) (NonExtensibleMessageFormat.unboundedBytes.f) where
   left_inv := by
-    simp only [Function.LeftInverse, NonExtensibleMessageFormat.slowBytes.f, NonExtensibleMessageFormat.slowBytes.g]
+    simp only [Function.LeftInverse, NonExtensibleMessageFormat.unboundedBytes.f, NonExtensibleMessageFormat.unboundedBytes.g]
     intro ⟨ a, ⟨ b, c ⟩ ⟩
     simp only [Sigma.mk.injEq]
     constructor
     · assumption
     congr 1 <;> grind
 
-local instance: RightInverse (NonExtensibleMessageFormat.slowBytes.g (Bytes := Bytes)) (NonExtensibleMessageFormat.slowBytes.f) where
-  right_inv := by simp [Function.RightInverse, Function.LeftInverse, NonExtensibleMessageFormat.slowBytes.f, NonExtensibleMessageFormat.slowBytes.g]
+local instance: RightInverse (NonExtensibleMessageFormat.unboundedBytes.g (Bytes := Bytes)) (NonExtensibleMessageFormat.unboundedBytes.f) where
+  right_inv := by simp [Function.RightInverse, Function.LeftInverse, NonExtensibleMessageFormat.unboundedBytes.f, NonExtensibleMessageFormat.unboundedBytes.g]
 
 public
-def NonExtensibleMessageFormat.slowBytes: NonExtensibleMessageFormat Bytes Bytes :=
-  isomorphic (sigma slowNat fixedLengthBytes) slowBytes.f slowBytes.g
+def NonExtensibleMessageFormat.unboundedBytes: NonExtensibleMessageFormat Bytes Bytes :=
+  isomorphic (sigma unboundedNat fixedLengthBytes) unboundedBytes.f unboundedBytes.g
 deriving IsNonAmbiguous, HasUniqueRepresentation, ParseConsumes
 
 @[simp]
 public
-theorem NonExtensibleMessageFormat.slowBytes.wf_eq
+theorem NonExtensibleMessageFormat.unboundedBytes.wf_eq
   (pred: Bytes → Prop) [BytesCompatiblePred pred]
   (x: Bytes)
-  : slowBytes.wf pred x = pred x
+  : unboundedBytes.wf pred x = pred x
 := by
-  simp [slowBytes, slowBytes.g]
+  simp [unboundedBytes, unboundedBytes.g]
 
-def NonExtensibleMessageFormat.slowString.f (x: (len: Nat) × {s: String // s.utf8ByteSize = len}): String :=
+def NonExtensibleMessageFormat.unboundedString.f (x: (len: Nat) × {s: String // s.utf8ByteSize = len}): String :=
   x.snd.val
 
-def NonExtensibleMessageFormat.slowString.g (s: String): (len: Nat) × {s: String // s.utf8ByteSize = len} :=
+def NonExtensibleMessageFormat.unboundedString.g (s: String): (len: Nat) × {s: String // s.utf8ByteSize = len} :=
   ⟨ s.utf8ByteSize, ⟨ s, rfl ⟩ ⟩
 
-local instance: LeftInverse (NonExtensibleMessageFormat.slowString.g) (NonExtensibleMessageFormat.slowString.f) where
+local instance: LeftInverse (NonExtensibleMessageFormat.unboundedString.g) (NonExtensibleMessageFormat.unboundedString.f) where
   left_inv := by
-    simp only [Function.LeftInverse, NonExtensibleMessageFormat.slowString.f, NonExtensibleMessageFormat.slowString.g]
+    simp only [Function.LeftInverse, NonExtensibleMessageFormat.unboundedString.f, NonExtensibleMessageFormat.unboundedString.g]
     intro ⟨ a, ⟨ b, d ⟩ ⟩
     simp only [Sigma.mk.injEq]
     constructor
     · grind
     congr 1 <;> grind
 
-local instance: RightInverse (NonExtensibleMessageFormat.slowString.g) (NonExtensibleMessageFormat.slowString.f) where
-  right_inv := by simp [Function.RightInverse, Function.LeftInverse, NonExtensibleMessageFormat.slowString.f, NonExtensibleMessageFormat.slowString.g]
+local instance: RightInverse (NonExtensibleMessageFormat.unboundedString.g) (NonExtensibleMessageFormat.unboundedString.f) where
+  right_inv := by simp [Function.RightInverse, Function.LeftInverse, NonExtensibleMessageFormat.unboundedString.f, NonExtensibleMessageFormat.unboundedString.g]
 
 public
-def NonExtensibleMessageFormat.slowString: NonExtensibleMessageFormat Bytes String :=
-  isomorphic (sigma slowNat (fun len => (ExtensibleMessageFormat.subtype .string (fun s => s.utf8ByteSize = len)).toNonExtensible len (by
+def NonExtensibleMessageFormat.unboundedString: NonExtensibleMessageFormat Bytes String :=
+  isomorphic (sigma unboundedNat (fun len => (ExtensibleMessageFormat.subtype .string (fun s => s.utf8ByteSize = len)).toNonExtensible len (by
     simp [ExtensibleMessageFormat.subtype, ExtensibleMessageFormat.string, ExtensibleMessageFormat.subsetIsomorphic, ExtensibleMessageFormat.isomorphic, ExtensibleMessageFormat.subtype.g, ExtensibleMessageFormat.string.g, ExtensibleMessageFormat.byteArray, ExtensibleMessageFormat.bytes, BytesLike.fromByteArray_length]
-  ))) slowString.f slowString.g
+  ))) unboundedString.f unboundedString.g
   deriving IsNonAmbiguous, HasUniqueRepresentation, ParseConsumes
 
 @[simp]
 public
-theorem NonExtensibleMessageFormat.slowString.wf_eq
+theorem NonExtensibleMessageFormat.unboundedString.wf_eq
   (pred: Bytes → Prop) [BytesCompatiblePred pred]
   (x: String)
-  : slowString.wf pred x
+  : unboundedString.wf pred x
 := by
-  simp [slowString, slowString.g]
+  simp [unboundedString, unboundedString.g]
 
 end Comparse

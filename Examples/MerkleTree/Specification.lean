@@ -37,7 +37,7 @@ def MerkleTreeNode.internalType (Bytes α: Type) : Fin 3 → Type
 def MerkleTreeNode.internalType.mf (Bytes α: Type) [Comparse.BytesLike Bytes] (mf: Comparse.ExtensibleMessageFormat Bytes α): ∀ id, Comparse.ExtensibleMessageFormat Bytes (internalType Bytes α id)
   | 0 => Comparse.NonExtensibleMessageFormat.toExtensible .unit
   | 1 => mf
-  | 2 => .prod (.slowBytes) (.bytes)
+  | 2 => .prod (.unboundedBytes) (.bytes)
 
 def MerkleTreeNode.mf
   {Bytes: Type} [Comparse.BytesLike Bytes]
@@ -350,7 +350,7 @@ variable [HasExecBytes]
 
 instance SignedRootHashTBS.ps : ParseableSerializeableNE SignedRootHashTBS := .make <|
   .triviallyIsomorphic
-  (.prod .slowBytes .slowNat)
+  (.prod .unboundedBytes .unboundedNat)
   (fun ⟨ rootHash, length ⟩ => { rootHash, length })
   (fun { rootHash, length } => ⟨ rootHash, length ⟩)
 
@@ -365,7 +365,7 @@ grind_pattern [grind_later] SignedRootHashTBS.IsWellFormed_eq => IsWellFormed pr
 
 instance SignedRootHash.ps : ParseableSerializeableNE SignedRootHash := .make <|
   .triviallyIsomorphic
-  (.prod SignedRootHashTBS.ps.mf .slowBytes)
+  (.prod SignedRootHashTBS.ps.mf .unboundedBytes)
   (fun ⟨ tbs, sig ⟩ => { tbs, sig })
   (fun { tbs, sig } => ⟨ tbs, sig ⟩)
 
@@ -383,7 +383,7 @@ grind_pattern [grind_later] SignedRootHash.IsWellFormed_eq => IsWellFormed pre x
 
 instance ElementAndInclusionProof.ps: ParseableSerializeable ElementAndInclusionProof := .make <|
   .triviallyIsomorphic
-  (.prod .slowBytes (.prod .slowNat (.list .slowBytes)))
+  (.prod .unboundedBytes (.prod .unboundedNat (.list .unboundedBytes)))
   (fun ⟨ element, i, inclusionProof ⟩ => { element, i, inclusionProof })
   (fun { element, i, inclusionProof } => ⟨ element, i, inclusionProof ⟩)
 
@@ -401,7 +401,7 @@ grind_pattern [grind_later] ElementAndInclusionProof.IsWellFormed_eq => IsWellFo
 
 instance ServerState.ps: ParseableSerializeable ServerState := .make <|
   .triviallyIsomorphic
-  (.list .slowBytes)
+  (.list .unboundedBytes)
   (ServerState.mk)
   (ServerState.elements)
 

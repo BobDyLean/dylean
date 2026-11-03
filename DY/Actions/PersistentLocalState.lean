@@ -31,7 +31,7 @@ instance
   : Comparse.ParseableSerializeable (LocalState StateT)
 := .make <|
   .triviallyIsomorphic
-    (.prod .slowString Comparse.ParseableSerializeable.mf)
+    (.prod .unboundedString Comparse.ParseableSerializeable.mf)
     (fun ⟨ participant, state ⟩ => { participant, state })
     (fun { participant, state } => ⟨ participant, state ⟩)
 

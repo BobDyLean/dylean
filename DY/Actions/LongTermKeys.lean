@@ -59,7 +59,7 @@ instance
   : Comparse.ParseableSerializeable (PublicKeyState name)
 := .make <|
   .triviallyIsomorphic
-    (.prod .slowString .bytes)
+    (.prod .unboundedString .bytes)
     (fun ⟨ p, pk ⟩ => { p, pk })
     (fun { p, pk } => ⟨ p, pk ⟩)
 

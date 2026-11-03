@@ -133,7 +133,7 @@ variable [HasExecBytes]
 public
 instance: ParseableSerializeable Message := .make <|
   .triviallyIsomorphic
-    (.prod .slowBytes .bytes)
+    (.prod .unboundedBytes .bytes)
     (fun (dhPk, sig) => { dhPk, sig })
     (fun { dhPk, sig } => (dhPk, sig))
 
@@ -153,7 +153,7 @@ grind_pattern [grind_later] Message.IsWellFormed_eq => IsWellFormed pre x tr
 public
 instance TranscriptElement.ps: ParseableSerializeableNE TranscriptElement := .make <|
   .triviallyIsomorphic
-  (.prod .slowString .slowBytes)
+  (.prod .unboundedString .unboundedBytes)
   (fun ⟨ recipient, dhPk ⟩ => { recipient, dhPk })
   (fun { recipient, dhPk } => ⟨ recipient, dhPk ⟩)
 
@@ -216,7 +216,7 @@ grind_pattern [grind_later] SigInput.IsWellFormed_eq => IsWellFormed pre x tr
 public
 instance: ParseableSerializeable StateMyTurn := .make <|
   .triviallyIsomorphic
-    (.prod .slowString (.prod .slowBytes (.prod .slowBytes (.prod .slowBytes (.list TranscriptElement.ps.mf)))))
+    (.prod .unboundedString (.prod .unboundedBytes (.prod .unboundedBytes (.prod .unboundedBytes (.list TranscriptElement.ps.mf)))))
     (fun ⟨ recipient, transcriptHash, otherDhPk, k, transcript ⟩ => { recipient, transcriptHash, otherDhPk, k, transcript })
     (fun { recipient, transcriptHash, otherDhPk, k, transcript } => ⟨ recipient, transcriptHash, otherDhPk, k, transcript ⟩)
 
@@ -238,7 +238,7 @@ grind_pattern StateMyTurn.IsWellFormed_eq => IsWellFormed pre x tr
 public
 instance: ParseableSerializeable StateOtherTurn := .make <|
   .triviallyIsomorphic
-    (.prod .slowString (.prod .slowBytes (.prod .slowBytes (.prod .slowBytes (.list TranscriptElement.ps.mf)))))
+    (.prod .unboundedString (.prod .unboundedBytes (.prod .unboundedBytes (.prod .unboundedBytes (.list TranscriptElement.ps.mf)))))
     (fun ⟨ recipient, transcriptHash, myDhSk, k, transcript ⟩ => { recipient, transcriptHash, myDhSk, k, transcript })
     (fun { recipient, transcriptHash, myDhSk, k, transcript } => ⟨ recipient, transcriptHash, myDhSk, k, transcript ⟩)
 

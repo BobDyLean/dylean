@@ -94,7 +94,7 @@ variable [HasExecBytes]
 public
 instance: ParseableSerializeable LetsEncryptMessage := .make <|
   .triviallyIsomorphic
-  (.prod .slowBytes .bytes)
+  (.prod .unboundedBytes .bytes)
   (fun ⟨ token, sig ⟩ => { token, sig })
   (fun { token, sig } => ⟨ token, sig ⟩)
 
@@ -114,7 +114,7 @@ grind_pattern [grind_later] LetsEncryptMessage.IsWellFormed_eq => IsWellFormed p
 public
 instance: ParseableSerializeable OwnerMessage := .make <|
   .triviallyIsomorphic
-  (.prod .slowString .bytes)
+  (.prod .unboundedString .bytes)
   (fun ⟨ address, oPk ⟩ => { address, oPk })
   (fun { address, oPk } => ⟨ address, oPk ⟩)
 
@@ -152,7 +152,7 @@ grind_pattern [grind_later] OwnerKeyState.IsWellFormed_eq => IsWellFormed pre x 
 public
 instance: ParseableSerializeableNE OwnerAddressState := .make <|
   .triviallyIsomorphic
-  (.prod .slowString .slowBytes)
+  (.prod .unboundedString .unboundedBytes)
   (fun ⟨ address, oSk ⟩ => { address, oSk })
   (fun { address, oSk } => ⟨ address, oSk ⟩)
 
@@ -171,7 +171,7 @@ grind_pattern [grind_later] OwnerAddressState.IsWellFormed_eq => IsWellFormed pr
 public
 instance: ParseableSerializeableNE LetsEncryptPendingChallengeState := .make <|
   .triviallyIsomorphic
-  (.prod .slowString .slowBytes)
+  (.prod .unboundedString .unboundedBytes)
   (fun ⟨ address, token ⟩ => { address, token })
   (fun { address, token } => ⟨ address, token ⟩)
 
@@ -190,7 +190,7 @@ grind_pattern [grind_later] LetsEncryptPendingChallengeState.IsWellFormed_eq => 
 public
 instance: ParseableSerializeable DNSEntry := .make <|
   .triviallyIsomorphic
-  (.prod .slowString .bytes)
+  (.prod .unboundedString .bytes)
   (fun ⟨ address, sig ⟩ => { address, sig })
   (fun { address, sig } => ⟨ address, sig ⟩)
 

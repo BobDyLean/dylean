@@ -128,7 +128,7 @@ grind_pattern [grind_later] ClientMessage.IsWellFormed_eq => IsWellFormed pre x 
 public
 instance: ParseableSerializeable ServerMessage := .make <|
   .triviallyIsomorphic
-  (.prod .slowBytes .bytes)
+  (.prod .unboundedBytes .bytes)
   (fun ⟨ yPk, sig ⟩ => { yPk, sig })
   (fun { yPk, sig } => ⟨ yPk, sig ⟩)
 
@@ -148,7 +148,7 @@ grind_pattern [grind_later] ServerMessage.IsWellFormed_eq => IsWellFormed pre x 
 public
 instance: ParseableSerializeable SigInput := .make <|
   .triviallyIsomorphic
-  (.prod .slowBytes .bytes)
+  (.prod .unboundedBytes .bytes)
   (fun ⟨ xPk, yPk ⟩ => { xPk, yPk })
   (fun { xPk, yPk } => ⟨ xPk, yPk ⟩)
 
@@ -168,7 +168,7 @@ grind_pattern [grind_later] SigInput.IsWellFormed_eq => IsWellFormed pre x tr
 public
 instance: ParseableSerializeable ClientInitiateState := .make <|
   .triviallyIsomorphic
-    (.prod .slowBytes .bytes)
+    (.prod .unboundedBytes .bytes)
     (fun ⟨ xPk, xSk ⟩ => { xPk, xSk })
     (fun { xPk, xSk } => ⟨ xPk, xSk ⟩)
 
@@ -184,7 +184,7 @@ grind_pattern ClientInitiateState.IsWellFormed_eq => IsWellFormed pre x tr
 public
 instance: ParseableSerializeable ClientFinishState := .make <|
   .triviallyIsomorphic
-    (.prod .slowBytes .bytes)
+    (.prod .unboundedBytes .bytes)
     (fun ⟨ xPk, kC ⟩ => { xPk, kC })
     (fun { xPk, kC } => ⟨ xPk, kC ⟩)
 
@@ -200,7 +200,7 @@ grind_pattern ClientFinishState.IsWellFormed_eq => IsWellFormed pre x tr
 public
 instance: ParseableSerializeable ServerFinishState := .make <|
   .triviallyIsomorphic
-  (.prod .slowBytes .bytes)
+  (.prod .unboundedBytes .bytes)
   (fun ⟨ yPk, kS ⟩ => { yPk, kS })
   (fun { yPk, kS } => ⟨ yPk, kS ⟩)
 
