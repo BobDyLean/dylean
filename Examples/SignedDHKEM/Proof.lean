@@ -420,7 +420,6 @@ theorem Client.finish.proof (me: Participant) (server: Participant) (pkHandle: N
     (fun _ => True)
     (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold Client.finish
   step
   step

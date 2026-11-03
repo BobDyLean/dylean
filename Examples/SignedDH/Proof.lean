@@ -276,7 +276,6 @@ theorem Client.initiate.proof (me: Participant):
     (fun _ => True)
     (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold Client.initiate
   step with ⟨ fun xSk => clientLabel me (DiffieHellman.dhPk xSk), Usage.nothing ⟩
   step
@@ -295,7 +294,6 @@ theorem Server.receive.proof (me: Participant) (skHandle: Nat) (msgHandle: Nat):
     (fun _ => True)
     (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold Server.receive
   step
   step
@@ -328,7 +326,6 @@ theorem Client.finish.proof (me: Participant) (server: Participant) (pkHandle: N
     (fun _ => True)
     (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold Client.finish
   step
   step

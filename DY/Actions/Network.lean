@@ -130,7 +130,6 @@ theorem sendMessage.proof
     (fun tr => msg.Publishable tr)
     (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold sendMessage
   dsimp only
   step with ⟨ fun _ => ExecEntryT.mk msg ⟩ by simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]
@@ -150,7 +149,6 @@ theorem receiveMessage.proof
     (fun _ => True)
     (fun msg tr => msg.Publishable tr)
 := by
-  apply HoareTriple.mk
   unfold receiveMessage
   step
   have: msg.msg.Publishable tr := by simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]; grind

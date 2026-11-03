@@ -124,7 +124,6 @@ theorem storeLocalState.proof
     (fun tr => LocalStateInv.invariant participant state tr)
     (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold storeLocalState
   step by simp_all [PersistentGlobalState.GlobalStateInv.invariant]
   trivial
@@ -142,7 +141,6 @@ theorem getLocalState.proof
     (fun _ => True)
     (fun st tr => LocalStateInv.invariant participant st tr)
 := by
-  apply HoareTriple.mk
   unfold getLocalState
   step
   step
@@ -306,7 +304,6 @@ theorem compromise.proof
     (fun _ => True)
     (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold compromise
   step
   trivial

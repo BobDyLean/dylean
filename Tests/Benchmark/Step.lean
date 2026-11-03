@@ -130,7 +130,6 @@ theorem test.proof:
   -- - full tactic executes in ~8s
   -- - steps at the end take ~0.1s
   -- set_option trace.profiler true in
-  apply HoareTriple.mk
   unfold test
   step
   step

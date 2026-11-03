@@ -109,7 +109,6 @@ theorem storeGlobalState.proof
     (fun tr => GlobalStateInv.invariant st tr)
     (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold storeGlobalState
   dsimp only
   step with ⟨ fun _ => State.ExecEntryT.mk st ⟩ by simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]
@@ -128,7 +127,6 @@ theorem getGlobalState.proof
     (fun _ => True)
     (fun st tr => GlobalStateInv.invariant st tr)
 := by
-  apply HoareTriple.mk
   unfold getGlobalState
   step
   have: GlobalStateInv.invariant e.st tr := by simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]; grind
@@ -286,7 +284,6 @@ theorem compromise.proof
     (fun _ => True)
     (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold compromise
   step
   step by simp [ProtocolEvent.EventInv.invariant]

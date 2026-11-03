@@ -273,7 +273,6 @@ theorem Owner.generateKeyPair.proof (owner: Participant):
     (fun _ => True)
     (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold Owner.generateKeyPair
   step with ⟨ (fun _ => Label.pub), sigAcmeUsage ⟩
   step
@@ -289,7 +288,6 @@ theorem Owner.claimAddress.proof (owner: Participant) (address: String) (oSkHand
     (fun _ => True)
     (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold Owner.claimAddress
   step
   step by simp_all only [PersistentLocalState.LocalStateInv.invariant]; grind
@@ -304,7 +302,6 @@ theorem LetsEncrypt.initiate.proof (server: Participant) (address: String) (skHa
     (fun _ => True)
     (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold LetsEncrypt.initiate
   step with ⟨ (fun _ => Label.pub), Usage.nothing ⟩
   step
@@ -322,7 +319,6 @@ theorem Owner.respond.proof (owner server: Participant) (msgHandle lePkHandle st
     (fun _ => True)
     (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold Owner.respond
   step
   step
@@ -375,7 +371,6 @@ theorem LetsEncrypt.finish.proof (server: Participant) (msgHandle pendingStHandl
     (fun _ => True)
     (fun _ _ => True)
 := by
-  apply HoareTriple.mk
   unfold LetsEncrypt.finish
   step
   step
