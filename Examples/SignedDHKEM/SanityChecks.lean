@@ -45,7 +45,7 @@ theorem honestAttacker_PreservesReachability
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
-  dsimp only [honestAttacker]
+  unfold honestAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "SignedDHKEM PKI")
@@ -138,7 +138,7 @@ theorem breakDhAndKemAttacker_PreservesReachability
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
-  dsimp only [breakDhAndKemAttacker]
+  unfold breakDhAndKemAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply honestAttacker_PreservesReachability
@@ -217,8 +217,7 @@ theorem breakDhAndKemAttacker_PreservesReachability
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
-  · dsimp only
-    apply Hash.attacker_knows_hash
+  · apply Hash.attacker_knows_hash
     apply Concat.attacker_knows_concat
     · apply DiffieHellman'.attacker_knows_dh
       · grind (gen := 50)
@@ -303,7 +302,7 @@ theorem breakSigKeyAttacker_PreservesReachability
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
-  dsimp only [breakSigKeyAttacker]
+  unfold breakSigKeyAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "SignedDHKEM PKI")
@@ -341,6 +340,7 @@ theorem breakSigKeyAttacker_PreservesReachability
   · grind
   intro msgClient tr h_post h_tr h_le
 
+  dsimp only
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
@@ -349,9 +349,9 @@ theorem breakSigKeyAttacker_PreservesReachability
     · apply DiffieHellman'.attacker_knows_dhPk
       apply Literal.attacker_knows_literalToBytes
     apply And.intro
-    · have := KEM.kemEncap.attacker_knows
-      have := Literal.attacker_knows_literalToBytes
-      grind
+    · apply (fun pk entropy tr h1 h2 => (KEM.kemEncap.attacker_knows pk entropy tr h1 h2).left)
+      · grind
+      apply Literal.attacker_knows_literalToBytes
     apply Signature'.attacker_knows_sign
     · grind
     · apply Literal.attacker_knows_literalToBytes
@@ -363,9 +363,9 @@ theorem breakSigKeyAttacker_PreservesReachability
         apply Literal.attacker_knows_literalToBytes
       apply And.intro
       · grind
-      have := KEM.kemEncap.attacker_knows
-      have := Literal.attacker_knows_literalToBytes
-      grind
+      apply (fun pk entropy tr h1 h2 => (KEM.kemEncap.attacker_knows pk entropy tr h1 h2).left)
+      · grind
+      apply Literal.attacker_knows_literalToBytes
   intro msgServerHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
@@ -377,8 +377,7 @@ theorem breakSigKeyAttacker_PreservesReachability
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
-  · dsimp only
-    apply Hash.attacker_knows_hash
+  · apply Hash.attacker_knows_hash
     apply Concat.attacker_knows_concat
     · apply DiffieHellman'.attacker_knows_dh
       · grind

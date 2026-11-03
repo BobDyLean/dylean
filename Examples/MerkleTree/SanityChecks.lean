@@ -39,14 +39,13 @@ theorem honestAttacker_PreservesReachability
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
-  dsimp only [honestAttacker]
+  unfold honestAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "MerkleTree PKI")
   · assumption
   · simp [LongTermKeys.generateKeyPair.reachability]
   intro ⟨ _, pkHandle, skHandle ⟩ tr h_post h_tr h_le
-  dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Network.reachability)
@@ -83,7 +82,6 @@ theorem honestAttacker_PreservesReachability
   · assumption
   · simp [Server.authenticate.reachability]
   intro ⟨ msgSigHandle, stHandle ⟩ tr h_post h_tr h_le
-  dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Server.proveInclusion.reachability) _ ("Bob", 3, stHandle)
@@ -171,7 +169,7 @@ theorem compromiseSigKeyAttacker_PreservesReachability
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
-  dsimp only [compromiseSigKeyAttacker]
+  unfold compromiseSigKeyAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "MerkleTree PKI")
@@ -232,7 +230,6 @@ theorem compromiseSigKeyAttacker_PreservesReachability
     simp [Literal.attacker_knows_literalToBytes]
   intro msgInclHandle tr h_post h_tr h_le
 
-  dsimp
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Client.checkInclusion.reachability) _ ("Bob", msgSigHandle, msgInclHandle, pkHandle)
   · assumption

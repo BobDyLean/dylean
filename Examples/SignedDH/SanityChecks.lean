@@ -33,7 +33,7 @@ theorem honestAttacker_PreservesReachability
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
-  dsimp only [honestAttacker]
+  unfold honestAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "SignedDH PKI")
@@ -119,7 +119,7 @@ theorem compromiseClientEphAttacker_PreservesReachability
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
-  dsimp only [compromiseClientEphAttacker]
+  unfold compromiseClientEphAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply honestAttacker_PreservesReachability
@@ -160,8 +160,7 @@ theorem compromiseClientEphAttacker_PreservesReachability
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
-  · dsimp only
-    apply Hash.attacker_knows_hash
+  · apply Hash.attacker_knows_hash
     apply DiffieHellman.attacker_knows_dh
     · grind
     · grind
@@ -240,7 +239,7 @@ theorem compromiseSigKeyAttacker_PreservesReachability
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
-  dsimp only [compromiseSigKeyAttacker]
+  unfold compromiseSigKeyAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "SignedDH PKI")
@@ -266,7 +265,6 @@ theorem compromiseSigKeyAttacker_PreservesReachability
   · grind
   intro globalStSigkey tr h_post h_tr h_le
 
-  dsimp
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Client.initiate.reachability)
   · assumption
@@ -311,8 +309,7 @@ theorem compromiseSigKeyAttacker_PreservesReachability
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
-  · dsimp only
-    apply Hash.attacker_knows_hash
+  · apply Hash.attacker_knows_hash
     apply DiffieHellman.attacker_knows_dh
     · grind
     · apply Literal.attacker_knows_literalToBytes

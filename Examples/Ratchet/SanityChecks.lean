@@ -52,7 +52,6 @@ theorem honestAttackerLoop_PreservesReachability
   · apply Traceful.PreservesReachabilityFrom_pure
     · assumption
     grind
-  dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (sendUpdate.reachability) _ ("Bob", bobSkHandle, bobStHandle)
@@ -88,7 +87,7 @@ theorem honestAttacker_PreservesReachability
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
-  dsimp only [honestAttacker]
+  unfold honestAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "Ratchet PKI")
@@ -168,7 +167,7 @@ theorem compromiseStateMyTurnAttacker_PreservesReachability
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
-  dsimp only [compromiseStateMyTurnAttacker]
+  unfold compromiseStateMyTurnAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply honestAttacker_PreservesReachability
@@ -262,7 +261,7 @@ theorem compromiseStateOtherTurnAttacker_PreservesReachability
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
-  dsimp only [compromiseStateOtherTurnAttacker]
+  unfold compromiseStateOtherTurnAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply honestAttacker_PreservesReachability
@@ -453,7 +452,6 @@ theorem compromiseSigKeyAttackerLoop_PreservesReachability
   · assumption
   · simp [sendUpdate.reachability]
   intro ⟨ aliceStHandle, msgHandle ⟩ tr h_post h_tr h_le
-  dsimp (zeta := false) only
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Network.receiveMessage.preservesReachability
@@ -499,28 +497,25 @@ theorem compromiseSigKeyAttacker_PreservesReachability
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
-  dsimp only [compromiseSigKeyAttacker]
+  unfold compromiseSigKeyAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "Ratchet PKI")
   · assumption
   · simp [LongTermKeys.generateKeyPair.reachability]
   intro ⟨ _, aliceVkHandle, aliceSkHandle ⟩ tr h_post h_tr h_le
-  dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "Ratchet PKI")
   · assumption
   · simp [LongTermKeys.generateKeyPair.reachability]
   intro ⟨ _, bobVkHandle, bobSkHandle ⟩ tr h_post h_tr h_le
-  dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (initiate.reachability) _ ("Alice", "Bob", aliceSkHandle)
   · assumption
   · simp [initiate.reachability]
   intro ⟨ aliceStHandle, msgHandle ⟩ tr h_post h_tr h_le
-  dsimp only
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (processInitiate.reachability) _ ("Bob", "Alice", aliceVkHandle, msgHandle)

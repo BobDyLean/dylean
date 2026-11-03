@@ -58,7 +58,7 @@ theorem attacker_PreservesReachability
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
-  dsimp only [attacker]
+  unfold attacker
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "ACME PKI")
