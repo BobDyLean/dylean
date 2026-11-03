@@ -460,5 +460,82 @@ example (n: Nat):
 
 end BrutalCleanup
 
+section InconsistentContext1
+
+set_option warn.sorry false
+
+example:
+  HoareTriple (do
+    let msg ← receive_message 0
+    send_message msg
+  )
+  (fun _ => True)
+  (fun _ _ => False)
+:= by
+  have : False := sorry
+  step
+
+end InconsistentContext1
+
+section InconsistentContext2
+
+set_option warn.sorry false
+
+def abort: Traceful Unit := sorry
+
+instance:
+  HoareTriple
+    (abort)
+    (fun _ => True)
+    (fun _ _ => False)
+  where
+    pf := sorry
+
+example:
+  HoareTriple (do
+    let msg ← receive_message 0
+    abort
+    send_message msg
+  )
+  (fun _ => True)
+  (fun _ _ => False)
+:= by
+  step
+  step
+
+end InconsistentContext2
+
+section InconsistentContext3
+
+example:
+  HoareTriple (do
+    let msg ← receive_message 0
+    guard False
+    send_message msg
+  )
+  (fun _ => True)
+  (fun _ _ => False)
+:= by
+  step
+  step
+
+end InconsistentContext3
+
+section InconsistentContext4
+
+example (n: Nat):
+  HoareTriple (do
+    guard (n = 0)
+    guard (n = 1)
+    let _ ← receive_message 0
+  )
+  (fun _ => True)
+  (fun _ _ => False)
+:= by
+  step
+  step
+
+end InconsistentContext4
+
 end StepTest
 

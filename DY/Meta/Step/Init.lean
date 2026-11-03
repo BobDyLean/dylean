@@ -272,7 +272,7 @@ meta
 def monotonizeContext
   (trOldFv trMidFv trInvOldFv trInvFv trGrowsFv: FVarId)
   (goal: MVarId)
-  : TacticM (MVarId × Array FVarId × Array (FVarId × Name))
+  : TacticM (Option (MVarId × Array FVarId × Array (FVarId × Name)))
 := do
   withTraceNode `Step (fun _ => pure m!"Monotonize the next goal") do
 
@@ -353,6 +353,7 @@ def monotonizeContext
   GrindM.run (params := params) <| do
     let mut goal ← mkGoal goal
     goal ← goal.internalizeAll
+    if goal.inconsistent then return none
     let mut monotonizedFv := #[]
     let mut fvRename := #[]
     trace[Step] "now processing {nHyp} hypothesis"
@@ -364,16 +365,16 @@ def monotonizeContext
       goal := newGoal
       unless admitProofs do
         goal ← goal.internalize 1
+      if goal.inconsistent then return none
 
       -- incremental e-matching
       unless admitProofs do
-        goal ← do
-          let step := Lean.Meta.Grind.Action.instantiate
-          let action := Lean.Meta.Grind.Action.assertAll >> step.loop 10000
-          match ← action.run goal with
-          | .closed _ => throwError "internal error: closed goal??"
-          | .stuck [newGoal] => pure newGoal
-          | .stuck _ => throwError "internal error: more than one goal?"
+        let step := Lean.Meta.Grind.Action.instantiate
+        let action := Lean.Meta.Grind.Action.assertAll >> step.loop 10000
+        match ← action.run goal with
+        | .closed _ => return none
+        | .stuck [newGoal] => goal := newGoal
+        | .stuck _ => throwError "internal error: more than one goal?"
 
       let isNonMonotonic ← goal.withContext do
         let ty ← hypFv.getType
@@ -415,11 +416,12 @@ def monotonizeContext
         goal := newGoal
         unless admitProofs do
           goal ← goal.internalize 1
+        if goal.inconsistent then return none
         monotonizedFv := monotonizedFv.push hypFv
       else
         fvRename := fvRename.push (hypFv, hypUserName)
 
-    return (goal.mvarId, monotonizedFv, fvRename)
+    return (some (goal.mvarId, monotonizedFv, fvRename))
 
 structure EvalStepConfig where
   theoremName: Name
@@ -494,7 +496,8 @@ def massageNextGoal
       pure trInvExpr.fvarId!
 
     -- monotonize context
-    let (goal, monotonizedFv, fvRename) ← monotonizeContext trOldFv trMidFv trInvOldFv trInvFv trGrowsFv goal
+    let some (goal, monotonizedFv, fvRename) ← monotonizeContext trOldFv trMidFv trInvOldFv trInvFv trGrowsFv goal
+      | pure goal -- context was found to be inconsistent and `grind` closed the goal
 
     -- Rename the new traces with the names of the old traces
     goal.withContext do
