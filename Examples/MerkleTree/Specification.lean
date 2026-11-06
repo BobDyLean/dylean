@@ -509,6 +509,7 @@ end
 
 #combine into ReachabilityConfig from
   Network,
+  Random,
   LongTermKeys "MerkleTree PKI",
   Server.authenticate,
   Server.proveInclusion,

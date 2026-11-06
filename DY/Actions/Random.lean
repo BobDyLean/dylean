@@ -3,6 +3,7 @@ module
 public import DY.Trace
 public import DY.Bytes
 public import DY.Misc.Instances
+public import DY.Actions.Network
 import DY.Meta.Step
 
 namespace DY.Random
@@ -243,5 +244,90 @@ theorem genRand.proof
     simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]
   step
   grind [makeRand.Invariant]
+
+public
+def attackerGenRandAux [BytesFunctor] [BytesFunctor.Has SubF] [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] [ExecTraceTypes.Has Network.ExecEntryT] (size: Nat): Traceful Nat :=
+  do
+  let r ← genRand size
+  Network.sendMessage r
+
+@[instance]
+public
+theorem attackerGenRandAux.proof
+  [BytesFunctor]
+  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [BytesInvariants] [BytesInvariantsProofs]
+  [BytesFunctor.Has SubF]
+  [ExecTraceTypes.Has ExecEntryT] [ProofTraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
+  [ExecTraceTypes.Has Network.ExecEntryT] [ProofTraceTypes.Has Network.ProofEntryT] [TraceInvariant.Has Network.ProofEntryT]
+  [BytesInvariants.Has invariants]
+  (size: Nat)
+  : HoareTriple
+    (attackerGenRandAux size)
+    (fun _ => True)
+    (fun _ _ => True)
+:= by
+  unfold attackerGenRandAux
+  step with ⟨ fun _ => Label.pub, Usage.nothing ⟩
+  step
+  grind
+
+
+public
+def attackerGenRand [BytesFunctor] [BytesFunctor.Has SubF] [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] [ExecTraceTypes.Has Network.ExecEntryT] (size: Nat): Traceful Bytes :=
+  do
+  let rHandle ← attackerGenRandAux size
+  Network.receiveMessage rHandle
+
+section Reachability
+
+variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] [ExecTraceTypes.Has Network.ExecEntryT]
+variable [BaseAttackerKnowledge] [AttackerKnowledge]
+
+public
+abbrev reachability : ReachabilityConfig where
+  Input := Nat
+  PreCond _ _ := True
+  step size := ⟨ _, attackerGenRandAux size ⟩
+
+public
+theorem attackerGenRand.preservesReachability
+  [BaseAttackerKnowledge.Has Network.baseAttackerKnowledge]
+  (config: ReachabilityConfig)
+  [ReachabilityConfig.Has reachability config]
+  (size: Nat)
+  : (attackerGenRand size).PreservesReachability config (fun _ => True) (fun r tr => r.AttackerKnows tr)
+:= by
+  dsimp only [attackerGenRand, Traceful.PreservesReachability]
+  intro tr h_reach h_pre
+  apply Traceful.PreservesReachabilityFrom_bind
+  · apply Traceful.PreservesReachability_base (reachability)
+  · grind
+  · grind
+  intro entry tr h_post h_reach h_le
+
+  apply Network.receiveMessage.preservesReachability
+  · grind
+  · grind
+
+
+variable [ProofTraceTypes] [TraceInvariant]
+variable [BytesInvariants] [BytesInvariantsProofs]
+variable [ProofTraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
+variable [ProofTraceTypes.Has Network.ProofEntryT] [TraceInvariant.Has Network.ProofEntryT]
+variable [BytesInvariants.Has invariants]
+variable [BaseAttackerKnowledgeTheorem] [AttackerKnowledgeTheorem]
+
+public
+instance: ReachableImpliesInvariant reachability
+where
+  pf size := by
+    apply HoareTriple.mk
+    have := (attackerGenRandAux.proof size).pf
+    unfold hoareTriple at *
+    grind [Bytes.AttackerKnows_implies_Publishable]
+
+end Reachability
 
 end DY.Random

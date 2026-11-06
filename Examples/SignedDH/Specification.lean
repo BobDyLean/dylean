@@ -359,6 +359,7 @@ end
 
 #combine into ReachabilityConfig from
   Network,
+  Random,
   LongTermKeys "SignedDH PKI",
   Client.initiate,
   Server.receive,

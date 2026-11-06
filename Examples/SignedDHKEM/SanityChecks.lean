@@ -280,14 +280,14 @@ def breakSigKeyAttacker: Traceful Unit := do
   let xPk := msgClient.xPk
   let zPk := msgClient.zPk
 
-  let ySk := Literal.literalToBytes "00000000000000000000000000000000".toByteArray
+  let ySk ← Random.attackerGenRand 32
   let yPk := DiffieHellman'.dhPk ySk
   let dhss := DiffieHellman'.dh xPk ySk
-  let entropy := Literal.literalToBytes "00000000000000000000000000000000".toByteArray
+  let entropy ← Random.attackerGenRand 32
   let (ct, kemss) := KEM.kemEncap zPk entropy
   let k := Hash.hash (Concat.concat dhss kemss)
 
-  let sigNonce := Literal.literalToBytes "00000000000000000000000000000000".toByteArray
+  let sigNonce ← Random.attackerGenRand 32
   let sig := Signature'.sign sigKey sigNonce (Comparse.serialize ({xPk, yPk, zPk, ct}: SigInput))
   let msgServerHandle ← Network.sendMessage (Comparse.serialize ({ yPk, ct, sig } : ServerMessage)) -- 1
   let _ ← Client.finish "Alice" "Bob" pkHandle msgServerHandle dhStClientHandle kemStClientHandle -- 2
@@ -340,6 +340,24 @@ theorem breakSigKeyAttacker_PreservesReachability
   · grind
   intro msgClient tr h_post h_tr h_le
 
+  apply Traceful.PreservesReachabilityFrom_bind
+  · apply Random.attackerGenRand.preservesReachability
+  · grind
+  · grind
+  intro ySk tr h_post h_tr h_le
+
+  apply Traceful.PreservesReachabilityFrom_bind
+  · apply Random.attackerGenRand.preservesReachability
+  · grind
+  · grind
+  intro entropy tr h_post h_tr h_le
+
+  with_reducible apply Traceful.PreservesReachabilityFrom_bind
+  · apply Random.attackerGenRand.preservesReachability
+  · grind
+  · grind
+  intro sigNonce tr h_post h_tr h_le
+
   dsimp only
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Network.reachability)
@@ -347,25 +365,25 @@ theorem breakSigKeyAttacker_PreservesReachability
   · simp only [Comparse.AttackerKnows_serialize, ServerMessage.IsWellFormed_eq]
     apply And.intro
     · apply DiffieHellman'.attacker_knows_dhPk
-      apply Literal.attacker_knows_literalToBytes
+      grind
     apply And.intro
     · apply (fun pk entropy tr h1 h2 => (KEM.kemEncap.attacker_knows pk entropy tr h1 h2).left)
-      · grind
-      apply Literal.attacker_knows_literalToBytes
+      · grind (ematch := 10)
+      grind
     apply Signature'.attacker_knows_sign
+    · grind (ematch := 10)
     · grind
-    · apply Literal.attacker_knows_literalToBytes
     · simp only [Comparse.AttackerKnows_serialize, SigInput.IsWellFormed_eq]
       apply And.intro
-      · grind
+      · grind (ematch := 10)
       apply And.intro
       · apply DiffieHellman'.attacker_knows_dhPk
-        apply Literal.attacker_knows_literalToBytes
+        grind
       apply And.intro
-      · grind
+      · grind (ematch := 10)
       apply (fun pk entropy tr h1 h2 => (KEM.kemEncap.attacker_knows pk entropy tr h1 h2).left)
-      · grind
-      apply Literal.attacker_knows_literalToBytes
+      · grind (ematch := 10)
+      grind
   intro msgServerHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
@@ -380,9 +398,9 @@ theorem breakSigKeyAttacker_PreservesReachability
   · apply Hash.attacker_knows_hash
     apply Concat.attacker_knows_concat
     · apply DiffieHellman'.attacker_knows_dh
+      · grind (ematch := 10)
       · grind
-      · apply Literal.attacker_knows_literalToBytes
-    · have: msgClient.zPk.AttackerKnows tr := by grind
+    · have: msgClient.zPk.AttackerKnows tr := by grind (ematch := 10)
       have := KEM.kemEncap.attacker_knows
       have := Literal.attacker_knows_literalToBytes
       grind
@@ -414,10 +432,10 @@ theorem breakSigKeyAttacker_properties:
   simp only [DY.Trace.EventLoggedAt_eq_getEventAt]
   simp only [DY.Trace.MessageSentAt_eq_getMessageSentAt]
   let witness :=
-    match (Trace.getEventAt SignedDHKEMEvent 13 tr) with
+    match (Trace.getEventAt SignedDHKEMEvent 19 tr) with
     | some (SignedDHKEMEvent.ClientFinishEvent _ _ xPk yPk zPk k) => (xPk, yPk, zPk, k)
     | _ => (Comparse.BytesLike.empty, Comparse.BytesLike.empty, Comparse.BytesLike.empty, Comparse.BytesLike.empty)
-  refine ⟨ 13, 15, witness.fst, witness.snd.fst, witness.snd.snd.fst, witness.snd.snd.snd, ?_ ⟩
+  refine ⟨ 19, 21, witness.fst, witness.snd.fst, witness.snd.snd.fst, witness.snd.snd.snd, ?_ ⟩
   native_decide
 
 /--

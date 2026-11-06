@@ -461,6 +461,7 @@ end
 
 #combine into ReachabilityConfig from
   Network,
+  Random,
   LongTermKeys "SignedDHKEM PKI",
   Client.initiate,
   Server.receive,

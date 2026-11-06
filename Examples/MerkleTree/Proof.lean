@@ -466,6 +466,7 @@ end
 
 #combine into ReachabilityTheorem from
   Network,
+  Random,
   LongTermKeys "MerkleTree PKI",
   Server.authenticate,
   Server.proveInclusion,

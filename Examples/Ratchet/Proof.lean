@@ -932,6 +932,7 @@ end
 
 #combine into ReachabilityTheorem from
   Network,
+  Random,
   LongTermKeys "Ratchet PKI",
   initiate,
   processInitiate,

@@ -421,6 +421,7 @@ end
 
 #combine into ReachabilityTheorem from
   Network,
+  Random,
   LongTermKeys "ACME PKI",
   Owner.generateKeyPair,
   Owner.claimAddress,

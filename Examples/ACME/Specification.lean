@@ -329,6 +329,7 @@ end
 
 #combine into ReachabilityConfig from
   Network,
+  Random,
   LongTermKeys "ACME PKI",
   Owner.generateKeyPair,
   Owner.claimAddress,

@@ -496,6 +496,7 @@ end
 
 #combine into ReachabilityTheorem from
   Network,
+  Random,
   LongTermKeys "SignedDHKEM PKI",
   Client.initiate,
   Server.receive,

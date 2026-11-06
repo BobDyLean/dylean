@@ -339,13 +339,13 @@ info: 'DY.Example.Ratchet.compromiseStateOtherTurnAttacker_properties' depends o
 def compromiseSigKeyAttackerLoop (n: Nat) (aliceVkHandle aliceSkHandle bobVkHandle aliceStHandle: Nat) (bobSigKey aliceDhPk transcriptHash k: Bytes): Traceful Unit := do
   if n = 0 then return () else
 
-  let bobDhSk := Literal.literalToBytes "00000000000000000000000000000000".toByteArray
+  let bobDhSk ← Random.attackerGenRand 32
   let bobDhPk := DiffieHellman.dhPk bobDhSk
 
   let transcriptElement: TranscriptElement := { recipient := "Alice", dhPk := bobDhPk }
   let transcriptHash := computeTranscriptHash transcriptHash transcriptElement
 
-  let sigNonce := Literal.literalToBytes "00000000000000000000000000000000".toByteArray
+  let sigNonce ← Random.attackerGenRand 32
   let sig := Signature.sign bobSigKey sigNonce (Comparse.serialize ({transcriptHash}: SigInput))
 
   let dhss := DiffieHellman.dh aliceDhPk bobDhSk
@@ -407,9 +407,13 @@ theorem compromiseSigKeyAttackerLoop_PreservesReachability
     · assumption
     grind
 
+  apply Traceful.PreservesReachabilityFrom_bind
+  · apply Random.attackerGenRand.preservesReachability
+  · grind
+  · grind
+  intro bobDhSk tr h_post h_tr h_le
+
   lift_lets
-  intro bobDhSk
-  have: bobDhSk.AttackerKnows tr := by apply Literal.attacker_knows_literalToBytes
   intro bobDhPk
   have: bobDhPk.AttackerKnows tr := by apply DiffieHellman.attacker_knows_dhPk; grind
   intro transcriptElement
@@ -419,8 +423,6 @@ theorem compromiseSigKeyAttackerLoop_PreservesReachability
     unfold computeTranscriptHash
     apply Hash.attacker_knows_hash
     grind
-  intro sig
-  have: sig.AttackerKnows tr := by apply Signature.attacker_knows_sign <;> grind
   intro dhss
   have: dhss.AttackerKnows tr := by apply DiffieHellman.attacker_knows_dh <;> grind
   intro k
@@ -428,6 +430,17 @@ theorem compromiseSigKeyAttackerLoop_PreservesReachability
     apply KdfExpand.attacker_knows_kdfExpand
     · apply KdfExtract.attacker_knows_kdfExtract <;> grind
     grind
+
+  apply Traceful.PreservesReachabilityFrom_bind
+  · apply Random.attackerGenRand.preservesReachability
+  · grind
+  · grind
+  intro sigNonce tr h_post h_tr h_le
+  have: bobSigKey.AttackerKnows tr := by grind
+
+  lift_lets
+  intro sig
+  have: sig.AttackerKnows tr := by apply Signature.attacker_knows_sign <;> grind
 
   apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Network.reachability)
@@ -592,10 +605,10 @@ theorem compromiseSigKeyAttacker_properties:
   simp only [DY.Trace.EventLoggedAt_eq_getEventAt]
   simp only [DY.Trace.MessageSentAt_eq_getMessageSentAt]
   let witness :=
-    match (Trace.getEventAt RatchetEvent 113 tr) with
+    match (Trace.getEventAt RatchetEvent 153 tr) with
     | some (RatchetEvent.SendUpdate _ _ transcript k) => (transcript, k)
     | _ => ([], Comparse.BytesLike.empty)
-  refine ⟨ 113, 116, witness.fst, witness.snd, ?_ ⟩
+  refine ⟨ 153, 156, witness.fst, witness.snd, ?_ ⟩
   native_decide
 
 /--

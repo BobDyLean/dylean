@@ -145,7 +145,7 @@ def compromiseSigKeyAttacker: Traceful Unit := do
   let rootHash := merkleTreeHash (.bytes) elements
   let tbs: SignedRootHashTBS := { rootHash, length := elements.length }
   let tbsBytes: Bytes := Comparse.serialize tbs
-  let sigNonce := Literal.literalToBytes "00000000000000000000000000000000".toByteArray
+  let sigNonce ← Random.attackerGenRand 32
   let sig := Signature.sign sigKey sigNonce tbsBytes
 
   let msgSig: SignedRootHash := { tbs, sig }
@@ -196,6 +196,12 @@ theorem compromiseSigKeyAttacker_PreservesReachability
   intro globalStSigkey tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
+  · apply Random.attackerGenRand.preservesReachability
+  · grind
+  · grind
+  intro sigNonce tr h_post h_tr h_le
+
+  apply Traceful.PreservesReachabilityFrom_bind
   · apply Traceful.PreservesReachability_base (Network.reachability)
   · assumption
   · simp only [Comparse.AttackerKnows_serialize, SignedRootHash.IsWellFormed_eq]
@@ -208,7 +214,7 @@ theorem compromiseSigKeyAttacker_PreservesReachability
       simp [Literal.attacker_knows_literalToBytes]
     apply Signature.attacker_knows_sign
     · grind
-    · apply Literal.attacker_knows_literalToBytes
+    · grind
     · simp only [Comparse.AttackerKnows_serialize, SignedRootHashTBS.IsWellFormed_eq]
       apply pred_merkleTreeHash _ _ (Bytes.AttackerKnows · tr)
       · intro b h_b
@@ -264,7 +270,7 @@ theorem compromiseSigKeyAttacker_properties:
   conv in (∀ t': Nat, _) =>
     rewrite [rewrite_forall_nat_into_forall_fin tr.length (by grind)]
   simp only [DY.Trace.EventLoggedAt_eq_getEventAt]
-  refine ⟨ 8, (Literal.literalToBytes "quux 4".toByteArray), ?_ ⟩
+  refine ⟨ 10, (Literal.literalToBytes "quux 4".toByteArray), ?_ ⟩
   native_decide
 
 /--
