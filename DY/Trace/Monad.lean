@@ -30,6 +30,7 @@ instance [ExecTraceTypes]: Alternative Traceful where
       let (optRes, trOut) := y () trMid.val
       (optRes, ⟨ trOut.val, by grind [Trace.le_trans] ⟩)
 
+public
 instance [ExecTraceTypes]: LawfulMonad Traceful :=
   LawfulMonad.mk' Traceful
     (id_map := by
