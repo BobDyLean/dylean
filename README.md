@@ -14,11 +14,11 @@ We are actively working on DyLean, expect breaking changes. If you want to use D
 
 ## Papers linked to DyLean
 
-Papers about DyLean:
+Papers on DyLean:
 
-- Bob DyLean: A Framework for the Symbolic Analysis of Cryptographic Protocols in Lean ([eprint](https://eprint.iacr.org/2026/1493))
+- [Bob DyLean: A Framework for the Symbolic Analysis of Cryptographic Protocols in Lean](https://eprint.iacr.org/2026/1493), Théophile Wallez, Cas Cremers
 
 Papers related to DyLean:
 
-- Introduction to the proof methodology: [A Verification Framework for Secure Group Messaging](https://hal.science/tel-05455122v1/document) (Chapter 2)
-- Composing security proofs: [DY* Unchained: Now with Composable Security Proofs and Precise Compromise Scenarios](https://eprint.iacr.org/2026/830) (Section 3)
+- Introduction to the proof methodology: Chapter 2 of [A Verification Framework for Secure Group Messaging](https://hal.science/tel-05455122v1/document), Théophile Wallez
+- Composing security proofs: Section 3 of [DY* Unchained: Now with Composable Security Proofs and Precise Compromise Scenarios](https://eprint.iacr.org/2026/830), Théophile Wallez, IEEE S\&P 2026
