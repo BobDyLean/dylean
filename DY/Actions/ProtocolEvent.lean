@@ -10,6 +10,7 @@ public
 structure ExecEntryT (EventT: Type) where
   ev: EventT
 
+@[expose]
 public
 def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] (EventT: Type): SubBaseAttackerKnowledge (ExecEntryT EventT) where
   attackerKnows _ _ _ := False
@@ -48,6 +49,7 @@ where
   pf trBefore entry b := by
     simp [baseAttackerKnowledge]
 
+@[expose]
 public
 def _root_.DY.Trace.EventLoggedAt
   {EventT: Type}
@@ -73,6 +75,7 @@ theorem _root_.DY.Trace.EventLoggedAt_implies_i_le_length
 
 grind_pattern DY.Trace.EventLoggedAt_implies_i_le_length => tr.EventLoggedAt ev i
 
+@[expose]
 public
 def _root_.DY.Trace.getEventAt
   (EventT: Type)
@@ -194,6 +197,7 @@ theorem _root_.DY.Trace.EventLogged_imp_EventInv
   intro h_inv ⟨ i, h_ev ⟩
   exact ⟨ i, DY.Trace.EventLoggedAt_imp_EventInv ev i tr h_inv h_ev ⟩
 
+@[expose]
 public
 def logEvent
   {EventT: Type}

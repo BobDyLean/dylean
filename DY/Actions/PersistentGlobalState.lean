@@ -19,12 +19,14 @@ public
 structure ExecEntryT (StateT: Type) where
   st: StateT
 
+@[expose]
 public
 def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] (StateT: Type): SubBaseAttackerKnowledge (ExecEntryT StateT) where
   attackerKnows _ _ _ := False
 
 end State
 
+@[expose]
 public
 def storeGlobalState
   {StateT: Type}
@@ -35,6 +37,7 @@ def storeGlobalState
   let entry: State.ExecEntryT StateT := { st }
   appendEntry entry
 
+@[expose]
 public
 def getGlobalState
   {StateT: Type}

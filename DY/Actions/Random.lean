@@ -14,6 +14,7 @@ public
 structure ExecEntryT where
   length: Nat
 
+@[expose]
 public
 def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes]: SubBaseAttackerKnowledge ExecEntryT where
   attackerKnows _ _ _ := False
@@ -89,6 +90,7 @@ public instance: SubBytesFunctor Random where
 public
 abbrev SubF := Random
 
+@[expose]
 public
 def Random.length [BytesFunctor]: Bytes.PartialLength Random :=
   fun { timestamp := _, size := size } _ =>
@@ -100,6 +102,8 @@ abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF := Random.length
 public
 abbrev Random.pack [BytesFunctor] [BytesFunctor.Has SubF] (x: Random Bytes) := BytesView.pack x
 
+@[expose]
+public
 def makeRand [BytesFunctor] [BytesFunctor.Has SubF] (timestamp size: Nat): Bytes :=
   ({timestamp, size}: Random Bytes).pack
 
@@ -109,6 +113,7 @@ section AttackerKnowledge
 
 variable [BytesFunctor] [BytesFunctor.Has SubF]
 
+@[expose]
 public
 def attKnowsRand: SubAttackerKnowledge Random where
   pred p out := False
@@ -199,6 +204,7 @@ end AttackerKnowledgeTheorem
 
 end Bytes
 
+@[expose]
 public
 def genRand [BytesFunctor] [BytesFunctor.Has SubF] [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] (size: Nat): Traceful Bytes :=
   do

@@ -52,10 +52,12 @@ instance [ExecTraceTypes]: LawfulMonad Traceful :=
       grind
     )
 
+@[expose]
 public
 def Traceful.run [ExecTraceTypes] (x: Traceful a) (tr: ExecTrace): (Option a × { trOut: ExecTrace // tr ≤ trOut}) :=
   x tr
 
+@[expose]
 public
 def Traceful.mk [ExecTraceTypes] {α: Type} (f: (tr: ExecTrace) → (Option α × { trOut: ExecTrace // tr ≤ trOut})): Traceful α :=
   f

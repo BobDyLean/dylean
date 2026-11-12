@@ -66,6 +66,7 @@ where
     simp [TraceEntryHas.inj]
     grind
 
+@[expose]
 public
 def SubBaseAttackerKnowledge.combine
   [BytesFunctor] [ExecTraceTypes]
@@ -89,6 +90,20 @@ where
   pf := by
     simp [ExecTraceTypes.HasStep.inj, SubBaseAttackerKnowledge.combine]
 
+@[simp]
+public
+theorem SubBaseAttackerKnowledge.combine_attackerKnows
+  [BytesFunctor] [ExecTraceTypes]
+  {n: Nat}
+  {Types: Fin n → Type}
+  (subs: (id: Fin n) → SubBaseAttackerKnowledge (Types id))
+  (tr: ExecTrace) (x: ExecTraceTypes.combine Types) (b: Bytes)
+  : (SubBaseAttackerKnowledge.combine subs).attackerKnows tr x b = (subs x.id).attackerKnows tr x.entry b
+:= by
+  cases x
+  rfl
+
+@[expose]
 public
 def Trace.BaseAttackerKnows
   [BytesFunctor] [ExecTraceTypes] [BaseAttackerKnowledge]

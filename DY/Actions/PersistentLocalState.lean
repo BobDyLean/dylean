@@ -56,6 +56,7 @@ namespace State
 
 end State
 
+@[expose]
 public
 def storeLocalState
   {StateT: Type}
@@ -65,6 +66,7 @@ def storeLocalState
 := do
   PersistentGlobalState.storeGlobalState ({ participant, state }: LocalState StateT)
 
+@[expose]
 public
 def getLocalState
   {StateT: Type}

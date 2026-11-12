@@ -153,6 +153,51 @@ theorem BytesView.view_pack
 grind_pattern BytesView.view_pack => b.pack
 
 public
+theorem BytesView.pack_inj
+  {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
+  {x y: BytesView SubF}
+  : x.pack = y.pack ↔ x = y
+:= by
+  constructor
+  · intro h
+    have := congrArg (fun b: Bytes => b.view? SubF) h
+    simp only [BytesView.view_pack, Option.some.injEq] at this
+    exact this
+  · intro h
+    rw [h]
+
+/--
+  Viewing `x.pack` through a possibly different sub-functor `SubF2`.
+  When `SubF1` and `SubF2` are disjoint summands of `BytesF`,
+  the right-hand side reduces to `none` by `rfl`.
+-/
+public
+theorem Bytes.view?_pack_cross
+  {SubF1: Type → Type} (SubF2: Type → Type)
+  [SubBytesFunctor SubF1] [SubBytesFunctor SubF2]
+  [BytesFunctor.Has SubF1] [BytesFunctor.Has SubF2]
+  (x: BytesView SubF1)
+  : (x.pack).view? SubF2 =
+    ALaCarte.SubFunctorTC.proj (f := SubF2) (ALaCarte.SubFunctorTC.inj (f := SubF1) (g := BytesF) x)
+:= by
+  unfold Bytes.view? BytesView.pack
+  exact ALaCarte.Container.view_pack_cross SubF1 SubF2 x
+
+public
+theorem BytesView.pack_ne_pack
+  {SubF1 SubF2: Type → Type}
+  [SubBytesFunctor SubF1] [SubBytesFunctor SubF2]
+  [BytesFunctor.Has SubF1] [BytesFunctor.Has SubF2]
+  (x: BytesView SubF1) (y: BytesView SubF2)
+  (h: ALaCarte.SubFunctorTC.proj (f := SubF2) (ALaCarte.SubFunctorTC.inj (f := SubF1) (g := BytesF) x) = none := by rfl)
+  : x.pack ≠ y.pack
+:= by
+  intro heq
+  have := congrArg (fun b: Bytes => b.view? SubF2) heq
+  rw [BytesView.view_pack, Bytes.view?_pack_cross, h] at this
+  cases this
+
+public
 theorem Bytes.sizeOf_view
   (SubF: Type → Type) [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
   (b: Bytes)
@@ -240,6 +285,19 @@ def Bytes.PartialFunction.combine
   : Bytes.PartialFunction (BytesFunctor.combine SubFs) a
 :=
   ALaCarte.Container.PartialFun.combine funs
+
+public
+theorem Bytes.PartialFunction.combine_apply
+  {n: Nat}
+  {SubFs: Fin n → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {a: Type}
+  (funs: (id: Fin n) → Bytes.PartialFunction (SubFs id) a)
+  (x: BytesFunctor.combine SubFs Bytes)
+  (rec: ∀ y: Bytes, sizeOf y ≤ DY.ALaCarte.FunctorSizeOf.sizeOf x → a)
+  : Bytes.PartialFunction.combine funs x rec = funs x.id x.val rec
+:= by
+  unfold Bytes.PartialFunction.combine
+  exact ALaCarte.Container.PartialFun.combine_apply funs x rec
 
 public
 instance
@@ -336,6 +394,7 @@ public
 class BytesLength where
   funs: Bytes.Function Nat
 
+@[expose]
 public
 def Bytes.length [BytesLength] (b: Bytes): Nat :=
   Bytes.rec BytesLength.funs b

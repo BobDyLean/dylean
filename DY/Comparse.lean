@@ -62,10 +62,12 @@ public
 instance (a: Type) [inst: ParseableSerializeableNE a]: ParseableSerializeable a where
   mf := inst.mf.toExtensible
 
+@[expose]
 public
 def parse {a: Type} [ParseableSerializeable a] (buf: Bytes): Err a :=
   ParseableSerializeable.mf.parse buf
 
+@[expose]
 public
 def serialize {a: Type} [ParseableSerializeable a] (x: a): Bytes :=
   ParseableSerializeable.mf.serialize x

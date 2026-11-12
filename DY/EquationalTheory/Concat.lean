@@ -122,6 +122,7 @@ end Constructors
 
 section AttackerKnowledge
 
+@[expose]
 public
 def concat.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF] [BytesLength]: SubAttackerKnowledge SubF where
   pred p out :=
@@ -130,6 +131,7 @@ def concat.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF] [BytesLength
       p lhs ∧
       p rhs
 
+@[expose]
 public
 def splitLeft.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF] [BytesLength]: SubAttackerKnowledge SubF where
   pred p out :=
@@ -137,6 +139,7 @@ def splitLeft.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF] [BytesLen
       some (out, rhs) = split inp i ∧
       p inp
 
+@[expose]
 public
 def splitRight.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF] [BytesLength]: SubAttackerKnowledge SubF where
   pred p out :=
