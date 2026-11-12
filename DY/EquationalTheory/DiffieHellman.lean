@@ -153,6 +153,7 @@ end Constructors
 
 section AttackerKnowledge
 
+@[expose]
 public
 def dhPk.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
   pred p out :=
@@ -160,6 +161,7 @@ def dhPk.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKn
       out = dhPk sk ∧
       p sk
 
+@[expose]
 public
 def dh.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
   pred p out :=

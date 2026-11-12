@@ -14,22 +14,26 @@ public
 structure ExecEntryT where
   msg: Bytes
 
+@[expose]
 public
 def baseAttackerKnowledge [ExecTraceTypes]: SubBaseAttackerKnowledge ExecEntryT where
   attackerKnows _ entry msg := msg = entry.msg
 
+@[expose]
 public
 def sendMessage [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] (msg: Bytes): Traceful Nat :=
   do
   let entry: ExecEntryT := ExecEntryT.mk msg
   appendEntry entry
 
+@[expose]
 public
 def receiveMessage [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] (handle: Nat): Traceful Bytes :=
   do
   let msg: ExecEntryT ← getEntry handle
   return msg.msg
 
+@[expose]
 public
 def _root_.DY.Trace.MessageSentAt
   [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT]
@@ -38,6 +42,7 @@ def _root_.DY.Trace.MessageSentAt
 :=
   tr.at? i = some (ExecEntryT.mk b)
 
+@[expose]
 public
 def _root_.DY.Trace.MessageSent
   [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT]
@@ -46,6 +51,7 @@ def _root_.DY.Trace.MessageSent
 :=
   exists i, tr.MessageSentAt b i
 
+@[expose]
 public
 def _root_.DY.Trace.getMessageSentAt
   [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT]

@@ -69,6 +69,7 @@ structure ExtensibleMessageFormat (Bytes: Type) [BytesLike Bytes] (a: Type) wher
 
 variable {Bytes: Type} [BytesLike Bytes]
 
+@[expose]
 public
 def concatPrefixes (prefixes: List Bytes) (suffix: Bytes) :=
   List.foldr BytesLike.concat suffix prefixes

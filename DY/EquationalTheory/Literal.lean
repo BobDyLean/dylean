@@ -113,6 +113,7 @@ end Constructors
 
 section AttackerKnowledge
 
+@[expose]
 public
 def literalToBytes.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
   pred p out :=

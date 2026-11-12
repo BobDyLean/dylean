@@ -468,6 +468,23 @@ theorem Container.view_pack
   unfold view pack
   simp [Container.intoFunctor_fromFunctor, Representable.from_to, SubFunctorTC.proj_inj]
 
+/--
+  Viewing a packed `f`-value through a possibly different sub-functor `h`
+  reduces to the injection/projection functions of the sub-functor instances.
+  In particular, when `f` and `h` are disjoint summands, the right-hand side
+  reduces to `none` by `rfl`, which is how `pack f x ≠ pack h y` is derived.
+-/
+public
+theorem Container.view_pack_cross
+  (f h: Type → Type) {g: Type → Type}
+  [FunctorSizeOf f] [FunctorSizeOf h] [FunctorSizeOf g]
+  [SubFunctorTC f g] [SubFunctorTC h g] [Representable g]
+  (x: f (ContainerFor g))
+  : view h (pack f x) = SubFunctorTC.proj (f := h) (SubFunctorTC.inj (g := g) x)
+:= by
+  unfold view pack
+  rw [Container.intoFunctor_fromFunctor, Representable.from_to]
+
 public
 theorem Container.pack_view
   (f: Type → Type) {g: Type → Type}
@@ -639,6 +656,20 @@ def Container.PartialFun.combine
 :=
   fun {id, val} rec =>
     funs id val rec
+
+public
+theorem Container.PartialFun.combine_apply
+  {t: Type} [DecidableEq t]
+  {functors: t → Type → Type} [∀ id, FunctorSizeOf (functors id)]
+  {g: Type → Type} [FunctorSizeOf g] [Representable g]
+  {a: Type}
+  (funs: (id: t) → Container.PartialFun (functors id) g a)
+  (x: FunctorUnion functors (ContainerFor g))
+  (rec: ∀ y: ContainerFor g, sizeOf y ≤ FunctorSizeOf.sizeOf x → a)
+  : Container.PartialFun.combine funs x rec = funs x.id x.val rec
+:= by
+  cases x
+  rfl
 
 public
 def Container.PartialFunDep.combine

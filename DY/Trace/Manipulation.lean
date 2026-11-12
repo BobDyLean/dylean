@@ -343,7 +343,7 @@ where
   pf := by
     simp only [hoareTriple, forall_const]
     intro tr h_inv
-    exists tr
+    refine ⟨tr, ?_⟩
     grind [Traceful.run_pure]
 
 public
@@ -357,9 +357,10 @@ where
   pf := by
     simp only [hoareTriple, forall_const]
     intro tr h_inv
-    exists tr
+    refine ⟨tr, ?_⟩
     grind [Traceful.run_failure]
 
+@[expose]
 public
 def appendEntry
   [ExecTraceTypes] {EntryT: Type} [ExecTraceTypes.Has EntryT]
@@ -413,6 +414,7 @@ theorem appendEntry.proof
   exists trProof.append (mkProofEntry trProof.length)
   simp_all [Trace.erase_append, Trace.append_le, Trace.invariant_append, Trace.at?_append, Trace.erase_length]
 
+@[expose]
 public
 def getEntry
   [ExecTraceTypes] {EntryT: Type} [ExecTraceTypes.Has EntryT]
@@ -478,6 +480,7 @@ theorem getEntry.preservesReachability
   simp only [Traceful.PreservesReachability, Traceful.PreservesReachabilityFrom, getEntry, Traceful.run_mk]
   grind
 
+@[expose]
 public
 def getTimestamp [ExecTraceTypes]: Traceful Nat
 :=
@@ -561,7 +564,7 @@ theorem forIn'.proof
   · assumption
   intro tr res h' h_inv h_le
   split
-  · exists tr
+  · refine ⟨tr, ?_⟩
     grind [Traceful.run_pure]
   rename_i x h
   exact ih h (pref ++ [head]) (by grind) tr (by grind) (by grind)

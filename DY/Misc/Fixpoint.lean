@@ -48,10 +48,13 @@ theorem combine_isMonotonic
     exists id
     grind
 
+-- Stated without the local `⊆` instance so that the exposed body
+-- only mentions public declarations.
+@[expose]
 public
 def mkLeastFixpoint {α: Type u} (f: Set α → Set α): Set α :=
   fun x =>
-    ∀ s: Set α, f s ⊆ s → s x
+    ∀ s: Set α, (∀ y, f s y → s y) → s x
 
 public
 theorem mkLeastFixpoint_is_fixpoint
@@ -60,27 +63,21 @@ theorem mkLeastFixpoint_is_fixpoint
   (h_mono: IsMonotonic f)
   : f (mkLeastFixpoint f) = mkLeastFixpoint f
 := by
-  let D: Set α → Prop := fun s => f s ⊆ s
-  let l: Set α := fun x => ∀ s, D s → s x
-  have: ∀ s, D s → D (f s) := by grind [IsMonotonic_eq]
-  have: ∀ s, D s → l ⊆ s := by
-    dsimp only [mkLeastFixpoint, Subset, D]
-    intro s h1 h2 h3
-    exact h3 s h1
-  have: ∀ s, D s → f l ⊆ s := by
-    intro s h
-    have: f s ⊆ s := by grind
-    have: l ⊆ s := by grind
-    have: f l ⊆ f s := by grind [IsMonotonic_eq]
-    simp_all [Subset]
-  have: f l ⊆ l := by
-    subst D l
-    simp_all [Subset]
-  have: D l := by grind
-  have: D (f l) := by grind
-  simp_all [Subset]
-  unfold mkLeastFixpoint
-  grind
+  -- `D s` means `s` is a pre-fixpoint of `f`; `mkLeastFixpoint f` is their intersection.
+  let D: Set α → Prop := fun s => ∀ y, f s y → s y
+  have h_lfp_le: ∀ s, D s → ∀ x, mkLeastFixpoint f x → s x := by
+    intro s hs x hx
+    exact hx s hs
+  have h_D_lfp: D (mkLeastFixpoint f) := by
+    intro y hy s hs
+    exact hs y (h_mono _ _ (h_lfp_le s hs) y hy)
+  funext x
+  apply propext
+  constructor
+  · intro h s hs
+    exact hs x (h_mono _ _ (h_lfp_le s hs) x h)
+  · intro h
+    exact h (f (mkLeastFixpoint f)) (fun y hy => h_mono _ _ h_D_lfp y hy)
 
 public
 theorem mkLeastFixpoint_is_least

@@ -50,6 +50,7 @@ public instance: ALaCarte.RepresentableDecidableEq SubF where
 public instance: ALaCarte.RepresentableOrd SubF where
 public instance: SubBytesFunctor SubF where
 
+@[expose]
 public
 def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
   fun _ _ =>
@@ -73,6 +74,7 @@ end Constructors
 
 section AttackerKnowledge
 
+@[expose]
 public
 def kdfExtract.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
   pred p out :=

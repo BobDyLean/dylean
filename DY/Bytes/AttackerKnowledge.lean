@@ -86,6 +86,7 @@ where
 
 end AttackerKnowledge
 
+@[expose]
 public
 def SubAttackerKnowledge.combine
   {n: Nat}
@@ -96,6 +97,7 @@ where
   pred := DY.Fixpoint.combine (fun id => (atts id).pred)
   pred_isMonotonic := DY.Fixpoint.combine_isMonotonic (fun id => (atts id).pred) (fun id => (atts id).pred_isMonotonic)
 
+@[expose]
 public
 def SubAttackerKnowledge.combine'
   {n: Nat}
@@ -105,6 +107,24 @@ def SubAttackerKnowledge.combine'
 where
   pred := DY.Fixpoint.combine (fun id => (atts id).pred)
   pred_isMonotonic := DY.Fixpoint.combine_isMonotonic (fun id => (atts id).pred) (fun id => (atts id).pred_isMonotonic)
+
+@[simp]
+public
+theorem SubAttackerKnowledge.combine_pred
+  {n: Nat}
+  {SubFs: Fin n → Type → Type}
+  (atts: ∀ id, SubAttackerKnowledge (SubFs id))
+  : (SubAttackerKnowledge.combine atts).pred = DY.Fixpoint.combine (fun id => (atts id).pred)
+:= rfl
+
+@[simp]
+public
+theorem SubAttackerKnowledge.combine'_pred
+  {n: Nat}
+  {SubF: Type → Type}
+  (atts: Fin n → SubAttackerKnowledge SubF)
+  : (SubAttackerKnowledge.combine' atts).pred = DY.Fixpoint.combine (fun id => (atts id).pred)
+:= rfl
 
 @[expose]
 public
@@ -141,6 +161,7 @@ where
 
 end AttackerKnowledge
 
+@[expose]
 public
 def Bytes.AttackerKnows.baseKnowledge [ExecTraceTypes] [BaseAttackerKnowledge] (tr: ExecTrace): SubAttackerKnowledge BytesF :=
   SubAttackerKnowledge.fromPred tr.BaseAttackerKnows
