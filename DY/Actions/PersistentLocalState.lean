@@ -346,3 +346,33 @@ end CompromisableState
 end CompromisableState
 
 end DY.PersistentLocalState
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.PersistentLocalState.getLocalState_eq_1 :
+    ∀ {StateT : Type} [DY.ExecTraceTypes]
+      [DY.ExecTraceTypes.Has (DY.PersistentLocalState.State.ExecEntryT StateT)] (participant : DY.Participant)
+      (handle : Nat),
+      DY.PersistentLocalState.getLocalState participant handle = (do
+          let st : DY.PersistentLocalState.LocalState StateT ← DY.PersistentGlobalState.getGlobalState handle
+          guard (st.participant = participant)
+          pure st.state) :=
+  @_root_.DY.PersistentLocalState.getLocalState.eq_1
+
+theorem DY.PersistentLocalState.storeLocalState_eq_1 :
+    ∀ {StateT : Type} [DY.ExecTraceTypes]
+      [DY.ExecTraceTypes.Has (DY.PersistentLocalState.State.ExecEntryT StateT)] (participant : DY.Participant)
+      (state : StateT),
+      DY.PersistentLocalState.storeLocalState participant state =
+        DY.PersistentGlobalState.storeGlobalState ({ participant := participant, state := state } : DY.PersistentLocalState.LocalState StateT) :=
+  @_root_.DY.PersistentLocalState.storeLocalState.eq_1
+
+end

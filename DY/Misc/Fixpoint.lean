@@ -95,3 +95,21 @@ theorem mkLeastFixpoint_is_least
   simp_all [IsMonotonic_eq, Subset, mkLeastFixpoint]
 
 end DY.Fixpoint
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.Fixpoint.mkLeastFixpoint_eq_1 :
+    ∀ {α : Type _} (f : DY.Fixpoint.Set α → DY.Fixpoint.Set α) (x : α),
+      DY.Fixpoint.mkLeastFixpoint f x =
+        (∀ (s : DY.Fixpoint.Set α), (∀ (y : α), f s y → s y) → s x) :=
+  @_root_.DY.Fixpoint.mkLeastFixpoint.eq_1
+
+end

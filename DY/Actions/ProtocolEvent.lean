@@ -252,3 +252,43 @@ theorem label_isCorrupt
 grind_pattern label_isCorrupt => (label ev).isCorrupt tr
 
 end DY.ProtocolEvent
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.Trace.EventLoggedAt_eq_1 :
+    ∀ {EventT : Type} [DY.ExecTraceTypes]
+      [DY.ExecTraceTypes.Has (DY.ProtocolEvent.ExecEntryT EventT)] (ev : EventT) (time : Nat) (tr : DY.ExecTrace),
+      DY.Trace.EventLoggedAt ev time tr = (DY.Trace.at? tr time = some ({ ev := ev } : DY.ProtocolEvent.ExecEntryT EventT)) :=
+  @_root_.DY.Trace.EventLoggedAt.eq_1
+
+theorem DY.Trace.getEventAt_eq_1 (EventT : Type) [DY.ExecTraceTypes]
+    [DY.ExecTraceTypes.Has (DY.ProtocolEvent.ExecEntryT EventT)]
+    (i : Nat) (tr : DY.ExecTrace) :
+    DY.Trace.getEventAt EventT i tr =
+      match (DY.Trace.at? tr i : Option (DY.ProtocolEvent.ExecEntryT EventT)) with
+      | none => none
+      | some entry => some entry.ev :=
+  @_root_.DY.Trace.getEventAt.eq_1 EventT _ _ i tr
+
+theorem DY.ProtocolEvent.logEvent_eq_1 :
+    ∀ {EventT : Type} [DY.ExecTraceTypes]
+      [DY.ExecTraceTypes.Has (DY.ProtocolEvent.ExecEntryT EventT)] (ev : EventT),
+      DY.ProtocolEvent.logEvent ev = (do
+          let _ ← DY.appendEntry ({ ev := ev } : DY.ProtocolEvent.ExecEntryT EventT)
+          pure ()) :=
+  @_root_.DY.ProtocolEvent.logEvent.eq_1
+
+theorem DY.ProtocolEvent.baseAttackerKnowledge_attackerKnows
+    [DY.BytesFunctor] [DY.ExecTraceTypes] (EventT : Type)
+    (tr : DY.ExecTrace) (entry : DY.ProtocolEvent.ExecEntryT EventT) (b : DY.Bytes) :
+    (DY.ProtocolEvent.baseAttackerKnowledge EventT).attackerKnows tr entry b = False := by rfl
+
+end

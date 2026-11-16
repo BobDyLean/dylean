@@ -89,3 +89,26 @@ theorem Traceful.run_failure
   rfl
 
 end DY
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.Traceful.run_eq_1 :
+    ∀ {a : Type} [DY.ExecTraceTypes] (x : DY.Traceful a) (tr : DY.ExecTrace),
+      x.run tr = x tr :=
+  @_root_.DY.Traceful.run.eq_1
+
+theorem DY.Traceful.mk_eq_1 :
+    ∀ [DY.ExecTraceTypes] {α : Type}
+      (f : (tr : DY.ExecTrace) → Option α × { trOut // tr ≤ trOut }),
+      DY.Traceful.mk f = f :=
+  @_root_.DY.Traceful.mk.eq_1
+
+end

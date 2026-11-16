@@ -364,3 +364,28 @@ macro_rules
 end Meta.CombineMacro
 
 end DY
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.Bytes.AttackerKnows.baseKnowledge_eq_1 :
+    ∀ [DY.BytesFunctor] [DY.ExecTraceTypes]
+      [DY.BaseAttackerKnowledge] (tr : DY.ExecTrace),
+      DY.Bytes.AttackerKnows.baseKnowledge tr = DY.SubAttackerKnowledge.fromPred (DY.Trace.BaseAttackerKnows tr) :=
+  @_root_.DY.Bytes.AttackerKnows.baseKnowledge.eq_1
+
+theorem DY.SubAttackerKnowledge.combine'_pred
+    [DY.BytesFunctor] {SubF : Type → Type} {t : Type}
+    (atts : t → DY.SubAttackerKnowledge SubF) :
+    (DY.SubAttackerKnowledge.combine' atts).pred =
+      DY.Fixpoint.combine fun id => (atts id).pred := by
+  rfl
+
+end

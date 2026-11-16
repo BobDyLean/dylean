@@ -225,3 +225,21 @@ section AttackerKnowledgeTheorem
 end AttackerKnowledgeTheorem
 
 end DY.Literal
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.Literal.literalToBytes.attackerKnowledge_pred
+    [DY.BytesFunctor] [DY.BytesFunctor.Has DY.Literal.SubF]
+    (p : DY.Bytes → Prop) (out : DY.Bytes) :
+    DY.Literal.literalToBytes.attackerKnowledge.pred p out =
+      (∃ lit, out = DY.Literal.literalToBytes lit) := by rfl
+
+end
