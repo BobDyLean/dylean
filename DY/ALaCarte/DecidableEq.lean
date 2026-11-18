@@ -7,7 +7,7 @@ module
 
 public import DY.ALaCarte.Basic
 public import Std.Data.HashMap
-public import DY.Misc.UnionFind
+public import Lean.Data.UnionFind
 
 namespace DY.ALaCarte
 
