@@ -325,7 +325,6 @@ def monotonizeContext
 
     matchEqs := true, -- to reduce matches
     -- Splitting
-    splits := 1, -- useful to "case split" on ∃
     splitMatch := false,
     splitIte := false,
     splitIndPred := false,
@@ -410,7 +409,7 @@ def monotonizeContext
           | .closed => pure ()
           | .failed newGoal =>
             -- TODO: could open a new goal with it, to allow for easier debugging in interactive mode?
-            goal.withContext do throwError "cannot monotonize {← hypFv.getType}.\n grind failure: {← goalToMessageData newGoal config #[]}"
+            goal.withContext do throwError "cannot monotonize {← hypFv.getType}.\n grind failure: {← goalToMessageData newGoal config #[] (← getThe Meta.Grind.State).numBranches}"
         trace[Step] "intro new hypothesis"
         let .goal _ newGoal ← goal.introN 1 | failure
         goal := newGoal

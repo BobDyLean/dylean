@@ -137,8 +137,9 @@ theorem Bytes.pack_view?
   | some bview => bview.pack = b
   | none => True
 := by
+  have := ALaCarte.Container.pack_view SubF b
   simp only [BytesView.pack, Bytes.view?]
-  grind [ALaCarte.Container.pack_view]
+  split <;> simp_all
 
 grind_pattern Bytes.pack_view? => b.view? SubF
 
@@ -148,7 +149,7 @@ theorem BytesView.view_pack
   (b: BytesView SubF)
   : (b.pack).view? SubF = some b
 := by
-  grind [BytesView.pack, Bytes.view?, ALaCarte.Container.view_pack]
+  exact ALaCarte.Container.view_pack SubF b
 
 grind_pattern BytesView.view_pack => b.pack
 
