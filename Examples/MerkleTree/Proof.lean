@@ -74,7 +74,7 @@ theorem merkleTreeHash_reduceCollision_correct
   · exfalso
     grind [List.take_append_drop]
   · exfalso
-    grind (splits := 8) [cases List, merkleTreeHashInput]
+    grind [cases List, merkleTreeHashInput]
 
 def checkInclusionProof_reduceHashCollision
   {Bytes: Type}
