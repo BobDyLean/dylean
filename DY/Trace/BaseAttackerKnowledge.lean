@@ -161,3 +161,38 @@ macro_rules
 end Meta.CombineMacro
 
 end DY
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.Trace.BaseAttackerKnows_eq_1 :
+    ∀ [DY.BytesFunctor] [DY.ExecTraceTypes]
+      [DY.BaseAttackerKnowledge] (b : DY.Bytes),
+      DY.Trace.nil.BaseAttackerKnows b = False :=
+  @_root_.DY.Trace.BaseAttackerKnows.eq_1
+
+theorem DY.Trace.BaseAttackerKnows_eq_2 :
+    ∀ [DY.BytesFunctor] [DY.ExecTraceTypes]
+      [DY.BaseAttackerKnowledge] (b : DY.Bytes) (trBefore : DY.Trace DY.ExecTrace.Entry)
+      (entry : DY.ExecTrace.Entry),
+      (trBefore.snoc entry).BaseAttackerKnows b =
+        (DY.BaseAttackerKnowledge.attackerKnows.attackerKnows trBefore entry b ∨ trBefore.BaseAttackerKnows b) :=
+  @_root_.DY.Trace.BaseAttackerKnows.eq_2
+
+theorem DY.SubBaseAttackerKnowledge.combine_attackerKnows
+    [DY.BytesFunctor] [DY.ExecTraceTypes] {n : Nat} {Types : Fin n → Type}
+    (subs : (id : Fin n) → DY.SubBaseAttackerKnowledge (Types id))
+    (tr : DY.ExecTrace) (x : DY.ExecTraceTypes.combine Types) (b : DY.Bytes) :
+    (DY.SubBaseAttackerKnowledge.combine subs).attackerKnows tr x b =
+      (subs x.id).attackerKnows tr x.entry b := by
+  cases x
+  rfl
+
+end

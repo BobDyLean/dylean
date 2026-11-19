@@ -329,3 +329,34 @@ end CompromisableState
 end CompromisableState
 
 end DY.PersistentGlobalState
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.PersistentGlobalState.getGlobalState_eq_1 :
+    ∀ {StateT : Type} [DY.ExecTraceTypes]
+      [DY.ExecTraceTypes.Has (DY.PersistentGlobalState.State.ExecEntryT StateT)] (handle : Nat),
+      DY.PersistentGlobalState.getGlobalState handle = (do
+          let e : DY.PersistentGlobalState.State.ExecEntryT StateT ← DY.getEntry handle
+          pure e.st) :=
+  @_root_.DY.PersistentGlobalState.getGlobalState.eq_1
+
+theorem DY.PersistentGlobalState.storeGlobalState_eq_1 :
+    ∀ {StateT : Type} [DY.ExecTraceTypes]
+      [DY.ExecTraceTypes.Has (DY.PersistentGlobalState.State.ExecEntryT StateT)] (st : StateT),
+      DY.PersistentGlobalState.storeGlobalState st = DY.appendEntry ({ st := st } : DY.PersistentGlobalState.State.ExecEntryT StateT) :=
+  @_root_.DY.PersistentGlobalState.storeGlobalState.eq_1
+
+theorem DY.PersistentGlobalState.State.baseAttackerKnowledge_attackerKnows
+    [DY.BytesFunctor] [DY.ExecTraceTypes] (StateT : Type)
+    (tr : DY.ExecTrace) (entry : DY.PersistentGlobalState.State.ExecEntryT StateT) (b : DY.Bytes) :
+    (DY.PersistentGlobalState.State.baseAttackerKnowledge StateT).attackerKnows tr entry b = False := by rfl
+
+end

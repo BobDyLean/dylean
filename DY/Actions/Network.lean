@@ -209,3 +209,54 @@ where
 end Reachability
 
 end DY.Network
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.Trace.MessageSentAt_eq_1 :
+    ∀ [DY.BytesFunctor] [DY.ExecTraceTypes]
+      [DY.ExecTraceTypes.Has DY.Network.ExecEntryT] (tr : DY.ExecTrace) (b : DY.Bytes) (i : Nat),
+      DY.Trace.MessageSentAt tr b i = (DY.Trace.at? tr i = some ({ msg := b } : DY.Network.ExecEntryT)) :=
+  @_root_.DY.Trace.MessageSentAt.eq_1
+
+theorem DY.Trace.MessageSent_eq_1 :
+    ∀ [DY.BytesFunctor] [DY.ExecTraceTypes]
+      [DY.ExecTraceTypes.Has DY.Network.ExecEntryT] (tr : DY.ExecTrace) (b : DY.Bytes),
+      DY.Trace.MessageSent tr b = (∃ i, DY.Trace.MessageSentAt tr b i) :=
+  @_root_.DY.Trace.MessageSent.eq_1
+
+theorem DY.Trace.getMessageSentAt_eq_1 [DY.BytesFunctor] [DY.ExecTraceTypes]
+    [DY.ExecTraceTypes.Has DY.Network.ExecEntryT] (i : Nat) (tr : DY.ExecTrace) :
+    DY.Trace.getMessageSentAt i tr =
+      match (DY.Trace.at? tr i : Option DY.Network.ExecEntryT) with
+      | none => none
+      | some entry => some entry.msg :=
+  @_root_.DY.Trace.getMessageSentAt.eq_1 _ _ _ i tr
+
+theorem DY.Network.sendMessage_eq_1 :
+    ∀ [DY.BytesFunctor] [DY.ExecTraceTypes]
+      [DY.ExecTraceTypes.Has DY.Network.ExecEntryT] (msg : DY.Bytes),
+      DY.Network.sendMessage msg = DY.appendEntry ({ msg := msg } : DY.Network.ExecEntryT) :=
+  @_root_.DY.Network.sendMessage.eq_1
+
+theorem DY.Network.receiveMessage_eq_1 :
+    ∀ [DY.BytesFunctor] [DY.ExecTraceTypes]
+      [DY.ExecTraceTypes.Has DY.Network.ExecEntryT] (handle : Nat),
+      DY.Network.receiveMessage handle = (do
+          let msg : DY.Network.ExecEntryT ← DY.getEntry handle
+          pure msg.msg) :=
+  @_root_.DY.Network.receiveMessage.eq_1
+
+theorem DY.Network.baseAttackerKnowledge_attackerKnows
+    [DY.BytesFunctor] [DY.ExecTraceTypes]
+    (tr : DY.ExecTrace) (entry : DY.Network.ExecEntryT) (msg : DY.Bytes) :
+    DY.Network.baseAttackerKnowledge.attackerKnows tr entry msg = (msg = entry.msg) := by rfl
+
+end

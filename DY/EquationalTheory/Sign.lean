@@ -763,3 +763,27 @@ section AttackerKnowledgeTheorem
 end AttackerKnowledgeTheorem
 
 end DY.Signature
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.Signature.vk.attackerKnowledge_pred
+    [DY.BytesFunctor] [DY.BytesFunctor.Has DY.Signature.SubF]
+    (p : DY.Bytes → Prop) (out : DY.Bytes) :
+    DY.Signature.vk.attackerKnowledge.pred p out =
+      (∃ sk, out = DY.Signature.vk sk ∧ p sk) := by rfl
+
+theorem DY.Signature.sign.attackerKnowledge_pred
+    [DY.BytesFunctor] [DY.BytesFunctor.Has DY.Signature.SubF]
+    (p : DY.Bytes → Prop) (out : DY.Bytes) :
+    DY.Signature.sign.attackerKnowledge.pred p out =
+      (∃ sk nonce msg, out = DY.Signature.sign sk nonce msg ∧ p sk ∧ p nonce ∧ p msg) := by rfl
+
+end

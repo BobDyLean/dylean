@@ -612,3 +612,34 @@ theorem forIn.proof
   exact (forIn'.proof xs init ⟨ invAndProof.inv, invAndProof.step ⟩).pf
 
 end DY
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.getEntry_eq_1 [DY.ExecTraceTypes] {EntryT : Type} [DY.ExecTraceTypes.Has EntryT]
+    (timestamp : Nat) :
+    (DY.getEntry timestamp : DY.Traceful EntryT) =
+      DY.Traceful.mk fun tr =>
+        ((DY.Trace.at? tr timestamp : Option EntryT), ⟨tr, DY.Trace.le_refl tr⟩) :=
+  @_root_.DY.getEntry.eq_1 _ EntryT _ timestamp
+
+theorem DY.appendEntry_eq_1 [DY.ExecTraceTypes] {EntryT : Type} [DY.ExecTraceTypes.Has EntryT]
+    (entry : EntryT) :
+    DY.appendEntry entry =
+      DY.Traceful.mk fun tr =>
+        (some tr.length, ⟨tr.append entry, DY.Trace.append_le tr entry⟩) :=
+  @_root_.DY.appendEntry.eq_1 _ EntryT _ entry
+
+theorem DY.getTimestamp_eq_1 [DY.ExecTraceTypes] :
+    DY.getTimestamp =
+      DY.Traceful.mk fun tr => (some tr.length, ⟨tr, DY.Trace.le_refl tr⟩) :=
+  @_root_.DY.getTimestamp.eq_1 _
+
+end

@@ -216,3 +216,28 @@ section AttackerKnowledgeTheorem
 end AttackerKnowledgeTheorem
 
 end DY.KdfExtract
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.KdfExtract.KdfExtract.SubF.length_eq_1 :
+    ∀ [DY.BytesFunctor] (x : DY.KdfExtract.KdfExtract.SubF DY.Bytes)
+      (x_1 :
+      (y : DY.Bytes) → autoParam (sizeOf y ≤ DY.ALaCarte.FunctorSizeOf.sizeOf x) DY.Bytes.PartialFunction._auto_1 → Nat),
+      x.length @x_1 = 32 :=
+  @_root_.DY.KdfExtract.KdfExtract.SubF.length.eq_1
+
+theorem DY.KdfExtract.kdfExtract.attackerKnowledge_pred
+    [DY.BytesFunctor] [DY.BytesFunctor.Has DY.KdfExtract.SubF]
+    (p : DY.Bytes → Prop) (out : DY.Bytes) :
+    DY.KdfExtract.kdfExtract.attackerKnowledge.pred p out =
+      (∃ salt ikm, out = DY.KdfExtract.kdfExtract salt ikm ∧ p salt ∧ p ikm) := by rfl
+
+end

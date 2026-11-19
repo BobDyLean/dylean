@@ -353,3 +353,33 @@ section AttackerKnowledgeTheorem
 end AttackerKnowledgeTheorem
 
 end DY.Concat
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.Concat.concat.attackerKnowledge_pred
+    [DY.BytesFunctor] [DY.BytesFunctor.Has DY.Concat.SubF] [DY.BytesLength]
+    (p : DY.Bytes → Prop) (out : DY.Bytes) :
+    DY.Concat.concat.attackerKnowledge.pred p out =
+      (∃ lhs rhs, out = DY.Concat.concat lhs rhs ∧ p lhs ∧ p rhs) := by rfl
+
+theorem DY.Concat.splitLeft.attackerKnowledge_pred
+    [DY.BytesFunctor] [DY.BytesFunctor.Has DY.Concat.SubF] [DY.BytesLength]
+    (p : DY.Bytes → Prop) (out : DY.Bytes) :
+    DY.Concat.splitLeft.attackerKnowledge.pred p out =
+      (∃ inp rhs i, some (out, rhs) = DY.Concat.split inp i ∧ p inp) := by rfl
+
+theorem DY.Concat.splitRight.attackerKnowledge_pred
+    [DY.BytesFunctor] [DY.BytesFunctor.Has DY.Concat.SubF] [DY.BytesLength]
+    (p : DY.Bytes → Prop) (out : DY.Bytes) :
+    DY.Concat.splitRight.attackerKnowledge.pred p out =
+      (∃ inp lhs i, some (lhs, out) = DY.Concat.split inp i ∧ p inp) := by rfl
+
+end

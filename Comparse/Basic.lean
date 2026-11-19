@@ -151,3 +151,21 @@ theorem ExtensibleMessageFormat.wf_eq
   simp [ExtensibleMessageFormat.wf]
 
 end Comparse
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem Comparse.concatPrefixes_eq_1 :
+    ∀ {Bytes : Type} [Comparse.BytesLike Bytes] (prefixes : List Bytes)
+      (suffix : Bytes),
+      Comparse.concatPrefixes prefixes suffix = List.foldr Comparse.BytesLike.concat suffix prefixes :=
+  @_root_.Comparse.concatPrefixes.eq_1
+
+end

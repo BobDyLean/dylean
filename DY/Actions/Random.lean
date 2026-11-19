@@ -331,3 +331,40 @@ where
 end Reachability
 
 end DY.Random
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.Random.genRand_eq_1 [DY.BytesFunctor] [DY.BytesFunctor.Has DY.Random.SubF]
+    [DY.ExecTraceTypes] [DY.ExecTraceTypes.Has DY.Random.ExecEntryT] (size : Nat) :
+    DY.Random.genRand size = (do
+      let time ← DY.appendEntry ({ length := size } : DY.Random.ExecEntryT)
+      pure (({ timestamp := time, size := size } : DY.Random.Random DY.Bytes).pack)) :=
+  @_root_.DY.Random.genRand.eq_1 _ _ _ _ size
+
+theorem DY.Random.Random.length_eq_1 :
+    ∀ [DY.BytesFunctor] (timestamp size : Nat)
+      (x_2 :
+      (y : DY.Bytes) →
+      autoParam (sizeOf y ≤ DY.ALaCarte.FunctorSizeOf.sizeOf ({ timestamp := timestamp, size := size } : DY.Random.Random DY.Bytes))
+      DY.Bytes.PartialFunction._auto_1 →
+      Nat),
+      ({ timestamp := timestamp, size := size } : DY.Random.Random DY.Bytes).length @x_2 = size :=
+  @_root_.DY.Random.Random.length.eq_1
+
+theorem DY.Random.attKnowsRand_pred [DY.BytesFunctor] (p : DY.Bytes → Prop) (out : DY.Bytes) :
+    DY.Random.attKnowsRand.pred p out = False := by rfl
+
+theorem DY.Random.baseAttackerKnowledge_attackerKnows
+    [DY.BytesFunctor] [DY.ExecTraceTypes]
+    (tr : DY.ExecTrace) (entry : DY.Random.ExecEntryT) (b : DY.Bytes) :
+    DY.Random.baseAttackerKnowledge.attackerKnows tr entry b = False := by rfl
+
+end

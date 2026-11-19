@@ -363,3 +363,23 @@ theorem AttackerKnows_serialize [ExecTraceTypes] [BaseAttackerKnowledge] [Attack
 := by grind
 
 end DY.Comparse
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.Comparse.serialize_eq_1 :
+    ∀ [DY.BytesFunctor] [DY.BytesLength]
+      [DY.BytesFunctor.Has DY.Literal.SubF] [DY.BytesLength.Has DY.Literal.SubF.length]
+      [DY.BytesFunctor.Has DY.Concat.SubF] [DY.BytesLength.Has DY.Concat.SubF.length] {a : Type}
+      [DY.Comparse.ParseableSerializeable a] (x : a),
+      DY.Comparse.serialize x = DY.Comparse.ParseableSerializeable.mf.serialize x :=
+  @_root_.DY.Comparse.serialize.eq_1
+
+end

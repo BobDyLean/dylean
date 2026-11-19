@@ -525,3 +525,27 @@ section AttackerKnowledgeTheorem
 end AttackerKnowledgeTheorem
 
 end DY.DiffieHellman
+
+/-!
+  Unfolding lemmas for downstream developments.
+
+  The definitions above are `public` but not `@[expose]`d. Downstream proofs that
+  reason about the operational semantics directly (e.g. refinement proofs) use these
+  theorems instead of `import all`.
+-/
+
+public section
+
+theorem DY.DiffieHellman.dhPk.attackerKnowledge_pred
+    [DY.BytesFunctor] [DY.BytesFunctor.Has DY.DiffieHellman.SubF]
+    (p : DY.Bytes → Prop) (out : DY.Bytes) :
+    DY.DiffieHellman.dhPk.attackerKnowledge.pred p out =
+      (∃ sk, out = DY.DiffieHellman.dhPk sk ∧ p sk) := by rfl
+
+theorem DY.DiffieHellman.dh.attackerKnowledge_pred
+    [DY.BytesFunctor] [DY.BytesFunctor.Has DY.DiffieHellman.SubF]
+    (p : DY.Bytes → Prop) (out : DY.Bytes) :
+    DY.DiffieHellman.dh.attackerKnowledge.pred p out =
+      (∃ pk sk, out = DY.DiffieHellman.dh pk sk ∧ p pk ∧ p sk) := by rfl
+
+end
