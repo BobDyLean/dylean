@@ -364,7 +364,7 @@ def breakKemPk (msgHandle: Nat): Traceful Nat := do
 
 @[expose]
 public
-def breakKemPk.transition: TransitionSystem := .make (fun handle => breakKemPk handle)
+def breakKemPk.transitionSystem: TransitionSystem := .make (fun handle => breakKemPk handle)
 
 end Broken
 
@@ -903,7 +903,7 @@ theorem breakKemPk.proof (msgHandle: Nat)
   step
   grind
 
-public instance: Trace.Reachable_implies_Invariant.Part breakKemPk.transition := .mk (fun (msgHandle) => breakKemPk.proof msgHandle)
+public instance: Trace.Reachable_implies_Invariant.Part breakKemPk.transitionSystem := .mk (fun (msgHandle) => breakKemPk.proof msgHandle)
 
 end Broken
 

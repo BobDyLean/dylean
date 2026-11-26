@@ -349,12 +349,12 @@ variable [HasExecTrace]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 @[expose] public section
-def Client.initiate.transition: TransitionSystem := .make (fun me => Client.initiate me)
-def Server.receive.transition: TransitionSystem := .make (fun (me, skHandle, msgHandle) => Server.receive me skHandle msgHandle)
-def Client.finish.transition: TransitionSystem := .make (fun (me, server, pkHandle, msgHandle, stHandle) => Client.finish me server pkHandle msgHandle stHandle)
-def ClientInitiateState.compromise.transition: TransitionSystem := .make (fun stHandle => ClientInitiateState.compromise stHandle)
-def ServerFinishState.compromise.transition: TransitionSystem := .make (fun stHandle => ServerFinishState.compromise stHandle)
-def ClientFinishState.compromise.transition: TransitionSystem := .make (fun stHandle => ClientFinishState.compromise stHandle)
+def Client.initiate.transitionSystem: TransitionSystem := .make (fun me => Client.initiate me)
+def Server.receive.transitionSystem: TransitionSystem := .make (fun (me, skHandle, msgHandle) => Server.receive me skHandle msgHandle)
+def Client.finish.transitionSystem: TransitionSystem := .make (fun (me, server, pkHandle, msgHandle, stHandle) => Client.finish me server pkHandle msgHandle stHandle)
+def ClientInitiateState.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => ClientInitiateState.compromise stHandle)
+def ServerFinishState.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => ServerFinishState.compromise stHandle)
+def ClientFinishState.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => ClientFinishState.compromise stHandle)
 end
 
 #combine into TransitionSystem from

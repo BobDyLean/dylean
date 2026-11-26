@@ -77,7 +77,7 @@ macro_rules
     let sources := sources.getElems
 
     let combined ← combineTypeclass params sources  <| .makeSimple {
-      refereeName := `transition
+      refereeName := `transitionSystem
       combineName := ``DY.TransitionSystem.combine
       outTypeName := ``DY.Trace.Reachable_implies_Invariant.Part
     }

@@ -190,7 +190,7 @@ macro_rules
     let sources := sources.getElems
 
     let combined ← combineExplicit params sources {
-      name := `transition
+      name := `transitionSystem
       combineName := ``DY.TransitionSystem.combine
       internalOutTypeStx := fun _ _ => `(term| TransitionSystem)
       outTypeStx := fun _ => `(term| TransitionSystem)
@@ -198,7 +198,7 @@ macro_rules
     }
 
     let hasStep ← mkHasStep params sources <| .makeSimple {
-      name := `transition
+      name := `transitionSystem
       combineName := ``DY.TransitionSystem.combine
       hasStepName := ``DY.TransitionSystem.HasStep
     }

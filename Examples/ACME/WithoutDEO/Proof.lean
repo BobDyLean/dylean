@@ -408,15 +408,15 @@ variable [HasTraceInvariant]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 section
-public instance: Trace.Reachable_implies_Invariant.Part Owner.generateKeyPair.transition := .mk (fun owner => Owner.generateKeyPair.proof owner)
-public instance: Trace.Reachable_implies_Invariant.Part Owner.claimAddress.transition := .mk (fun (owner, address, oSkHandle) => Owner.claimAddress.proof owner address oSkHandle)
-public instance: Trace.Reachable_implies_Invariant.Part LetsEncrypt.initiate.transition := .mk (fun (server, address, skHandle) => LetsEncrypt.initiate.proof server address skHandle)
-public instance: Trace.Reachable_implies_Invariant.Part Owner.respond.transition := .mk (fun (owner, server, msgHandle, lePkHandle, stHandle) => Owner.respond.proof owner server msgHandle lePkHandle stHandle)
-public instance: Trace.Reachable_implies_Invariant.Part LetsEncrypt.finish.transition := .mk (fun (server, msgHandle, pendingStHandle, dnsEntryHandle) => LetsEncrypt.finish.proof server msgHandle pendingStHandle dnsEntryHandle)
-public instance: Trace.Reachable_implies_Invariant.Part OwnerKeyState.compromise.transition := .mk (fun stHandle => OwnerKeyState.compromise.proof stHandle)
-public instance: Trace.Reachable_implies_Invariant.Part OwnerAddressState.compromise.transition := .mk (fun stHandle => OwnerAddressState.compromise.proof stHandle)
-public instance: Trace.Reachable_implies_Invariant.Part LetsEncryptPendingChallengeState.compromise.transition := .mk (fun stHandle => LetsEncryptPendingChallengeState.compromise.proof stHandle)
-public instance: Trace.Reachable_implies_Invariant.Part DNSEntry.compromise.transition := .mk (fun stHandle => DNSEntry.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part Owner.generateKeyPair.transitionSystem := .mk (fun owner => Owner.generateKeyPair.proof owner)
+public instance: Trace.Reachable_implies_Invariant.Part Owner.claimAddress.transitionSystem := .mk (fun (owner, address, oSkHandle) => Owner.claimAddress.proof owner address oSkHandle)
+public instance: Trace.Reachable_implies_Invariant.Part LetsEncrypt.initiate.transitionSystem := .mk (fun (server, address, skHandle) => LetsEncrypt.initiate.proof server address skHandle)
+public instance: Trace.Reachable_implies_Invariant.Part Owner.respond.transitionSystem := .mk (fun (owner, server, msgHandle, lePkHandle, stHandle) => Owner.respond.proof owner server msgHandle lePkHandle stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part LetsEncrypt.finish.transitionSystem := .mk (fun (server, msgHandle, pendingStHandle, dnsEntryHandle) => LetsEncrypt.finish.proof server msgHandle pendingStHandle dnsEntryHandle)
+public instance: Trace.Reachable_implies_Invariant.Part OwnerKeyState.compromise.transitionSystem := .mk (fun stHandle => OwnerKeyState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part OwnerAddressState.compromise.transitionSystem := .mk (fun stHandle => OwnerAddressState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part LetsEncryptPendingChallengeState.compromise.transitionSystem := .mk (fun stHandle => LetsEncryptPendingChallengeState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part DNSEntry.compromise.transitionSystem := .mk (fun stHandle => DNSEntry.compromise.proof stHandle)
 end
 
 #combine into Trace.Reachable_implies_Invariant from

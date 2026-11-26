@@ -485,13 +485,13 @@ variable [HasTraceInvariant]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 section
-public instance: Trace.Reachable_implies_Invariant.Part Client.initiate.transition := .mk (fun me => Client.initiate.proof me)
-public instance: Trace.Reachable_implies_Invariant.Part Server.receive.transition := .mk (fun (me, skHandle, msgHandle) => Server.receive.proof me skHandle msgHandle)
-public instance: Trace.Reachable_implies_Invariant.Part Client.finish.transition := .mk (fun (me, server, pkHandle, msgHandle, dhStHandle, kemStHandle) => Client.finish.proof me server pkHandle msgHandle dhStHandle kemStHandle)
-public instance: Trace.Reachable_implies_Invariant.Part ClientInitiateDHState.compromise.transition := .mk (fun (stHandle) => ClientInitiateDHState.compromise.proof stHandle)
-public instance: Trace.Reachable_implies_Invariant.Part ClientInitiateKEMState.compromise.transition := .mk (fun (stHandle) => ClientInitiateKEMState.compromise.proof stHandle)
-public instance: Trace.Reachable_implies_Invariant.Part ClientFinishState.compromise.transition := .mk (fun (stHandle) => ClientFinishState.compromise.proof stHandle)
-public instance: Trace.Reachable_implies_Invariant.Part ServerFinishState.compromise.transition := .mk (fun (stHandle) => ServerFinishState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part Client.initiate.transitionSystem := .mk (fun me => Client.initiate.proof me)
+public instance: Trace.Reachable_implies_Invariant.Part Server.receive.transitionSystem := .mk (fun (me, skHandle, msgHandle) => Server.receive.proof me skHandle msgHandle)
+public instance: Trace.Reachable_implies_Invariant.Part Client.finish.transitionSystem := .mk (fun (me, server, pkHandle, msgHandle, dhStHandle, kemStHandle) => Client.finish.proof me server pkHandle msgHandle dhStHandle kemStHandle)
+public instance: Trace.Reachable_implies_Invariant.Part ClientInitiateDHState.compromise.transitionSystem := .mk (fun (stHandle) => ClientInitiateDHState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part ClientInitiateKEMState.compromise.transitionSystem := .mk (fun (stHandle) => ClientInitiateKEMState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part ClientFinishState.compromise.transitionSystem := .mk (fun (stHandle) => ClientFinishState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part ServerFinishState.compromise.transitionSystem := .mk (fun (stHandle) => ServerFinishState.compromise.proof stHandle)
 end
 
 #combine into Trace.Reachable_implies_Invariant from

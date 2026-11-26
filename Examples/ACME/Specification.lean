@@ -315,16 +315,16 @@ variable [HasExecTrace]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 @[expose] public section
-def Owner.generateKeyPair.transition: TransitionSystem := .make (fun owner => Owner.generateKeyPair owner)
-def Owner.claimAddress.transition: TransitionSystem := .make (fun (owner, address, oSkHandle) => Owner.claimAddress owner address oSkHandle)
-def LetsEncrypt.initiate.transition: TransitionSystem := .make (fun (server, address, skHandle) => LetsEncrypt.initiate server address skHandle)
-def Owner.respond.transition: TransitionSystem := .make (fun (owner, server, msgHandle, lePkHandle, stHandle) => Owner.respond owner server msgHandle lePkHandle stHandle)
-def LetsEncrypt.finish.transition: TransitionSystem := .make (fun (server, msgHandle, pendingStHandle, dnsEntryHandle) => LetsEncrypt.finish server msgHandle pendingStHandle dnsEntryHandle)
+def Owner.generateKeyPair.transitionSystem: TransitionSystem := .make (fun owner => Owner.generateKeyPair owner)
+def Owner.claimAddress.transitionSystem: TransitionSystem := .make (fun (owner, address, oSkHandle) => Owner.claimAddress owner address oSkHandle)
+def LetsEncrypt.initiate.transitionSystem: TransitionSystem := .make (fun (server, address, skHandle) => LetsEncrypt.initiate server address skHandle)
+def Owner.respond.transitionSystem: TransitionSystem := .make (fun (owner, server, msgHandle, lePkHandle, stHandle) => Owner.respond owner server msgHandle lePkHandle stHandle)
+def LetsEncrypt.finish.transitionSystem: TransitionSystem := .make (fun (server, msgHandle, pendingStHandle, dnsEntryHandle) => LetsEncrypt.finish server msgHandle pendingStHandle dnsEntryHandle)
 
-def OwnerKeyState.compromise.transition: TransitionSystem := .make (fun stHandle => OwnerKeyState.compromise stHandle)
-def OwnerAddressState.compromise.transition: TransitionSystem := .make (fun stHandle => OwnerAddressState.compromise stHandle)
-def LetsEncryptPendingChallengeState.compromise.transition: TransitionSystem := .make (fun stHandle => LetsEncryptPendingChallengeState.compromise stHandle)
-def DNSEntry.compromise.transition: TransitionSystem := .make (fun stHandle => DNSEntry.compromise stHandle)
+def OwnerKeyState.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => OwnerKeyState.compromise stHandle)
+def OwnerAddressState.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => OwnerAddressState.compromise stHandle)
+def LetsEncryptPendingChallengeState.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => LetsEncryptPendingChallengeState.compromise stHandle)
+def DNSEntry.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => DNSEntry.compromise stHandle)
 end
 
 #combine into TransitionSystem from

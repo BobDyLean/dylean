@@ -472,7 +472,7 @@ variable
 
 @[expose]
 public
-def generateKeyPair.transition : TransitionSystem :=
+def generateKeyPair.transitionSystem : TransitionSystem :=
   .make (fun p => generateKeyPair name p)
 
 variable
@@ -482,23 +482,23 @@ variable
 
 @[expose]
 public
-def compromisePrivateKey.transition : TransitionSystem :=
+def compromisePrivateKey.transitionSystem : TransitionSystem :=
   .make (fun skHandle => compromisePrivateKey name skHandle)
 
 @[expose]
 public
-def transition.internal : Fin 2 → TransitionSystem
-  | 0 => generateKeyPair.transition name
-  | 1 => compromisePrivateKey.transition name
+def transitionSystem.internal : Fin 2 → TransitionSystem
+  | 0 => generateKeyPair.transitionSystem name
+  | 1 => compromisePrivateKey.transitionSystem name
 
 @[expose]
 public
-def transition : TransitionSystem
+def transitionSystem : TransitionSystem
 :=
-  .combine (transition.internal name)
+  .combine (transitionSystem.internal name)
 
-public instance: TransitionSystem.HasStep (generateKeyPair.transition name) (transition name) := inferInstanceAs <| TransitionSystem.HasStep (transition.internal name 0) (.combine (transition.internal name))
-public instance: TransitionSystem.HasStep (compromisePrivateKey.transition name) (transition name) := inferInstanceAs <| TransitionSystem.HasStep (transition.internal name 1) (.combine (transition.internal name))
+public instance: TransitionSystem.HasStep (generateKeyPair.transitionSystem name) (transitionSystem name) := inferInstanceAs <| TransitionSystem.HasStep (transitionSystem.internal name 0) (.combine (transitionSystem.internal name))
+public instance: TransitionSystem.HasStep (compromisePrivateKey.transitionSystem name) (transitionSystem name) := inferInstanceAs <| TransitionSystem.HasStep (transitionSystem.internal name 1) (.combine (transitionSystem.internal name))
 
 variable
   [ProofTrace.Def]
@@ -521,18 +521,18 @@ variable
   [Trace.Invariant.Has <| TracePart.Proof name]
 
 public
-instance: Trace.Reachable_implies_Invariant.Part (generateKeyPair.transition name) where
+instance: Trace.Reachable_implies_Invariant.Part (generateKeyPair.transitionSystem name) where
   pf p := generateKeyPair.proof name p
 
 public
-instance: Trace.Reachable_implies_Invariant.Part (compromisePrivateKey.transition name) where
+instance: Trace.Reachable_implies_Invariant.Part (compromisePrivateKey.transitionSystem name) where
   pf p := compromisePrivateKey.proof name p
 
-public instance: ∀ id, Trace.Reachable_implies_Invariant.Part (transition.internal name id)
-  | 0 => inferInstanceAs <| Trace.Reachable_implies_Invariant.Part (generateKeyPair.transition name)
-  | 1 => inferInstanceAs <| Trace.Reachable_implies_Invariant.Part (compromisePrivateKey.transition name)
+public instance: ∀ id, Trace.Reachable_implies_Invariant.Part (transitionSystem.internal name id)
+  | 0 => inferInstanceAs <| Trace.Reachable_implies_Invariant.Part (generateKeyPair.transitionSystem name)
+  | 1 => inferInstanceAs <| Trace.Reachable_implies_Invariant.Part (compromisePrivateKey.transitionSystem name)
 
-public instance: Trace.Reachable_implies_Invariant.Part (transition name) := inferInstanceAs (Trace.Reachable_implies_Invariant.Part (.combine (transition.internal name)))
+public instance: Trace.Reachable_implies_Invariant.Part (transitionSystem name) := inferInstanceAs (Trace.Reachable_implies_Invariant.Part (.combine (transitionSystem.internal name)))
 
 end Reachability
 

@@ -922,12 +922,12 @@ variable [HasTraceInvariant]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 section
-public instance: Trace.Reachable_implies_Invariant.Part initiate.transition := .mk (fun (me, other, mySigKeyHandle) => initiate.proof me other mySigKeyHandle)
-public instance: Trace.Reachable_implies_Invariant.Part processInitiate.transition := .mk (fun (me, other, otherVerifKeyHandle, msgHandle) => processInitiate.proof me other otherVerifKeyHandle msgHandle)
-public instance: Trace.Reachable_implies_Invariant.Part sendUpdate.transition := .mk (fun (me, mySigKeyHandle, stHandle) => sendUpdate.proof me mySigKeyHandle stHandle)
-public instance: Trace.Reachable_implies_Invariant.Part processUpdate.transition := .mk (fun (me, otherVerifKeyHandle, stHandle, msgHandle) => processUpdate.proof me otherVerifKeyHandle stHandle msgHandle)
-public instance: Trace.Reachable_implies_Invariant.Part StateMyTurn.compromise.transition := .mk (fun (stHandle) => StateMyTurn.compromise.proof stHandle)
-public instance: Trace.Reachable_implies_Invariant.Part StateOtherTurn.compromise.transition := .mk (fun (stHandle) => StateOtherTurn.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part initiate.transitionSystem := .mk (fun (me, other, mySigKeyHandle) => initiate.proof me other mySigKeyHandle)
+public instance: Trace.Reachable_implies_Invariant.Part processInitiate.transitionSystem := .mk (fun (me, other, otherVerifKeyHandle, msgHandle) => processInitiate.proof me other otherVerifKeyHandle msgHandle)
+public instance: Trace.Reachable_implies_Invariant.Part sendUpdate.transitionSystem := .mk (fun (me, mySigKeyHandle, stHandle) => sendUpdate.proof me mySigKeyHandle stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part processUpdate.transitionSystem := .mk (fun (me, otherVerifKeyHandle, stHandle, msgHandle) => processUpdate.proof me otherVerifKeyHandle stHandle msgHandle)
+public instance: Trace.Reachable_implies_Invariant.Part StateMyTurn.compromise.transitionSystem := .mk (fun (stHandle) => StateMyTurn.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part StateOtherTurn.compromise.transitionSystem := .mk (fun (stHandle) => StateOtherTurn.compromise.proof stHandle)
 end
 
 #combine into Trace.Reachable_implies_Invariant from

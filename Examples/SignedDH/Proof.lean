@@ -366,12 +366,12 @@ section ReachabilityImpliesInvariant
 
 variable [HasTraceInvariant]
 
-public instance: Trace.Reachable_implies_Invariant.Part Client.initiate.transition := .mk (fun me => Client.initiate.proof me)
-public instance: Trace.Reachable_implies_Invariant.Part Server.receive.transition := .mk (fun (me, skHandle, msgHandle) => Server.receive.proof me skHandle msgHandle)
-public instance: Trace.Reachable_implies_Invariant.Part Client.finish.transition := .mk (fun (me, server, pkHandle, msgHandle, stHandle) => Client.finish.proof me server pkHandle msgHandle stHandle)
-public instance: Trace.Reachable_implies_Invariant.Part ClientInitiateState.compromise.transition := .mk (fun (stHandle) => ClientInitiateState.compromise.proof stHandle)
-public instance: Trace.Reachable_implies_Invariant.Part ClientFinishState.compromise.transition := .mk (fun (stHandle) => ClientFinishState.compromise.proof stHandle)
-public instance: Trace.Reachable_implies_Invariant.Part ServerFinishState.compromise.transition := .mk (fun (stHandle) => ServerFinishState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part Client.initiate.transitionSystem := .mk (fun me => Client.initiate.proof me)
+public instance: Trace.Reachable_implies_Invariant.Part Server.receive.transitionSystem := .mk (fun (me, skHandle, msgHandle) => Server.receive.proof me skHandle msgHandle)
+public instance: Trace.Reachable_implies_Invariant.Part Client.finish.transitionSystem := .mk (fun (me, server, pkHandle, msgHandle, stHandle) => Client.finish.proof me server pkHandle msgHandle stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part ClientInitiateState.compromise.transitionSystem := .mk (fun (stHandle) => ClientInitiateState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part ClientFinishState.compromise.transitionSystem := .mk (fun (stHandle) => ClientFinishState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part ServerFinishState.compromise.transitionSystem := .mk (fun (stHandle) => ServerFinishState.compromise.proof stHandle)
 
 #combine into Trace.Reachable_implies_Invariant from
   Network,

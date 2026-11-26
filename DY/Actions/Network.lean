@@ -164,7 +164,7 @@ variable [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
 variable [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
 
 public
-abbrev transition : TransitionSystem where
+abbrev transitionSystem : TransitionSystem where
   Input := Bytes
   PreCond b tr := b.AttackerKnows tr
   step b := ⟨ _, sendMessage b ⟩
@@ -198,7 +198,7 @@ variable [ProofTrace.Has TracePart.Proof] [Trace.Invariant.Has TracePart.Proof]
 variable [Trace.BaseAttackerKnows_implies_Publishable.Proof] [Bytes.AttackerKnows_implies_Publishable.Proof]
 
 public
-instance: Trace.Reachable_implies_Invariant.Part transition
+instance: Trace.Reachable_implies_Invariant.Part transitionSystem
 where
   pf b := by
     apply HoareTriple.mk

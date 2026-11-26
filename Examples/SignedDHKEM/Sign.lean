@@ -282,7 +282,7 @@ def breakVk (msgHandle: Nat): Traceful Nat := do
 
 @[expose]
 public
-def breakVk.transition: TransitionSystem := .make (fun handle => breakVk handle)
+def breakVk.transitionSystem: TransitionSystem := .make (fun handle => breakVk handle)
 
 end Broken
 
@@ -877,7 +877,7 @@ theorem breakVk.proof (msgHandle: Nat)
   step
   grind
 
-public instance: Trace.Reachable_implies_Invariant.Part breakVk.transition := .mk (fun (msgHandle) => breakVk.proof msgHandle)
+public instance: Trace.Reachable_implies_Invariant.Part breakVk.transitionSystem := .mk (fun (msgHandle) => breakVk.proof msgHandle)
 
 end Broken
 

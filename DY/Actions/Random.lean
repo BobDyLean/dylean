@@ -269,7 +269,7 @@ variable [ExecTrace.Def] [ExecTrace.Has TracePart.Exec] [ExecTrace.Has Network.T
 variable [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
 
 public
-abbrev transition : TransitionSystem where
+abbrev transitionSystem : TransitionSystem where
   Input := Nat
   PreCond _ _ := True
   step size := ⟨ _, attackerGenRandAux size ⟩
@@ -278,14 +278,14 @@ public
 theorem attackerGenRand.preservesReachability
   [Trace.BaseAttackerKnows.Has Network.TracePart.baseAttackerKnows]
   (config: TransitionSystem)
-  [TransitionSystem.Has transition config]
+  [TransitionSystem.Has transitionSystem config]
   (size: Nat)
   : (attackerGenRand size).PreservesReachability config (fun _ => True) (fun r tr => r.AttackerKnows tr)
 := by
   dsimp only [attackerGenRand, Traceful.PreservesReachability]
   intro tr h_reach h_pre
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (transition)
+  · apply Traceful.PreservesReachability_base (transitionSystem)
   · grind
   · grind
   intro entry tr h_post h_reach h_le
@@ -303,7 +303,7 @@ variable [Bytes.Invariants.Has BytesPart.invariants]
 variable [Trace.BaseAttackerKnows_implies_Publishable.Proof] [Bytes.AttackerKnows_implies_Publishable.Proof]
 
 public
-instance: Trace.Reachable_implies_Invariant.Part transition
+instance: Trace.Reachable_implies_Invariant.Part transitionSystem
 where
   pf size := by
     apply HoareTriple.mk

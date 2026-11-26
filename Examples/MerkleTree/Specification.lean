@@ -501,10 +501,10 @@ variable [HasExecTrace]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 @[expose] public section
-def Server.authenticate.transition: TransitionSystem := .make (fun (server, msgHandles, skHandle) => Server.authenticate server msgHandles skHandle)
-def Server.proveInclusion.transition: TransitionSystem := .make (fun (server, i, stHandle) => Server.proveInclusion server i stHandle)
-def Client.checkInclusion.transition: TransitionSystem := .make (fun (server, msgSigHandle, msgInclHandle, pkHandle) => Client.checkInclusion server msgSigHandle msgInclHandle pkHandle)
-def ServerState.compromise.transition: TransitionSystem := .make (fun stHandle => ServerState.compromise stHandle)
+def Server.authenticate.transitionSystem: TransitionSystem := .make (fun (server, msgHandles, skHandle) => Server.authenticate server msgHandles skHandle)
+def Server.proveInclusion.transitionSystem: TransitionSystem := .make (fun (server, i, stHandle) => Server.proveInclusion server i stHandle)
+def Client.checkInclusion.transitionSystem: TransitionSystem := .make (fun (server, msgSigHandle, msgInclHandle, pkHandle) => Client.checkInclusion server msgSigHandle msgInclHandle pkHandle)
+def ServerState.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => ServerState.compromise stHandle)
 end
 
 #combine into TransitionSystem from

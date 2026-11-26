@@ -292,7 +292,7 @@ def breakDhPk (msgHandle: Nat): Traceful Nat := do
 
 @[expose]
 public
-def breakDhPk.transition: TransitionSystem := .make (fun handle => breakDhPk handle)
+def breakDhPk.transitionSystem: TransitionSystem := .make (fun handle => breakDhPk handle)
 
 end Broken
 
@@ -696,7 +696,7 @@ theorem breakDhPk.proof (msgHandle: Nat)
   step
   grind
 
-public instance: Trace.Reachable_implies_Invariant.Part breakDhPk.transition := .mk (fun (msgHandle) => breakDhPk.proof msgHandle)
+public instance: Trace.Reachable_implies_Invariant.Part breakDhPk.transitionSystem := .mk (fun (msgHandle) => breakDhPk.proof msgHandle)
 
 end Broken
 

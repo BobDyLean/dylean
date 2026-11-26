@@ -42,7 +42,7 @@ def honestAttacker: Traceful Unit := do
 -- Future work: we could design a step-like tactic to automate this proof
 theorem honestAttackerLoop_PreservesReachability
   (n: Nat) (aliceVkHandle aliceSkHandle bobVkHandle bobSkHandle aliceStHandle bobStHandle: Nat)
-  : (honestAttackerLoop n aliceVkHandle aliceSkHandle bobVkHandle bobSkHandle aliceStHandle bobStHandle).PreservesReachability transition (fun _ => True) (fun _ _ => True)
+  : (honestAttackerLoop n aliceVkHandle aliceSkHandle bobVkHandle bobSkHandle aliceStHandle bobStHandle).PreservesReachability transitionSystem (fun _ => True) (fun _ _ => True)
 := by
   unfold Traceful.PreservesReachability
 
@@ -54,27 +54,27 @@ theorem honestAttackerLoop_PreservesReachability
     grind
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (sendUpdate.transition) _ ("Bob", bobSkHandle, bobStHandle)
+  · apply Traceful.PreservesReachability_base (sendUpdate.transitionSystem) _ ("Bob", bobSkHandle, bobStHandle)
   · assumption
-  · simp [sendUpdate.transition]
+  · simp [sendUpdate.transitionSystem]
   intro ⟨ bobStHandle, msgHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (processUpdate.transition) _ ("Alice", bobVkHandle, aliceStHandle, msgHandle)
+  · apply Traceful.PreservesReachability_base (processUpdate.transitionSystem) _ ("Alice", bobVkHandle, aliceStHandle, msgHandle)
   · assumption
-  · simp [processUpdate.transition]
+  · simp [processUpdate.transitionSystem]
   intro aliceStHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (sendUpdate.transition) _ ("Alice", aliceSkHandle, aliceStHandle)
+  · apply Traceful.PreservesReachability_base (sendUpdate.transitionSystem) _ ("Alice", aliceSkHandle, aliceStHandle)
   · assumption
-  · simp [sendUpdate.transition]
+  · simp [sendUpdate.transitionSystem]
   intro ⟨ aliceStHandle, msgHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (processUpdate.transition) _ ("Bob", aliceVkHandle, bobStHandle, msgHandle)
+  · apply Traceful.PreservesReachability_base (processUpdate.transitionSystem) _ ("Bob", aliceVkHandle, bobStHandle, msgHandle)
   · assumption
-  · simp [processUpdate.transition]
+  · simp [processUpdate.transitionSystem]
   intro aliceStHandle tr h_post h_tr h_le
 
   apply honestAttackerLoop_PreservesReachability
@@ -83,34 +83,34 @@ theorem honestAttackerLoop_PreservesReachability
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem honestAttacker_PreservesReachability
-  : honestAttacker.PreservesReachability transition (fun _ => True) (fun _ _ => True)
+  : honestAttacker.PreservesReachability transitionSystem (fun _ => True) (fun _ _ => True)
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
   unfold honestAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.transition "Ratchet PKI")
+  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.transitionSystem "Ratchet PKI")
   · assumption
-  · simp [LongTermKeys.generateKeyPair.transition]
+  · simp [LongTermKeys.generateKeyPair.transitionSystem]
   intro ⟨ _, aliceVkHandle, aliceSkHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.transition "Ratchet PKI")
+  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.transitionSystem "Ratchet PKI")
   · assumption
-  · simp [LongTermKeys.generateKeyPair.transition]
+  · simp [LongTermKeys.generateKeyPair.transitionSystem]
   intro ⟨ _, bobVkHandle, bobSkHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (initiate.transition) _ ("Alice", "Bob", aliceSkHandle)
+  · apply Traceful.PreservesReachability_base (initiate.transitionSystem) _ ("Alice", "Bob", aliceSkHandle)
   · assumption
-  · simp [initiate.transition]
+  · simp [initiate.transitionSystem]
   intro ⟨ aliceStHandle, msgHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (processInitiate.transition) _ ("Bob", "Alice", aliceVkHandle, msgHandle)
+  · apply Traceful.PreservesReachability_base (processInitiate.transitionSystem) _ ("Bob", "Alice", aliceVkHandle, msgHandle)
   · assumption
-  · simp [processInitiate.transition]
+  · simp [processInitiate.transitionSystem]
   intro bobStHandle tr h_post h_tr h_le
 
   apply honestAttackerLoop_PreservesReachability
@@ -120,7 +120,7 @@ theorem honestAttacker_PreservesReachability
 public
 theorem honestAttacker_properties:
   let tr := (honestAttacker.run (Trace.empty)).snd.val
-  tr.Reachable transition ∧
+  tr.Reachable transitionSystem ∧
   ∃ t1 t2 transcript k,
     transcript.length = 21 ∧
     t1 < t2 ∧
@@ -163,7 +163,7 @@ def compromiseStateMyTurnAttacker: Traceful Unit := do
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseStateMyTurnAttacker_PreservesReachability
-  : compromiseStateMyTurnAttacker.PreservesReachability transition (fun _ => True) (fun _ _ => True)
+  : compromiseStateMyTurnAttacker.PreservesReachability transitionSystem (fun _ => True) (fun _ _ => True)
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
@@ -176,9 +176,9 @@ theorem compromiseStateMyTurnAttacker_PreservesReachability
   intro _ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (StateMyTurn.compromise.transition)
+  · apply Traceful.PreservesReachability_base (StateMyTurn.compromise.transitionSystem)
   · assumption
-  · simp [StateMyTurn.compromise.transition]
+  · simp [StateMyTurn.compromise.transitionSystem]
   intro compromiseHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
@@ -194,7 +194,7 @@ theorem compromiseStateMyTurnAttacker_PreservesReachability
   intro globalSt tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.transition)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · grind
   intro _ tr h_post h_tr h_le
@@ -206,7 +206,7 @@ theorem compromiseStateMyTurnAttacker_PreservesReachability
 public
 theorem compromiseStateMyTurnAttacker_properties:
   let tr := (compromiseStateMyTurnAttacker.run (Trace.empty)).snd.val
-  tr.Reachable transition ∧
+  tr.Reachable transitionSystem ∧
   ∃ t transcript k,
     transcript.length = 21 ∧
     tr.EventLoggedAt (RatchetEvent.ReceiveUpdate "Bob" "Alice" transcript k) t ∧
@@ -257,7 +257,7 @@ def compromiseStateOtherTurnAttacker: Traceful Unit := do
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseStateOtherTurnAttacker_PreservesReachability
-  : compromiseStateOtherTurnAttacker.PreservesReachability transition (fun _ => True) (fun _ _ => True)
+  : compromiseStateOtherTurnAttacker.PreservesReachability transitionSystem (fun _ => True) (fun _ _ => True)
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
@@ -270,9 +270,9 @@ theorem compromiseStateOtherTurnAttacker_PreservesReachability
   intro _ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (StateOtherTurn.compromise.transition)
+  · apply Traceful.PreservesReachability_base (StateOtherTurn.compromise.transitionSystem)
   · assumption
-  · simp [StateOtherTurn.compromise.transition]
+  · simp [StateOtherTurn.compromise.transitionSystem]
   intro compromiseHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
@@ -288,7 +288,7 @@ theorem compromiseStateOtherTurnAttacker_PreservesReachability
   intro globalSt tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.transition)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · grind
   intro _ tr h_post h_tr h_le
@@ -300,7 +300,7 @@ theorem compromiseStateOtherTurnAttacker_PreservesReachability
 public
 theorem compromiseStateOtherTurnAttacker_properties:
   let tr := (compromiseStateOtherTurnAttacker.run (Trace.empty)).snd.val
-  tr.Reachable transition ∧
+  tr.Reachable transitionSystem ∧
   ∃ t transcript k,
     transcript.length = 21 ∧
     tr.EventLoggedAt (RatchetEvent.ReceiveUpdate "Bob" "Alice" transcript k) t ∧
@@ -397,7 +397,7 @@ theorem compromiseSigKeyAttackerLoop_PreservesReachability
   (n: Nat)
   (aliceVkHandle aliceSkHandle bobVkHandle aliceStHandle: Nat)
   (bobSigKey aliceDhPk transcriptHash k: Bytes)
-  : (compromiseSigKeyAttackerLoop n aliceVkHandle aliceSkHandle bobVkHandle aliceStHandle bobSigKey aliceDhPk transcriptHash k).PreservesReachability transition (fun tr => bobSigKey.AttackerKnows tr ∧ aliceDhPk.AttackerKnows tr ∧ transcriptHash.AttackerKnows tr ∧ k.AttackerKnows tr) (fun _ _ => True)
+  : (compromiseSigKeyAttackerLoop n aliceVkHandle aliceSkHandle bobVkHandle aliceStHandle bobSigKey aliceDhPk transcriptHash k).PreservesReachability transitionSystem (fun tr => bobSigKey.AttackerKnows tr ∧ aliceDhPk.AttackerKnows tr ∧ transcriptHash.AttackerKnows tr ∧ k.AttackerKnows tr) (fun _ _ => True)
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
@@ -443,27 +443,27 @@ theorem compromiseSigKeyAttackerLoop_PreservesReachability
   have: sig.AttackerKnows tr := by apply Signature.attacker_knows_sign <;> grind
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.transition)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · grind
   intro msgHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.transition)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · grind
   intro _ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (processUpdate.transition) _ ("Alice", bobVkHandle, aliceStHandle, msgHandle)
+  · apply Traceful.PreservesReachability_base (processUpdate.transitionSystem) _ ("Alice", bobVkHandle, aliceStHandle, msgHandle)
   · assumption
-  · simp [processUpdate.transition]
+  · simp [processUpdate.transitionSystem]
   intro aliceStHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (sendUpdate.transition) _ ("Alice", aliceSkHandle, aliceStHandle)
+  · apply Traceful.PreservesReachability_base (sendUpdate.transitionSystem) _ ("Alice", aliceSkHandle, aliceStHandle)
   · assumption
-  · simp [sendUpdate.transition]
+  · simp [sendUpdate.transitionSystem]
   intro ⟨ aliceStHandle, msgHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
@@ -495,7 +495,7 @@ theorem compromiseSigKeyAttackerLoop_PreservesReachability
     grind
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.transition)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · grind
   intro _ tr h_post h_tr h_le
@@ -506,40 +506,40 @@ theorem compromiseSigKeyAttackerLoop_PreservesReachability
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseSigKeyAttacker_PreservesReachability
-  : compromiseSigKeyAttacker.PreservesReachability transition (fun _ => True) (fun _ _ => True)
+  : compromiseSigKeyAttacker.PreservesReachability transitionSystem (fun _ => True) (fun _ _ => True)
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
   unfold compromiseSigKeyAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.transition "Ratchet PKI")
+  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.transitionSystem "Ratchet PKI")
   · assumption
-  · simp [LongTermKeys.generateKeyPair.transition]
+  · simp [LongTermKeys.generateKeyPair.transitionSystem]
   intro ⟨ _, aliceVkHandle, aliceSkHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.transition "Ratchet PKI")
+  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.transitionSystem "Ratchet PKI")
   · assumption
-  · simp [LongTermKeys.generateKeyPair.transition]
+  · simp [LongTermKeys.generateKeyPair.transitionSystem]
   intro ⟨ _, bobVkHandle, bobSkHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (initiate.transition) _ ("Alice", "Bob", aliceSkHandle)
+  · apply Traceful.PreservesReachability_base (initiate.transitionSystem) _ ("Alice", "Bob", aliceSkHandle)
   · assumption
-  · simp [initiate.transition]
+  · simp [initiate.transitionSystem]
   intro ⟨ aliceStHandle, msgHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (processInitiate.transition) _ ("Bob", "Alice", aliceVkHandle, msgHandle)
+  · apply Traceful.PreservesReachability_base (processInitiate.transitionSystem) _ ("Bob", "Alice", aliceVkHandle, msgHandle)
   · assumption
-  · simp [processInitiate.transition]
+  · simp [processInitiate.transitionSystem]
   intro _ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (LongTermKeys.compromisePrivateKey.transition "Ratchet PKI")
+  · apply Traceful.PreservesReachability_base (LongTermKeys.compromisePrivateKey.transitionSystem "Ratchet PKI")
   · assumption
-  · simp [LongTermKeys.compromisePrivateKey.transition]
+  · simp [LongTermKeys.compromisePrivateKey.transitionSystem]
   intro compromiseHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
@@ -584,7 +584,7 @@ theorem compromiseSigKeyAttacker_PreservesReachability
 public
 theorem compromiseSigKeyAttacker_properties:
   let tr := (compromiseSigKeyAttacker.run (Trace.empty)).snd.val
-  tr.Reachable transition ∧
+  tr.Reachable transitionSystem ∧
   ∃ t transcript k,
     transcript.length = 21 ∧
     tr.EventLoggedAt (RatchetEvent.SendUpdate "Alice" "Bob" transcript k) t ∧

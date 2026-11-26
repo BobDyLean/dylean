@@ -458,10 +458,10 @@ variable [HasTraceInvariant]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 section
-public instance: Trace.Reachable_implies_Invariant.Part Server.authenticate.transition := .mk (fun (server, msgHandles, skHandle) => Server.authenticate.proof server msgHandles skHandle)
-public instance: Trace.Reachable_implies_Invariant.Part Server.proveInclusion.transition := .mk (fun (server, i, stHandle) => Server.proveInclusion.proof server i stHandle)
-public instance: Trace.Reachable_implies_Invariant.Part Client.checkInclusion.transition := .mk (fun (server, msgSigHandle, msgInclHandle, pkHandle) => Client.checkInclusion.proof server msgSigHandle msgInclHandle pkHandle)
-public instance: Trace.Reachable_implies_Invariant.Part ServerState.compromise.transition := .mk (fun (stHandle) => ServerState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part Server.authenticate.transitionSystem := .mk (fun (server, msgHandles, skHandle) => Server.authenticate.proof server msgHandles skHandle)
+public instance: Trace.Reachable_implies_Invariant.Part Server.proveInclusion.transitionSystem := .mk (fun (server, i, stHandle) => Server.proveInclusion.proof server i stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part Client.checkInclusion.transitionSystem := .mk (fun (server, msgSigHandle, msgInclHandle, pkHandle) => Client.checkInclusion.proof server msgSigHandle msgInclHandle pkHandle)
+public instance: Trace.Reachable_implies_Invariant.Part ServerState.compromise.transitionSystem := .mk (fun (stHandle) => ServerState.compromise.proof stHandle)
 end
 
 #combine into Trace.Reachable_implies_Invariant from

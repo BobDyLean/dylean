@@ -417,12 +417,12 @@ variable [HasExecTrace]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 @[expose] public section
-def initiate.transition: TransitionSystem := .make (fun (me, other, mySigKeyHandle) => initiate me other mySigKeyHandle)
-def processInitiate.transition: TransitionSystem := .make (fun (me, other, otherVerifyKeyHandle, msgHandle) => processInitiate me other otherVerifyKeyHandle msgHandle)
-def sendUpdate.transition: TransitionSystem := .make (fun (me, mySigKeyHandle, stHandle) => sendUpdate me mySigKeyHandle stHandle)
-def processUpdate.transition: TransitionSystem := .make (fun (me, otherVerifyKeyHandle, stHandle, msgHandle) => processUpdate me otherVerifyKeyHandle stHandle msgHandle)
-def StateMyTurn.compromise.transition: TransitionSystem := .make (fun stHandle => StateMyTurn.compromise stHandle)
-def StateOtherTurn.compromise.transition: TransitionSystem := .make (fun stHandle => StateOtherTurn.compromise stHandle)
+def initiate.transitionSystem: TransitionSystem := .make (fun (me, other, mySigKeyHandle) => initiate me other mySigKeyHandle)
+def processInitiate.transitionSystem: TransitionSystem := .make (fun (me, other, otherVerifyKeyHandle, msgHandle) => processInitiate me other otherVerifyKeyHandle msgHandle)
+def sendUpdate.transitionSystem: TransitionSystem := .make (fun (me, mySigKeyHandle, stHandle) => sendUpdate me mySigKeyHandle stHandle)
+def processUpdate.transitionSystem: TransitionSystem := .make (fun (me, otherVerifyKeyHandle, stHandle, msgHandle) => processUpdate me otherVerifyKeyHandle stHandle msgHandle)
+def StateMyTurn.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => StateMyTurn.compromise stHandle)
+def StateOtherTurn.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => StateOtherTurn.compromise stHandle)
 end
 
 #combine into TransitionSystem from

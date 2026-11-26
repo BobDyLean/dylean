@@ -450,13 +450,13 @@ variable [HasExecTrace]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 @[expose] public section
-def Client.initiate.transition: TransitionSystem := .make (fun me => Client.initiate me)
-def Server.receive.transition: TransitionSystem := .make (fun (me, skHandle, msgHandle) => Server.receive me skHandle msgHandle)
-def Client.finish.transition: TransitionSystem := .make (fun (me, server, pkHandle, msgHandle, dhStHandle, kemStHandle) => Client.finish me server pkHandle msgHandle dhStHandle kemStHandle)
-def ClientInitiateDHState.compromise.transition: TransitionSystem := .make (fun stHandle => ClientInitiateDHState.compromise stHandle)
-def ClientInitiateKEMState.compromise.transition: TransitionSystem := .make (fun stHandle => ClientInitiateKEMState.compromise stHandle)
-def ServerFinishState.compromise.transition: TransitionSystem := .make (fun stHandle => ServerFinishState.compromise stHandle)
-def ClientFinishState.compromise.transition: TransitionSystem := .make (fun stHandle => ClientFinishState.compromise stHandle)
+def Client.initiate.transitionSystem: TransitionSystem := .make (fun me => Client.initiate me)
+def Server.receive.transitionSystem: TransitionSystem := .make (fun (me, skHandle, msgHandle) => Server.receive me skHandle msgHandle)
+def Client.finish.transitionSystem: TransitionSystem := .make (fun (me, server, pkHandle, msgHandle, dhStHandle, kemStHandle) => Client.finish me server pkHandle msgHandle dhStHandle kemStHandle)
+def ClientInitiateDHState.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => ClientInitiateDHState.compromise stHandle)
+def ClientInitiateKEMState.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => ClientInitiateKEMState.compromise stHandle)
+def ServerFinishState.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => ServerFinishState.compromise stHandle)
+def ClientFinishState.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => ClientFinishState.compromise stHandle)
 end
 
 #combine into TransitionSystem from
