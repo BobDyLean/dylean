@@ -8,7 +8,7 @@ namespace DY.Example.SignedDHKEM
 -- Future work: the following section could avoid a lot of repetition
 public section
 
-#combine +toplevel into BytesFunctor, BytesLength, attackerKnowledge from
+#combine +toplevel into Bytes, Bytes.length, Bytes.AttackerKnows from
   Random,
   Literal,
   Concat,
@@ -20,8 +20,8 @@ public section
 instance: HasExecBytes where
 
 #combine +toplevel into
-  ExecEntryT,
-  baseAttackerKnowledge,
+  ExecTrace,
+  Trace.BaseAttackerKnows,
 from
   Network,
   Random,
@@ -38,7 +38,7 @@ from
 instance: HasExecTrace where
 
 #combine +toplevel into
-  ProofEntryT,
+  ProofTrace,
 from
   Network,
   Random,
@@ -54,7 +54,7 @@ from
 
 instance: HasProofTrace where
 
-#combine +toplevel into BytesInvariants, BytesInvariantsProofs from
+#combine +toplevel into Bytes.Invariants, Bytes.Invariants.Lawful from
   Random,
   Literal,
   Concat,
@@ -66,8 +66,8 @@ instance: HasProofTrace where
 instance: HasBytesInvariants where
 
 #combine +toplevel into
-  SubTraceInvariant,
-  SubBaseAttackerKnowledgeTheorem,
+  Trace.Invariant,
+  Trace.BaseAttackerKnows_implies_Publishable,
 from
   Network,
   Random,
@@ -81,7 +81,7 @@ from
   DiffieHellman'.Broken,
   Signature'.Broken,
 
-#combine +toplevel into SubAttackerKnowledgeTheorem from
+#combine +toplevel into Bytes.AttackerKnows_implies_Publishable from
   Random,
   Literal,
   Concat,

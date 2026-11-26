@@ -24,33 +24,33 @@ open DY.Comparse
 public section ExecBytesConfig
 
 class HasExecBytes where
-  [bytesFunc: BytesFunctor]
-  [bytesFunc0: BytesFunctor.Has Random.SubF]
-  [bytesFunc1: BytesFunctor.Has Literal.SubF]
-  [bytesFunc2: BytesFunctor.Has Concat.SubF]
-  [bytesFunc3: BytesFunctor.Has Hash.SubF]
-  [bytesFunc4: BytesFunctor.Has Signature.SubF]
-  [bytesFunc5: BytesFunctor.Has DiffieHellman.SubF]
-  [bytesFunc6: BytesFunctor.Has KdfExtract.SubF]
-  [bytesFunc7: BytesFunctor.Has KdfExpand.SubF]
-  [bytesLen: BytesLength]
-  [bytesLen0: BytesLength.Has Random.SubF.length]
-  [bytesLen1: BytesLength.Has Literal.SubF.length]
-  [bytesLen2: BytesLength.Has Concat.SubF.length]
-  [bytesLen3: BytesLength.Has Hash.SubF.length]
-  [bytesLen4: BytesLength.Has Signature.SubF.length]
-  [bytesLen5: BytesLength.Has DiffieHellman.SubF.length]
-  [bytesLen6: BytesLength.Has KdfExtract.SubF.length]
-  [bytesLen7: BytesLength.Has KdfExpand.SubF.length]
-  [att: AttackerKnowledge]
-  [att0: AttackerKnowledge.Has Random.attackerKnowledge]
-  [att1: AttackerKnowledge.Has Literal.attackerKnowledge]
-  [att2: AttackerKnowledge.Has Concat.attackerKnowledge]
-  [att3: AttackerKnowledge.Has Hash.attackerKnowledge]
-  [att4: AttackerKnowledge.Has Signature.attackerKnowledge]
-  [att5: AttackerKnowledge.Has DiffieHellman.attackerKnowledge]
-  [att6: AttackerKnowledge.Has KdfExtract.attackerKnowledge]
-  [att7: AttackerKnowledge.Has KdfExpand.attackerKnowledge]
+  [bytesFunc: Bytes.Def]
+  [bytesFunc0: Bytes.Has Random.BytesPart.Functor]
+  [bytesFunc1: Bytes.Has Literal.BytesPart.Functor]
+  [bytesFunc2: Bytes.Has Concat.BytesPart.Functor]
+  [bytesFunc3: Bytes.Has Hash.BytesPart.Functor]
+  [bytesFunc4: Bytes.Has Signature.BytesPart.Functor]
+  [bytesFunc5: Bytes.Has DiffieHellman.BytesPart.Functor]
+  [bytesFunc6: Bytes.Has KdfExtract.BytesPart.Functor]
+  [bytesFunc7: Bytes.Has KdfExpand.BytesPart.Functor]
+  [bytesLen: Bytes.length.Def]
+  [bytesLen0: Bytes.length.Has Random.BytesPart.length]
+  [bytesLen1: Bytes.length.Has Literal.BytesPart.length]
+  [bytesLen2: Bytes.length.Has Concat.BytesPart.length]
+  [bytesLen3: Bytes.length.Has Hash.BytesPart.length]
+  [bytesLen4: Bytes.length.Has Signature.BytesPart.length]
+  [bytesLen5: Bytes.length.Has DiffieHellman.BytesPart.length]
+  [bytesLen6: Bytes.length.Has KdfExtract.BytesPart.length]
+  [bytesLen7: Bytes.length.Has KdfExpand.BytesPart.length]
+  [att: Bytes.AttackerKnows.Def]
+  [att0: Bytes.AttackerKnows.Has Random.attackerKnows]
+  [att1: Bytes.AttackerKnows.Has Literal.attackerKnows]
+  [att2: Bytes.AttackerKnows.Has Concat.attackerKnows]
+  [att3: Bytes.AttackerKnows.Has Hash.attackerKnows]
+  [att4: Bytes.AttackerKnows.Has Signature.attackerKnows]
+  [att5: Bytes.AttackerKnows.Has DiffieHellman.attackerKnows]
+  [att6: Bytes.AttackerKnows.Has KdfExtract.attackerKnows]
+  [att7: Bytes.AttackerKnows.Has KdfExpand.attackerKnows]
 
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc0
@@ -263,14 +263,14 @@ end Formats
 public section ExecTraceConfig
 
 class HasExecTrace extends HasExecBytes where
-  [traceExec: ExecTraceTypes]
-  [traceExec0: ExecTraceTypes.Has Network.ExecEntryT]
-  [traceExec1: ExecTraceTypes.Has Random.ExecEntryT]
-  [traceExec2: ExecTraceTypes.Has (ProtocolEvent.ExecEntryT RatchetEvent)]
-  [traceExec3: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT StateMyTurn)]
-  [traceExec4: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT StateOtherTurn)]
-  [traceExec5: ExecTraceTypes.Has (LongTermKeys.ExecEntryT "Ratchet PKI")]
-  [attBase: BaseAttackerKnowledge]
+  [traceExec: ExecTrace.Def]
+  [traceExec0: ExecTrace.Has Network.TracePart.Exec]
+  [traceExec1: ExecTrace.Has Random.TracePart.Exec]
+  [traceExec2: ExecTrace.Has (ProtocolEvent.TracePart.Exec RatchetEvent)]
+  [traceExec3: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec StateMyTurn)]
+  [traceExec4: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec StateOtherTurn)]
+  [traceExec5: ExecTrace.Has (LongTermKeys.TracePart.Exec "Ratchet PKI")]
+  [attBase: Trace.BaseAttackerKnows.Def]
 
 attribute [reducible, scoped instance] HasExecTrace.traceExec
 attribute [reducible, scoped instance] HasExecTrace.traceExec0
@@ -417,15 +417,15 @@ variable [HasExecTrace]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 @[expose] public section
-def initiate.reachability: ReachabilityConfig := .make (fun (me, other, mySigKeyHandle) => initiate me other mySigKeyHandle)
-def processInitiate.reachability: ReachabilityConfig := .make (fun (me, other, otherVerifyKeyHandle, msgHandle) => processInitiate me other otherVerifyKeyHandle msgHandle)
-def sendUpdate.reachability: ReachabilityConfig := .make (fun (me, mySigKeyHandle, stHandle) => sendUpdate me mySigKeyHandle stHandle)
-def processUpdate.reachability: ReachabilityConfig := .make (fun (me, otherVerifyKeyHandle, stHandle, msgHandle) => processUpdate me otherVerifyKeyHandle stHandle msgHandle)
-def StateMyTurn.compromise.reachability: ReachabilityConfig := .make (fun stHandle => StateMyTurn.compromise stHandle)
-def StateOtherTurn.compromise.reachability: ReachabilityConfig := .make (fun stHandle => StateOtherTurn.compromise stHandle)
+def initiate.transition: TransitionSystem := .make (fun (me, other, mySigKeyHandle) => initiate me other mySigKeyHandle)
+def processInitiate.transition: TransitionSystem := .make (fun (me, other, otherVerifyKeyHandle, msgHandle) => processInitiate me other otherVerifyKeyHandle msgHandle)
+def sendUpdate.transition: TransitionSystem := .make (fun (me, mySigKeyHandle, stHandle) => sendUpdate me mySigKeyHandle stHandle)
+def processUpdate.transition: TransitionSystem := .make (fun (me, otherVerifyKeyHandle, stHandle, msgHandle) => processUpdate me otherVerifyKeyHandle stHandle msgHandle)
+def StateMyTurn.compromise.transition: TransitionSystem := .make (fun stHandle => StateMyTurn.compromise stHandle)
+def StateOtherTurn.compromise.transition: TransitionSystem := .make (fun stHandle => StateOtherTurn.compromise stHandle)
 end
 
-#combine into ReachabilityConfig from
+#combine into TransitionSystem from
   Network,
   Random,
   LongTermKeys "Ratchet PKI",

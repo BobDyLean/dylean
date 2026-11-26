@@ -8,10 +8,10 @@ open DY
 
 namespace StepTest
 
-variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-variable [BytesFunctor]
-variable [BytesInvariants]
-variable [BytesInvariantsProofs]
+variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+variable [Bytes.Def]
+variable [Bytes.Invariants.Def]
+variable [Bytes.Invariants.Lawful]
 
 section Axiomatization
 
@@ -143,12 +143,12 @@ def testNonMono: Traceful Unit := do
   send_message msg
 
 /--
-trace: inst✝⁵ : ExecTraceTypes
-inst✝⁴ : ProofTraceTypes
-inst✝³ : TraceInvariant
-inst✝² : BytesFunctor
-inst✝¹ : BytesInvariants
-inst✝ : BytesInvariantsProofs
+trace: inst✝⁵ : ExecTrace.Def
+inst✝⁴ : ProofTrace.Def
+inst✝³ : Trace.Invariant.Def
+inst✝² : Bytes.Def
+inst✝¹ : Bytes.Invariants.Def
+inst✝ : Bytes.Invariants.Lawful
 tr : ProofTrace
 h_inv : Trace.Invariant tr
 pre : Step.nonMono (nonMonotoneProperty tr)
@@ -160,12 +160,12 @@ pre : Step.nonMono (nonMonotoneProperty tr)
     (fun x x_1 => True) tr
 ---
 trace: case pf_next
-inst : ExecTraceTypes
-inst_1 : ProofTraceTypes
-inst_2 : TraceInvariant
-inst_3 : BytesFunctor
-inst_4 : BytesInvariants
-inst_5 : BytesInvariantsProofs
+inst : ExecTrace.Def
+inst_1 : ProofTrace.Def
+inst_2 : Trace.Invariant.Def
+inst_3 : Bytes.Def
+inst_4 : Bytes.Invariants.Def
+inst_5 : Bytes.Invariants.Lawful
 tr : Trace ProofTrace.Entry
 h_inv : tr.Invariant
 ⊢ wp
@@ -312,12 +312,12 @@ def testIncrementalCleanup: Traceful Unit := do
 
 /--
 trace: case pf_next
-inst : ExecTraceTypes
-inst_1 : ProofTraceTypes
-inst_2 : TraceInvariant
-inst_3 : BytesFunctor
-inst_4 : BytesInvariants
-inst_5 : BytesInvariantsProofs
+inst : ExecTrace.Def
+inst_1 : ProofTrace.Def
+inst_2 : Trace.Invariant.Def
+inst_3 : Bytes.Def
+inst_4 : Bytes.Invariants.Def
+inst_5 : Bytes.Invariants.Lawful
 tr : Trace ProofTrace.Entry
 h : tr.Invariant
 b : Bytes
@@ -370,12 +370,12 @@ def testIncrementalCleanup': Traceful Unit := do
 
 /--
 trace: case pf_next
-inst : ExecTraceTypes
-inst_1 : ProofTraceTypes
-inst_2 : TraceInvariant
-inst_3 : BytesFunctor
-inst_4 : BytesInvariants
-inst_5 : BytesInvariantsProofs
+inst : ExecTrace.Def
+inst_1 : ProofTrace.Def
+inst_2 : Trace.Invariant.Def
+inst_3 : Bytes.Def
+inst_4 : Bytes.Invariants.Def
+inst_5 : Bytes.Invariants.Lawful
 tr : Trace ProofTrace.Entry
 h : tr.Invariant
 b : Bytes
@@ -415,12 +415,12 @@ def testBrutalCleanup (n: Nat): Traceful Unit := do
 
 /--
 trace: case pf_next
-inst : ExecTraceTypes
-inst_1 : ProofTraceTypes
-inst_2 : TraceInvariant
-inst_3 : BytesFunctor
-inst_4 : BytesInvariants
-inst_5 : BytesInvariantsProofs
+inst : ExecTrace.Def
+inst_1 : ProofTrace.Def
+inst_2 : Trace.Invariant.Def
+inst_3 : Bytes.Def
+inst_4 : Bytes.Invariants.Def
+inst_5 : Bytes.Invariants.Lawful
 n : Nat
 tr : Trace ProofTrace.Entry
 h : tr.Invariant
@@ -430,12 +430,12 @@ h_b✝ : b.Publishable tr
 ⊢ wp (send_message b) (fun x x_1 => True) tr
 ---
 trace: case pf_next
-inst : ExecTraceTypes
-inst_1 : ProofTraceTypes
-inst_2 : TraceInvariant
-inst_3 : BytesFunctor
-inst_4 : BytesInvariants
-inst_5 : BytesInvariantsProofs
+inst : ExecTrace.Def
+inst_1 : ProofTrace.Def
+inst_2 : Trace.Invariant.Def
+inst_3 : Bytes.Def
+inst_4 : Bytes.Invariants.Def
+inst_5 : Bytes.Invariants.Lawful
 tr : Trace ProofTrace.Entry
 h : tr.Invariant
 b : Bytes

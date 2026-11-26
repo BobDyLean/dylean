@@ -6,10 +6,10 @@ namespace DY
 
 @[expose]
 public
-def Traceful [ExecTraceTypes] (a: Type) := (trIn: ExecTrace) → Option a × { trOut: ExecTrace // trIn ≤ trOut }
+def Traceful [ExecTrace.Def] (a: Type) := (trIn: ExecTrace) → Option a × { trOut: ExecTrace // trIn ≤ trOut }
 
 public
-instance [ExecTraceTypes]: Monad Traceful where
+instance [ExecTrace.Def]: Monad Traceful where
   pure x := fun tr => (some x, ⟨ tr, by grind ⟩)
   bind x f := fun tr =>
     let (xOptVal, trMid) := x tr
@@ -20,7 +20,7 @@ instance [ExecTraceTypes]: Monad Traceful where
       (optRes, ⟨ trOut.val, by grind [Trace.le_trans] ⟩)
 
 public
-instance [ExecTraceTypes]: Alternative Traceful where
+instance [ExecTrace.Def]: Alternative Traceful where
   failure := fun tr => (none, ⟨ tr, by grind ⟩)
   orElse x y := fun tr =>
     let (xOptVal, trMid) := x tr
@@ -31,7 +31,7 @@ instance [ExecTraceTypes]: Alternative Traceful where
       (optRes, ⟨ trOut.val, by grind [Trace.le_trans] ⟩)
 
 public
-instance [ExecTraceTypes]: LawfulMonad Traceful :=
+instance [ExecTrace.Def]: LawfulMonad Traceful :=
   LawfulMonad.mk' Traceful
     (id_map := by
       intro _ x
@@ -53,11 +53,11 @@ instance [ExecTraceTypes]: LawfulMonad Traceful :=
     )
 
 public
-def Traceful.run [ExecTraceTypes] (x: Traceful a) (tr: ExecTrace): (Option a × { trOut: ExecTrace // tr ≤ trOut}) :=
+def Traceful.run [ExecTrace.Def] (x: Traceful a) (tr: ExecTrace): (Option a × { trOut: ExecTrace // tr ≤ trOut}) :=
   x tr
 
 public
-def Traceful.mk [ExecTraceTypes] {α: Type} (f: (tr: ExecTrace) → (Option α × { trOut: ExecTrace // tr ≤ trOut})): Traceful α :=
+def Traceful.mk [ExecTrace.Def] {α: Type} (f: (tr: ExecTrace) → (Option α × { trOut: ExecTrace // tr ≤ trOut})): Traceful α :=
   f
 
 @[expose, implicit_reducible]
@@ -66,13 +66,13 @@ def Err := OptionT Id
 deriving Monad, Alternative
 
 public
-instance [ExecTraceTypes]: MonadLift Err Traceful := {
+instance [ExecTrace.Def]: MonadLift Err Traceful := {
   monadLift x := Traceful.mk fun tr => (x, ⟨ tr, by grind ⟩ )
 }
 
 public
 theorem Traceful.run_mk
-  [ExecTraceTypes] {α: Type}
+  [ExecTrace.Def] {α: Type}
   (f: (tr: ExecTrace) → (Option α × { trOut: ExecTrace // tr ≤ trOut}))
   : Traceful.run (Traceful.mk f) = f
 := by
@@ -80,7 +80,7 @@ theorem Traceful.run_mk
 
 public
 theorem Traceful.run_pure
-  [ExecTraceTypes]
+  [ExecTrace.Def]
   (x: a) (tr: ExecTrace)
   : Traceful.run (pure x) tr = (some x, ⟨ tr, by grind ⟩)
 := by
@@ -88,7 +88,7 @@ theorem Traceful.run_pure
 
 public
 theorem Traceful.run_bind
-  [ExecTraceTypes]
+  [ExecTrace.Def]
   (x: Traceful a) (f: a → Traceful b) (tr: ExecTrace)
   : Traceful.run (x >>= f) tr = (
     let (opt_x, tr) := x.run tr
@@ -104,7 +104,7 @@ theorem Traceful.run_bind
 
 public
 theorem Traceful.run_failure
-  [ExecTraceTypes]
+  [ExecTrace.Def]
   (tr: ExecTrace)
   : Traceful.run (failure: Traceful a) tr = (none, ⟨ tr, by grind ⟩)
 := by

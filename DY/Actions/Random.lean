@@ -11,40 +11,40 @@ namespace DY.Random
 section Trace
 
 public
-structure ExecEntryT where
+structure TracePart.Exec where
   length: Nat
 
 public
-def baseAttackerKnowledge [BytesFunctor] [ExecTraceTypes]: SubBaseAttackerKnowledge ExecEntryT where
+def TracePart.baseAttackerKnows [Bytes.Def] [ExecTrace.Def]: Trace.BaseAttackerKnows.Part TracePart.Exec where
   attackerKnows _ _ _ := False
 
 public
-structure ProofEntryT [BytesFunctor] [ExecTraceTypes] where
+structure TracePart.Proof [Bytes.Def] [ExecTrace.Def] where
   length: Nat
   label: Label
   usage: Usage
 
 public
-instance [BytesFunctor] [ExecTraceTypes]: ErasableProofEntry ExecEntryT ProofEntryT where
+instance [Bytes.Def] [ExecTrace.Def]: ProofTrace.Part TracePart.Exec TracePart.Proof where
   erase | {length, label := _, usage := _} => { length }
 
 public
-instance[BytesFunctor] [ExecTraceTypes]: ExecEntryAssociatedWithProofEntry ExecEntryT ProofEntryT where
+instance[Bytes.Def] [ExecTrace.Def]: ExecEntryAssociatedWithProofEntry TracePart.Exec TracePart.Proof where
 
 public
-instance [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes]: SubTraceInvariant ProofEntryT where
+instance TracePart.invariant [Bytes.Def] [ExecTrace.Def] [ProofTrace.Def]: Trace.Invariant.Part TracePart.Proof where
   invariant _ _ := True
 
 public
-instance baseAttackerKnowledgeTheorem
-  [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [BytesInvariants]
-  [ExecTraceTypes.Has ExecEntryT]
-  [ProofTraceTypes.Has ProofEntryT]
-  [TraceInvariant.Has ProofEntryT]
-  : SubBaseAttackerKnowledgeTheorem ProofEntryT baseAttackerKnowledge
+instance
+  [Bytes.Def] [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def] [Bytes.Invariants.Def]
+  [ExecTrace.Has TracePart.Exec]
+  [ProofTrace.Has TracePart.Proof]
+  [Trace.Invariant.Has TracePart.Proof]
+  : Trace.BaseAttackerKnows_implies_Publishable.Part TracePart.Proof TracePart.baseAttackerKnows
 where
   pf trBefore entry b := by
-    simp [baseAttackerKnowledge]
+    simp [TracePart.baseAttackerKnows]
 
 end Trace
 
@@ -53,16 +53,16 @@ section Bytes
 section Constructors
 
 public
-structure Random (Bytes: Type) where
+structure BytesPart.Functor (Bytes: Type) where
   timestamp: Nat
   size: Nat
 
 public
-instance: ALaCarte.FunctorSizeOf Random where
+instance: ALaCarte.FunctorSizeOf BytesPart.Functor where
   sizeOf | {timestamp := _, size := _} => 0
 
 public
-instance: ALaCarte.Representable Random where
+instance: ALaCarte.Representable BytesPart.Functor where
   CtorId := Unit
   ctors | () => { Data := Nat × Nat, nRec := 0 }
 
@@ -80,135 +80,118 @@ instance: ALaCarte.Representable Random where
     simp_all <;> grind
   sizeOf_eq | {timestamp := _, size := _} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-public instance: ALaCarte.RepresentableDecidableEq Random where
-public instance: ALaCarte.RepresentableOrd Random where
+public instance: ALaCarte.RepresentableDecidableEq BytesPart.Functor where
+public instance: ALaCarte.RepresentableOrd BytesPart.Functor where
   ctorDataOrd | () => Ord.lex inferInstance inferInstance
 
-public instance: SubBytesFunctor Random where
+public instance: Bytes.Part BytesPart.Functor where
 
 public
-abbrev SubF := Random
-
-public
-def Random.length [BytesFunctor]: Bytes.PartialLength Random :=
+def BytesPart.length [Bytes.Def]: Bytes.length.Part BytesPart.Functor :=
   fun { timestamp := _, size := size } _ =>
     size
 
 public
-abbrev SubF.length [BytesFunctor]: Bytes.PartialLength SubF := Random.length
+abbrev BytesPart.Functor.pack [Bytes.Def] [Bytes.Has BytesPart.Functor] (x: BytesPart.Functor Bytes) := BytesView.pack x
 
-public
-abbrev Random.pack [BytesFunctor] [BytesFunctor.Has SubF] (x: Random Bytes) := BytesView.pack x
-
-def makeRand [BytesFunctor] [BytesFunctor.Has SubF] (timestamp size: Nat): Bytes :=
-  ({timestamp, size}: Random Bytes).pack
+def makeRand [Bytes.Def] [Bytes.Has BytesPart.Functor] (timestamp size: Nat): Bytes :=
+  ({timestamp, size}: BytesPart.Functor Bytes).pack
 
 end Constructors
 
 section AttackerKnowledge
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
 
 public
-def attKnowsRand: SubAttackerKnowledge Random where
+def attackerKnows: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out := False
-
-public
-abbrev attackerKnowledge := attKnowsRand
 
 end AttackerKnowledge
 
 section Invariants
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor]
-variable [ExecTraceTypes.Has ExecEntryT]
-variable [ProofTraceTypes.Has ProofEntryT]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def]
+variable [ExecTrace.Has TracePart.Exec]
+variable [ProofTrace.Has TracePart.Proof]
 
 public
-def Random.invariants: Bytes.PartialInvariants Random where
+def BytesPart.invariants: Bytes.Invariants.Part BytesPart.Functor where
   well_formed := fun {timestamp, size} _rec tr =>
     ∃ (label: Label) (usage: Usage),
-    tr.at? timestamp = some ({length := size, label, usage}: ProofEntryT)
+    tr.at? timestamp = some ({length := size, label, usage}: TracePart.Proof)
 
   usage := fun {timestamp, size := _} _rec tr =>
-    match (tr.at? timestamp: Option ProofEntryT) with
+    match (tr.at? timestamp: Option TracePart.Proof) with
     | some entry => entry.usage
     | none => Usage.nothing
 
   label := fun {timestamp, size := _} _rec tr =>
-    match (tr.at? timestamp: Option ProofEntryT) with
+    match (tr.at? timestamp: Option TracePart.Proof) with
     | some entry => entry.label
     | none => Label.pub
 
   invariant := fun {timestamp, size} _rec tr =>
     ∃ (label: Label) (usage: Usage),
-    tr.at? timestamp = some ({length := size, label, usage}: ProofEntryT)
+    tr.at? timestamp = some ({length := size, label, usage}: TracePart.Proof)
 
 public
-abbrev invariants: Bytes.PartialInvariants SubF := Random.Random.invariants
-
-public
-theorem Random.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Random.invariants where
+theorem BytesPart.invariantsLawful [Bytes.Invariants.Def]: Bytes.Invariants.Part.Lawful BytesPart.invariants where
   usage_later := by
     intro x rec tr1 tr2
-    simp only [invariants]
+    simp only [BytesPart.invariants]
     grind
 
   label_later := by
     intro _ x rec tr1 tr2
-    simp only [invariants]
+    simp only [BytesPart.invariants]
     grind
 
-public
-abbrev invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs invariants := Random.Random.invariantsProofs
-
-variable [BytesFunctor.Has SubF]
-variable [BytesInvariants] [BytesInvariants.Has invariants]
+variable [Bytes.Has BytesPart.Functor]
+variable [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
 
 theorem makeRand.Invariant
   (timestamp size: Nat) (tr: ProofTrace)
   (label: Label) (usage: Usage)
-  : Trace.at? tr timestamp = some ({ length := size, label := label, usage := usage }: ProofEntryT) → (
+  : Trace.at? tr timestamp = some ({ length := size, label := label, usage := usage }: TracePart.Proof) → (
       (makeRand timestamp size: Bytes).Invariant tr ∧
       (makeRand timestamp size: Bytes).label tr = label ∧
       (makeRand timestamp size: Bytes).HasUsage usage tr
     )
 := by
-  simp [makeRand, Bytes.label.eq, Bytes.usage.eq, Bytes.HasUsage, Bytes.Invariant.eq, Random.invariants]
+  simp [makeRand, Bytes.label.eq, Bytes.usage.eq, Bytes.HasUsage, Bytes.Invariant.eq, BytesPart.invariants]
   grind [Trace.at?_eq_some]
 
 end Invariants
 
 section AttackerKnowledgeTheorem
 
-variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-variable [BytesFunctor] [BytesInvariants]
-variable [BytesFunctor.Has SubF]
-variable [ExecTraceTypes.Has ExecEntryT]
-variable [ProofTraceTypes.Has ProofEntryT]
-variable [BytesInvariants.Has invariants]
+variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+variable [Bytes.Def] [Bytes.Invariants.Def]
+variable [Bytes.Has BytesPart.Functor]
+variable [ExecTrace.Has TracePart.Exec]
+variable [ProofTrace.Has TracePart.Proof]
+variable [Bytes.Invariants.Has BytesPart.invariants]
 
 public
-instance: SubAttackerKnowledgeTheorem attKnowsRand where
-  pf := by simp [attKnowsRand]
-
-example: SubAttackerKnowledgeTheorem attackerKnowledge := inferInstance
+instance: Bytes.AttackerKnows_implies_Publishable.Part attackerKnows where
+  pf := by simp [attackerKnows]
 
 end AttackerKnowledgeTheorem
 
 end Bytes
 
 public
-def genRand [BytesFunctor] [BytesFunctor.Has SubF] [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] (size: Nat): Traceful Bytes :=
+def genRand [Bytes.Def] [Bytes.Has BytesPart.Functor] [ExecTrace.Def] [ExecTrace.Has TracePart.Exec] (size: Nat): Traceful Bytes :=
   do
-  let entry: ExecEntryT := { length := size }
+  let entry: TracePart.Exec := { length := size }
   let time ← appendEntry entry
   return makeRand time size
 
 public
 instance
-  [BytesFunctor] [BytesFunctor.Has SubF] [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT]
+  [Bytes.Def] [Bytes.Has BytesPart.Functor] [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
   (size: Nat)
   : HasGhostArgumentType (genRand size) ((Bytes → Label) × Usage)
 where
@@ -217,12 +200,12 @@ where
 @[instance]
 public
 theorem genRand.proof
-  [BytesFunctor]
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-  [BytesInvariants] [BytesInvariantsProofs]
-  [BytesFunctor.Has SubF]
-  [ExecTraceTypes.Has ExecEntryT] [ProofTraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
-  [BytesInvariants.Has invariants]
+  [Bytes.Def]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
+  [Bytes.Has BytesPart.Functor]
+  [ExecTrace.Has TracePart.Exec] [ProofTrace.Has TracePart.Proof] [Trace.Invariant.Has TracePart.Proof]
+  [Bytes.Invariants.Has BytesPart.invariants]
   (size: Nat)
   (label: Bytes → Label) (usage: Usage)
   : HoareTripleGhost
@@ -240,13 +223,13 @@ theorem genRand.proof
   apply HoareTripleGhost.mk
   unfold genRand
   dsimp only
-  step with ⟨ fun time => ProofEntryT.mk size (label (makeRand time size)) usage ⟩ by
-    simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]
+  step with ⟨ fun time => TracePart.Proof.mk size (label (makeRand time size)) usage ⟩ by
+    simp_all [ProofTrace.Part.erase, Trace.Invariant.Part.invariant]
   step
   grind [makeRand.Invariant]
 
 public
-def attackerGenRandAux [BytesFunctor] [BytesFunctor.Has SubF] [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] [ExecTraceTypes.Has Network.ExecEntryT] (size: Nat): Traceful Nat :=
+def attackerGenRandAux [Bytes.Def] [Bytes.Has BytesPart.Functor] [ExecTrace.Def] [ExecTrace.Has TracePart.Exec] [ExecTrace.Has Network.TracePart.Exec] (size: Nat): Traceful Nat :=
   do
   let r ← genRand size
   Network.sendMessage r
@@ -254,13 +237,13 @@ def attackerGenRandAux [BytesFunctor] [BytesFunctor.Has SubF] [ExecTraceTypes] [
 @[instance]
 public
 theorem attackerGenRandAux.proof
-  [BytesFunctor]
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-  [BytesInvariants] [BytesInvariantsProofs]
-  [BytesFunctor.Has SubF]
-  [ExecTraceTypes.Has ExecEntryT] [ProofTraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
-  [ExecTraceTypes.Has Network.ExecEntryT] [ProofTraceTypes.Has Network.ProofEntryT] [TraceInvariant.Has Network.ProofEntryT]
-  [BytesInvariants.Has invariants]
+  [Bytes.Def]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
+  [Bytes.Has BytesPart.Functor]
+  [ExecTrace.Has TracePart.Exec] [ProofTrace.Has TracePart.Proof] [Trace.Invariant.Has TracePart.Proof]
+  [ExecTrace.Has Network.TracePart.Exec] [ProofTrace.Has Network.TracePart.Proof] [Trace.Invariant.Has Network.TracePart.Proof]
+  [Bytes.Invariants.Has BytesPart.invariants]
   (size: Nat)
   : HoareTriple
     (attackerGenRandAux size)
@@ -274,35 +257,35 @@ theorem attackerGenRandAux.proof
 
 
 public
-def attackerGenRand [BytesFunctor] [BytesFunctor.Has SubF] [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] [ExecTraceTypes.Has Network.ExecEntryT] (size: Nat): Traceful Bytes :=
+def attackerGenRand [Bytes.Def] [Bytes.Has BytesPart.Functor] [ExecTrace.Def] [ExecTrace.Has TracePart.Exec] [ExecTrace.Has Network.TracePart.Exec] (size: Nat): Traceful Bytes :=
   do
   let rHandle ← attackerGenRandAux size
   Network.receiveMessage rHandle
 
 section Reachability
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
-variable [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] [ExecTraceTypes.Has Network.ExecEntryT]
-variable [BaseAttackerKnowledge] [AttackerKnowledge]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [ExecTrace.Def] [ExecTrace.Has TracePart.Exec] [ExecTrace.Has Network.TracePart.Exec]
+variable [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
 
 public
-abbrev reachability : ReachabilityConfig where
+abbrev transition : TransitionSystem where
   Input := Nat
   PreCond _ _ := True
   step size := ⟨ _, attackerGenRandAux size ⟩
 
 public
 theorem attackerGenRand.preservesReachability
-  [BaseAttackerKnowledge.Has Network.baseAttackerKnowledge]
-  (config: ReachabilityConfig)
-  [ReachabilityConfig.Has reachability config]
+  [Trace.BaseAttackerKnows.Has Network.TracePart.baseAttackerKnows]
+  (config: TransitionSystem)
+  [TransitionSystem.Has transition config]
   (size: Nat)
   : (attackerGenRand size).PreservesReachability config (fun _ => True) (fun r tr => r.AttackerKnows tr)
 := by
   dsimp only [attackerGenRand, Traceful.PreservesReachability]
   intro tr h_reach h_pre
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (reachability)
+  · apply Traceful.PreservesReachability_base (transition)
   · grind
   · grind
   intro entry tr h_post h_reach h_le
@@ -312,15 +295,15 @@ theorem attackerGenRand.preservesReachability
   · grind
 
 
-variable [ProofTraceTypes] [TraceInvariant]
-variable [BytesInvariants] [BytesInvariantsProofs]
-variable [ProofTraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
-variable [ProofTraceTypes.Has Network.ProofEntryT] [TraceInvariant.Has Network.ProofEntryT]
-variable [BytesInvariants.Has invariants]
-variable [BaseAttackerKnowledgeTheorem] [AttackerKnowledgeTheorem]
+variable [ProofTrace.Def] [Trace.Invariant.Def]
+variable [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
+variable [ProofTrace.Has TracePart.Proof] [Trace.Invariant.Has TracePart.Proof]
+variable [ProofTrace.Has Network.TracePart.Proof] [Trace.Invariant.Has Network.TracePart.Proof]
+variable [Bytes.Invariants.Has BytesPart.invariants]
+variable [Trace.BaseAttackerKnows_implies_Publishable.Proof] [Bytes.AttackerKnows_implies_Publishable.Proof]
 
 public
-instance: ReachableImpliesInvariant reachability
+instance: Trace.Reachable_implies_Invariant.Part transition
 where
   pf size := by
     apply HoareTriple.mk

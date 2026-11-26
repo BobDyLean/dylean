@@ -12,54 +12,54 @@ public meta import DY.Meta.CombineMacro
 namespace DY
 
 public
-class SubBaseAttackerKnowledgeTheorem
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-  [BytesFunctor] [BytesInvariants]
+class Trace.BaseAttackerKnows_implies_Publishable.Part
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+  [Bytes.Def] [Bytes.Invariants.Def]
   {ExecEntryT: Type}
   (ProofEntryT: Type)
-  [ErasableProofEntry ExecEntryT ProofEntryT]
-  [SubTraceInvariant ProofEntryT]
-  [ExecTraceTypes.Has ExecEntryT]
-  [ProofTraceTypes.Has ProofEntryT]
-  [TraceInvariant.Has ProofEntryT]
-  (att: SubBaseAttackerKnowledge ExecEntryT)
+  [ProofTrace.Part ExecEntryT ProofEntryT]
+  [Trace.Invariant.Part ProofEntryT]
+  [ExecTrace.Has ExecEntryT]
+  [ProofTrace.Has ProofEntryT]
+  [Trace.Invariant.Has ProofEntryT]
+  (att: Trace.BaseAttackerKnows.Part ExecEntryT)
 where
   pf: ∀ trBefore (entry: ProofEntryT) (b: Bytes),
-    SubTraceInvariant.invariant trBefore entry →
-    att.attackerKnows trBefore.erase (ErasableProofEntry.erase entry) b →
+    Trace.Invariant.Part.invariant trBefore entry →
+    att.attackerKnows trBefore.erase (ProofTrace.Part.erase entry) b →
     b.Publishable trBefore -- could also be `b.Publishable (trBefore.append entry)` if needed
 
 public
-class BaseAttackerKnowledgeTheorem
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-  [BytesFunctor] [BytesInvariants]
-  [BaseAttackerKnowledge]
+class Trace.BaseAttackerKnows_implies_Publishable.Proof
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+  [Bytes.Def] [Bytes.Invariants.Def]
+  [Trace.BaseAttackerKnows.Def]
 where
-  pf: SubBaseAttackerKnowledgeTheorem ProofTrace.Entry BaseAttackerKnowledge.attackerKnows
+  whole: Trace.BaseAttackerKnows_implies_Publishable.Part ProofTrace.Entry Trace.BaseAttackerKnows.Def.whole
 
 public
-instance instSubBaseAttackerKnowledgeTheoremCombine
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-  [BytesFunctor] [BytesInvariants]
+instance instTraceBaseAttackerKnowsImpliesPublishablePartCombine
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+  [Bytes.Def] [Bytes.Invariants.Def]
   {n: Nat}
   {ExecTypes: Fin n → Type} {ProofTypes: Fin n → Type}
-  [∀ id, ErasableProofEntry (ExecTypes id) (ProofTypes id)]
-  [∀ id, SubTraceInvariant (ProofTypes id)]
-  [ExecTraceTypes.Has (ExecTraceTypes.combine ExecTypes)]
-  [ProofTraceTypes.Has (ProofTraceTypes.combine ProofTypes)]
-  [TraceInvariant.Has (ProofTraceTypes.combine ProofTypes)]
-  (atts: (id: Fin n) → SubBaseAttackerKnowledge (ExecTypes id))
-  [attThms: (id: Fin n) → SubBaseAttackerKnowledgeTheorem (ProofTypes id) (atts id)]
-  : SubBaseAttackerKnowledgeTheorem (ProofTraceTypes.combine ProofTypes) (SubBaseAttackerKnowledge.combine atts)
+  [∀ id, ProofTrace.Part (ExecTypes id) (ProofTypes id)]
+  [∀ id, Trace.Invariant.Part (ProofTypes id)]
+  [ExecTrace.Has (ExecTrace.combine ExecTypes)]
+  [ProofTrace.Has (ProofTrace.combine ProofTypes)]
+  [Trace.Invariant.Has (ProofTrace.combine ProofTypes)]
+  (atts: (id: Fin n) → Trace.BaseAttackerKnows.Part (ExecTypes id))
+  [attThms: (id: Fin n) → Trace.BaseAttackerKnows_implies_Publishable.Part (ProofTypes id) (atts id)]
+  : Trace.BaseAttackerKnows_implies_Publishable.Part (ProofTrace.combine ProofTypes) (Trace.BaseAttackerKnows.combine atts)
 where
   pf := fun trBefore { id, entry } b =>
     (attThms id).pf trBefore entry b
 
 public
 theorem Trace.BaseAttackerKnows_implies_Publishable
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-  [BytesFunctor] [BytesInvariants] [BytesInvariantsProofs]
-  [BaseAttackerKnowledge] [BaseAttackerKnowledgeTheorem]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+  [Bytes.Def] [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
+  [Trace.BaseAttackerKnows.Def] [Trace.BaseAttackerKnows_implies_Publishable.Proof]
   (tr: ProofTrace) (b: Bytes)
   : Trace.Invariant tr →
     Trace.BaseAttackerKnows tr.erase b →
@@ -68,7 +68,7 @@ theorem Trace.BaseAttackerKnows_implies_Publishable
   dsimp only [Trace.Invariant, Trace.BaseAttackerKnows]
   intro h_inv ⟨ i, h_i, h_att ⟩
   suffices b.Publishable (tr.prefix i) by grind
-  refine BaseAttackerKnowledgeTheorem.pf.pf (tr.prefix i) (tr.at i (by grind)) b ?_ ?_
+  refine Trace.BaseAttackerKnows_implies_Publishable.Proof.whole.pf (tr.prefix i) (tr.at i (by grind)) b ?_ ?_
   · grind [ProofTrace.Entry.Invariant]
   · simp_all only [Trace.erase_at, Trace.prefix_erase]
     grind [ProofTrace.Entry.erase]
@@ -76,19 +76,19 @@ theorem Trace.BaseAttackerKnows_implies_Publishable
 namespace Meta.CombineMacro
 
 macro_rules
-  | `(command| #combine_one $options* SubBaseAttackerKnowledgeTheorem__expertMode $params* from $sources,*) => do
+  | `(command| #combine_one $options* Trace.BaseAttackerKnows_implies_Publishable__expertMode $params* from $sources,*) => do
     let options := parseOptions options
-    let proofInternalStx := Lean.mkIdent `ProofEntryT.internal
-    let proofStx := Lean.mkIdent `ProofEntryT
-    let baseAttInternalStx := Lean.mkIdent `baseAttackerKnowledge.internal
-    let baseAttStx := Lean.mkIdent `baseAttackerKnowledge
+    let proofInternalStx := Lean.mkIdent `TracePart.Proof.internal
+    let proofStx := Lean.mkIdent `TracePart.Proof
+    let baseAttInternalStx := Lean.mkIdent `TracePart.baseAttackerKnows.internal
+    let baseAttStx := Lean.mkIdent `TracePart.baseAttackerKnows
 
     let baseGlobalInstances := #[
-      (← `(bracketedBinder| [DY.ExecTraceTypes])),
-      (← `(bracketedBinder| [DY.ProofTraceTypes])),
-      (← `(bracketedBinder| [DY.BytesFunctor])),
-      (← `(bracketedBinder| [DY.TraceInvariant])),
-      (← `(bracketedBinder| [DY.BytesInvariants])),
+      (← `(bracketedBinder| [DY.ExecTrace.Def])),
+      (← `(bracketedBinder| [DY.ProofTrace.Def])),
+      (← `(bracketedBinder| [DY.Bytes.Def])),
+      (← `(bracketedBinder| [DY.Trace.Invariant.Def])),
+      (← `(bracketedBinder| [DY.Bytes.Invariants.Def])),
     ]
 
     let params := if options.toplevel then params else baseGlobalInstances ++ params
@@ -96,48 +96,48 @@ macro_rules
     let sources := sources.getElems
 
     let combined ← combineTypeclass params sources {
-      internalIdStx args id := `(term| DY.SubBaseAttackerKnowledgeTheorem ($proofInternalStx $args* $id) ($baseAttInternalStx $args* $id))
+      internalIdStx args id := `(term| DY.Trace.BaseAttackerKnows_implies_Publishable.Part ($proofInternalStx $args* $id) ($baseAttInternalStx $args* $id))
       internalStx name args := do
-        let internalProofStx := Lean.mkIdentFrom name <| name.getId.modifyBase (. ++ `ProofEntryT)
-        let internalBaseAttStx := Lean.mkIdentFrom name <| name.getId.modifyBase (. ++ `baseAttackerKnowledge)
-        `(term| DY.SubBaseAttackerKnowledgeTheorem ($internalProofStx $args*) ($internalBaseAttStx $args*))
-      combineStx args := `(term| DY.SubBaseAttackerKnowledgeTheorem (DY.ProofTraceTypes.combine ($proofInternalStx $args*)) (DY.SubBaseAttackerKnowledge.combine ($baseAttInternalStx $args*)))
-      finalStx args := `(term| DY.SubBaseAttackerKnowledgeTheorem ($proofStx $args*) ($baseAttStx $args*))
+        let internalProofStx := Lean.mkIdentFrom name <| name.getId.modifyBase (. ++ `TracePart.Proof)
+        let internalBaseAttStx := Lean.mkIdentFrom name <| name.getId.modifyBase (. ++ `TracePart.baseAttackerKnows)
+        `(term| DY.Trace.BaseAttackerKnows_implies_Publishable.Part ($internalProofStx $args*) ($internalBaseAttStx $args*))
+      combineStx args := `(term| DY.Trace.BaseAttackerKnows_implies_Publishable.Part (DY.ProofTrace.combine ($proofInternalStx $args*)) (DY.Trace.BaseAttackerKnows.combine ($baseAttInternalStx $args*)))
+      finalStx args := `(term| DY.Trace.BaseAttackerKnows_implies_Publishable.Part ($proofStx $args*) ($baseAttStx $args*))
       useInferInstanceAs := false
     }
 
-    let topLevelInst ← `(command| public instance: DY.BaseAttackerKnowledgeTheorem where pf := inferInstanceAs (DY.SubBaseAttackerKnowledgeTheorem $proofStx $baseAttStx))
+    let topLevelInst ← `(command| public instance: DY.Trace.BaseAttackerKnows_implies_Publishable.Proof where whole := inferInstanceAs (DY.Trace.BaseAttackerKnows_implies_Publishable.Part $proofStx $baseAttStx))
     let topLevel := if options.toplevel then #[topLevelInst] else #[]
 
     return Lean.mkNullNode (combined ++ topLevel)
 
 macro_rules
-  | `(command| #combine_one $options* SubBaseAttackerKnowledgeTheorem__noExecHas $params* from $sources,*) => do
-    let proofStx := Lean.mkIdent `ProofEntryT
+  | `(command| #combine_one $options* Trace.BaseAttackerKnows_implies_Publishable__noExecHas $params* from $sources,*) => do
+    let proofStx := Lean.mkIdent `TracePart.Proof
 
     let argsTarget := params.flatMap explicitNameOfBracketedBinder
     let hasInstances := #[
-      (← `(bracketedBinder| [DY.ProofTraceTypes.Has ($proofStx $argsTarget*)])),
-      (← `(bracketedBinder| [DY.TraceInvariant.Has ($proofStx $argsTarget*)]))
+      (← `(bracketedBinder| [DY.ProofTrace.Has ($proofStx $argsTarget*)])),
+      (← `(bracketedBinder| [DY.Trace.Invariant.Has ($proofStx $argsTarget*)]))
     ]
-    `(command| #combine_one $options* SubBaseAttackerKnowledgeTheorem__expertMode $params* $hasInstances* from $sources,*)
+    `(command| #combine_one $options* Trace.BaseAttackerKnows_implies_Publishable__expertMode $params* $hasInstances* from $sources,*)
 
 macro_rules
-  | `(command| #combine_one $options* SubBaseAttackerKnowledgeTheorem $params* from $sources,*) => do
+  | `(command| #combine_one $options* Trace.BaseAttackerKnows_implies_Publishable $params* from $sources,*) => do
     let opts := parseOptions options
-    let execStx := Lean.mkIdent `ExecEntryT
-    let proofStx := Lean.mkIdent `ProofEntryT
+    let execStx := Lean.mkIdent `TracePart.Exec
+    let proofStx := Lean.mkIdent `TracePart.Proof
 
     let argsTarget := params.flatMap explicitNameOfBracketedBinder
     let hasInstances := #[
-      (← `(bracketedBinder| [DY.ExecTraceTypes.Has ($execStx $argsTarget*)])),
-      (← `(bracketedBinder| [DY.ProofTraceTypes.Has ($proofStx $argsTarget*)])),
-      (← `(bracketedBinder| [DY.TraceInvariant.Has ($proofStx $argsTarget*)]))
+      (← `(bracketedBinder| [DY.ExecTrace.Has ($execStx $argsTarget*)])),
+      (← `(bracketedBinder| [DY.ProofTrace.Has ($proofStx $argsTarget*)])),
+      (← `(bracketedBinder| [DY.Trace.Invariant.Has ($proofStx $argsTarget*)]))
     ]
 
     let params := if opts.toplevel then params else params ++ hasInstances
 
-    `(command| #combine_one $options* SubBaseAttackerKnowledgeTheorem__expertMode $params* from $sources,*)
+    `(command| #combine_one $options* Trace.BaseAttackerKnows_implies_Publishable__expertMode $params* from $sources,*)
 
 end Meta.CombineMacro
 

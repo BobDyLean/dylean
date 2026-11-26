@@ -7,9 +7,9 @@ public import DY.EquationalTheory.Concat
 
 namespace DY.Comparse
 
-variable [BytesFunctor] [BytesLength]
-variable [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
-variable [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+variable [Bytes.Def] [Bytes.length.Def]
+variable [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
+variable [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
 
 public
 instance: Comparse.BytesLike Bytes where
@@ -124,7 +124,7 @@ def FormatRel [ParseableSerializeable a] (buf: Bytes) (x: a): Prop :=
   buf = serialize x
 
 public
-instance [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [ParseableSerializeable a]:
+instance [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def] [ParseableSerializeable a]:
   HoareTriple
     (parse buf: Err a)
     (fun _ => True)
@@ -162,10 +162,10 @@ instance (pre: Bytes → τ → Prop) [inst: BytesCompatibleTracePred pre] (tr: 
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes]
-  [BytesWellFormed]
-  -- TODO: BytesWellFormed does not have Has + HasStep lemma, hence the `Literal.Literal` or `Concat.Concat`
-  [BytesWellFormed.Has Literal.Literal.invariants.well_formed] [BytesWellFormed.Has Concat.Concat.invariants.well_formed]
+  [ExecTrace.Def] [ProofTrace.Def]
+  [Bytes.WellFormed.Def]
+  -- TODO: `Bytes.WellFormed` does not have Has + HasStep lemma, hence the `Literal.Literal` or `Concat.Concat`
+  [Bytes.WellFormed.Has Literal.Literal.BytesPart.invariants.well_formed] [Bytes.WellFormed.Has Concat.Concat.BytesPart.invariants.well_formed]
   : BytesCompatibleTracePred Bytes.WellFormed
 where
   pf tr := {
@@ -185,9 +185,9 @@ where
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes]
-  [BytesInvariants]
-  [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
+  [ExecTrace.Def] [ProofTrace.Def]
+  [Bytes.Invariants.Def]
+  [Bytes.Invariants.Has Literal.BytesPart.invariants] [Bytes.Invariants.Has Concat.BytesPart.invariants]
   : BytesCompatibleTracePred Bytes.Invariant
 where
   pf tr := {
@@ -207,9 +207,9 @@ where
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes]
-  [BytesInvariants]
-  [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
+  [ExecTrace.Def] [ProofTrace.Def]
+  [Bytes.Invariants.Def]
+  [Bytes.Invariants.Has Literal.BytesPart.invariants] [Bytes.Invariants.Has Concat.BytesPart.invariants]
   : BytesCompatibleTracePred Bytes.Publishable
 where
   pf tr := {
@@ -232,9 +232,9 @@ where
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes]
-  [BytesInvariants]
-  [BytesInvariants.Has Literal.invariants] [BytesInvariants.Has Concat.invariants]
+  [ExecTrace.Def] [ProofTrace.Def]
+  [Bytes.Invariants.Def]
+  [Bytes.Invariants.Has Literal.BytesPart.invariants] [Bytes.Invariants.Has Concat.BytesPart.invariants]
   (l: Label)
   : BytesCompatibleTracePred (Bytes.KnowableBy l)
 where
@@ -258,9 +258,9 @@ where
 
 public
 instance
-  [ExecTraceTypes]
-  [BaseAttackerKnowledge] [AttackerKnowledge]
-  [AttackerKnowledge.Has Literal.attackerKnowledge] [AttackerKnowledge.Has Concat.attackerKnowledge]
+  [ExecTrace.Def]
+  [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
+  [Bytes.AttackerKnows.Has Literal.attackerKnows] [Bytes.AttackerKnows.Has Concat.attackerKnows]
   : BytesCompatibleTracePred Bytes.AttackerKnows
 where
   pf tr := {
@@ -294,7 +294,7 @@ theorem IsWellFormed_FormatRel [ParseableSerializeable a] (pre: Bytes → τ →
   simp_all [Comparse.ExtensibleMessageFormat.wf_eq]
 
 public
-theorem IsWellFormed_FormatRel_WellFormed [ExecTraceTypes] [ProofTraceTypes] [BytesWellFormed] [ParseableSerializeable a]:
+theorem IsWellFormed_FormatRel_WellFormed [ExecTrace.Def] [ProofTrace.Def] [Bytes.WellFormed.Def] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
   FormatRel buf x →
   (buf.WellFormed tr = IsWellFormed Bytes.WellFormed x tr)
@@ -305,13 +305,13 @@ grind_pattern IsWellFormed_FormatRel_WellFormed => FormatRel buf x, buf.WellForm
 
 @[simp]
 public
-theorem WellFormed_serialize [ExecTraceTypes] [ProofTraceTypes] [BytesWellFormed] [ParseableSerializeable a]:
+theorem WellFormed_serialize [ExecTrace.Def] [ProofTrace.Def] [Bytes.WellFormed.Def] [ParseableSerializeable a]:
   ∀ (x: a) (tr: ProofTrace),
   ((serialize x).WellFormed tr = IsWellFormed Bytes.WellFormed x tr)
 := by grind
 
 public
-theorem IsWellFormed_FormatRel_Invariant [ExecTraceTypes] [ProofTraceTypes] [BytesInvariant] [ParseableSerializeable a]:
+theorem IsWellFormed_FormatRel_Invariant [ExecTrace.Def] [ProofTrace.Def] [Bytes.Invariant.Def] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
   FormatRel buf x →
   (buf.Invariant tr = IsWellFormed Bytes.Invariant x tr)
@@ -323,13 +323,13 @@ grind_pattern [grind_later] IsWellFormed_FormatRel_Invariant => FormatRel buf x,
 
 @[simp]
 public
-theorem Invariant_serialize [ExecTraceTypes] [ProofTraceTypes] [BytesInvariants] [ParseableSerializeable a]:
+theorem Invariant_serialize [ExecTrace.Def] [ProofTrace.Def] [Bytes.Invariants.Def] [ParseableSerializeable a]:
   ∀ (x: a) (tr: ProofTrace),
   ((serialize x).Invariant tr = IsWellFormed Bytes.Invariant x tr)
 := by grind
 
 public
-theorem IsWellFormed_FormatRel_Publishable [ExecTraceTypes] [ProofTraceTypes] [BytesInvariants] [ParseableSerializeable a]:
+theorem IsWellFormed_FormatRel_Publishable [ExecTrace.Def] [ProofTrace.Def] [Bytes.Invariants.Def] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ProofTrace),
   FormatRel buf x →
   (buf.Publishable tr = IsWellFormed Bytes.Publishable x tr)
@@ -340,13 +340,13 @@ grind_pattern IsWellFormed_FormatRel_Publishable => FormatRel buf x, Bytes.Publi
 
 @[simp]
 public
-theorem Publishable_serialize [ExecTraceTypes] [ProofTraceTypes] [BytesInvariants] [ParseableSerializeable a]:
+theorem Publishable_serialize [ExecTrace.Def] [ProofTrace.Def] [Bytes.Invariants.Def] [ParseableSerializeable a]:
   ∀ (x: a) (tr: ProofTrace),
   ((serialize x).Publishable tr = IsWellFormed Bytes.Publishable x tr)
 := by grind
 
 public
-theorem IsWellFormed_FormatRel_AttackerKnows [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge] [ParseableSerializeable a]:
+theorem IsWellFormed_FormatRel_AttackerKnows [ExecTrace.Def] [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def] [ParseableSerializeable a]:
   ∀ (buf: Bytes) (x: a) (tr: ExecTrace),
   FormatRel buf x →
   (buf.AttackerKnows tr = IsWellFormed Bytes.AttackerKnows x tr)
@@ -357,7 +357,7 @@ grind_pattern IsWellFormed_FormatRel_AttackerKnows => FormatRel buf x, Bytes.Att
 
 @[simp]
 public
-theorem AttackerKnows_serialize [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge] [ParseableSerializeable a]:
+theorem AttackerKnows_serialize [ExecTrace.Def] [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def] [ParseableSerializeable a]:
   ∀ (x: a) (tr: ExecTrace),
   ((serialize x).AttackerKnows tr = IsWellFormed Bytes.AttackerKnows x tr)
 := by grind

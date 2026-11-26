@@ -15,7 +15,7 @@ theorem client_auth
   (xPk yPk k: Bytes)
   (time: Nat)
   : ∀ tr: ExecTrace,
-    tr.Reachable reachability →
+    tr.Reachable transition →
     tr.EventLoggedAt (SignedDHEvent.ClientFinishEvent client server xPk yPk k) time →
     (
       let tr_before := tr.prefix time
@@ -40,7 +40,7 @@ theorem client_secrecy
   (client server: Participant)
   (xPk yPk k: Bytes)
   : ∀ tr: ExecTrace,
-    tr.Reachable reachability →
+    tr.Reachable transition →
     k.AttackerKnows tr →
     tr.EventLoggedAt (SignedDHEvent.ClientFinishEvent client server xPk yPk k) time →
     (

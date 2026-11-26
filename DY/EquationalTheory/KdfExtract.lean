@@ -17,16 +17,16 @@ section Constructors
 namespace KdfExtract
 
 public
-structure SubF (Bytes: Type) where
+structure BytesPart.Functor (Bytes: Type) where
   salt: Bytes
   ikm: Bytes
 
 public
-instance: ALaCarte.FunctorSizeOf SubF where
+instance: ALaCarte.FunctorSizeOf BytesPart.Functor where
   sizeOf | {salt, ikm} => sizeOf salt + sizeOf ikm
 
 public
-instance: ALaCarte.Representable SubF where
+instance: ALaCarte.Representable BytesPart.Functor where
   CtorId := Unit
   ctors | () => { Data := Unit, nRec := 2 }
 
@@ -46,47 +46,47 @@ instance: ALaCarte.Representable SubF where
     simp_all <;> grind
   sizeOf_eq | {salt, ikm} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-public instance: ALaCarte.RepresentableDecidableEq SubF where
-public instance: ALaCarte.RepresentableOrd SubF where
-public instance: SubBytesFunctor SubF where
+public instance: ALaCarte.RepresentableDecidableEq BytesPart.Functor where
+public instance: ALaCarte.RepresentableOrd BytesPart.Functor where
+public instance: Bytes.Part BytesPart.Functor where
 
 public
-def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
+def BytesPart.length [Bytes.Def]: Bytes.length.Part BytesPart.Functor :=
   fun _ _ =>
     32
 
 end KdfExtract
 
-#combine into BytesFunctor, BytesLength from
+#combine into Bytes, Bytes.length from
   KdfExtract,
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
 
 public
-abbrev KdfExtract.SubF.pack (x: KdfExtract.SubF Bytes) := BytesView.pack x
+abbrev KdfExtract.BytesPart.Functor.pack (x: KdfExtract.BytesPart.Functor Bytes) := BytesView.pack x
 
 public
 instance: CanKdfExtract Bytes where
-  kdfExtract salt ikm := ({salt, ikm}: KdfExtract.SubF Bytes).pack
+  kdfExtract salt ikm := ({salt, ikm}: KdfExtract.BytesPart.Functor Bytes).pack
 
 end Constructors
 
 section AttackerKnowledge
 
 public
-def kdfExtract.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
+def kdfExtract.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ salt ikm,
       out = kdfExtract salt ikm ∧
       p salt ∧
       p ikm
 
-#combine [BytesFunctor.Has SubF] into attackerKnowledge' from
+#combine [Bytes.Has BytesPart.Functor] into Bytes.AttackerKnows.merge from
   kdfExtract,
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
-variable [ExecTraceTypes] [BaseAttackerKnowledge]
-variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
 
 public
 theorem attacker_knows_kdfExtract
@@ -96,8 +96,8 @@ theorem attacker_knows_kdfExtract
     (kdfExtract salt ikm).AttackerKnows tr
 := by
   intro h_salt h_ikm
-  apply Bytes.AttackerKnows.prove kdfExtract.attackerKnowledge
-  simp only [kdfExtract.attackerKnowledge]
+  apply Bytes.AttackerKnows.prove kdfExtract.attackerKnows
+  simp only [kdfExtract.attackerKnows]
   grind
 
 end AttackerKnowledge
@@ -106,11 +106,11 @@ section Invariants
 
 section Definition
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def]
 
 public
-def KdfExtract.invariants: Bytes.PartialInvariants KdfExtract.SubF where
+def KdfExtract.BytesPart.invariants: Bytes.Invariants.Part KdfExtract.BytesPart.Functor where
   well_formed := fun {salt, ikm} rec tr =>
     (rec salt) tr ∧ (rec ikm) tr
 
@@ -123,53 +123,53 @@ def KdfExtract.invariants: Bytes.PartialInvariants KdfExtract.SubF where
     (rec salt) tr ∧ (rec ikm) tr
 
 public
-theorem KdfExtract.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs KdfExtract.invariants where
+theorem KdfExtract.BytesPart.invariantsLawful [Bytes.Invariants.Def]: Bytes.Invariants.Part.Lawful KdfExtract.BytesPart.invariants where
 
 end Definition
 
 #combine into
-  BytesInvariants,
-  BytesInvariantsProofs
+  Bytes.Invariants,
+  Bytes.Invariants.Lawful
 from
   KdfExtract,
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
 
 @[simp]
 public
 theorem kdfExtract.WellFormed
-  [BytesWellFormed] [BytesWellFormed.Has KdfExtract.invariants.well_formed]
+  [Bytes.WellFormed.Def] [Bytes.WellFormed.Has KdfExtract.BytesPart.invariants.well_formed]
   (salt ikm: Bytes) (tr: ProofTrace)
   : (kdfExtract salt ikm).WellFormed tr = (salt.WellFormed tr ∧ ikm.WellFormed tr)
 := by
-  simp [kdfExtract, Bytes.WellFormed.eq, KdfExtract.invariants]
+  simp [kdfExtract, Bytes.WellFormed.eq, KdfExtract.BytesPart.invariants]
 
 @[simp]
 public
 theorem kdfExtract.label
-  [BytesInvariants] [BytesInvariants.Has invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
   (salt ikm: Bytes) (tr: ProofTrace)
   : (kdfExtract salt ikm).label tr = Label.meet (salt.label tr) (ikm.label tr)
 := by
-  simp [kdfExtract, Bytes.label.eq, KdfExtract.invariants]
+  simp [kdfExtract, Bytes.label.eq, KdfExtract.BytesPart.invariants]
 
 @[simp]
 public
 theorem kdfExtract.Invariant
-  [BytesInvariants] [BytesInvariants.Has invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
   (salt ikm: Bytes) (tr: ProofTrace)
   : (kdfExtract salt ikm).Invariant tr = (salt.Invariant tr ∧ ikm.Invariant tr)
 := by
-  simp [kdfExtract, Bytes.Invariant.eq, KdfExtract.invariants]
+  simp [kdfExtract, Bytes.Invariant.eq, KdfExtract.BytesPart.invariants]
 
 end Invariants
 
 section HoareTriples
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesInvariants] [BytesInvariants.Has invariants]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
 
 public
 instance
@@ -193,15 +193,15 @@ end HoareTriples
 
 section AttackerKnowledgeTheorem
 
-variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-variable [BytesFunctor] [BytesInvariants]
-variable [BytesFunctor.Has SubF]
-variable [BytesInvariants.Has invariants]
+variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+variable [Bytes.Def] [Bytes.Invariants.Def]
+variable [Bytes.Has BytesPart.Functor]
+variable [Bytes.Invariants.Has BytesPart.invariants]
 
 public
-instance: SubAttackerKnowledgeTheorem kdfExtract.attackerKnowledge where
+instance: Bytes.AttackerKnows_implies_Publishable.Part kdfExtract.attackerKnows where
   pf := by
-    simp only [kdfExtract.attackerKnowledge]
+    simp only [kdfExtract.attackerKnows]
     intro out tr h_tr ⟨salt, ikm, ⟨ h_out, h_inputs ⟩⟩
     subst h_out
     simp [Bytes.Publishable]
@@ -210,7 +210,7 @@ instance: SubAttackerKnowledgeTheorem kdfExtract.attackerKnowledge where
 end AttackerKnowledgeTheorem
 section AttackerKnowledgeTheorem
 
-#combine [BytesFunctor.Has SubF] [BytesInvariants.Has invariants] into SubAttackerKnowledgeTheorem' from
+#combine [Bytes.Has BytesPart.Functor] [Bytes.Invariants.Has BytesPart.invariants] into Bytes.AttackerKnows_implies_Publishable.merge from
   kdfExtract,
 
 end AttackerKnowledgeTheorem

@@ -5,10 +5,10 @@ meta import DY.Trace.Grind
 
 namespace DY
 
-variable [ExecTraceTypes]
+variable [ExecTrace.Def]
 
 public
-structure Label [ExecTraceTypes] where
+structure Label [ExecTrace.Def] where
   isCorrupt: ExecTrace → Prop
   isCorruptLater:
     ∀ tr1 tr2, tr1 ≤ tr2 → isCorrupt tr1 → isCorrupt tr2

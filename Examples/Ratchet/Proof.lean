@@ -12,13 +12,13 @@ open DY.Comparse
 public section ProofTraceConfig
 
 class HasProofTrace extends HasExecTrace where
-  [traceProof: ProofTraceTypes]
-  [traceProof0: ProofTraceTypes.Has Network.ProofEntryT]
-  [traceProof1: ProofTraceTypes.Has Random.ProofEntryT]
-  [traceProof2: ProofTraceTypes.Has (ProtocolEvent.ProofEntryT RatchetEvent)]
-  [traceProof3: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT StateMyTurn)]
-  [traceProof4: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT StateOtherTurn)]
-  [traceProof5: ProofTraceTypes.Has (LongTermKeys.ProofEntryT "Ratchet PKI")]
+  [traceProof: ProofTrace.Def]
+  [traceProof0: ProofTrace.Has Network.TracePart.Proof]
+  [traceProof1: ProofTrace.Has Random.TracePart.Proof]
+  [traceProof2: ProofTrace.Has (ProtocolEvent.TracePart.Proof RatchetEvent)]
+  [traceProof3: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof StateMyTurn)]
+  [traceProof4: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof StateOtherTurn)]
+  [traceProof5: ProofTrace.Has (LongTermKeys.TracePart.Proof "Ratchet PKI")]
 
 attribute [reducible, scoped instance] HasProofTrace.traceProof
 attribute [reducible, scoped instance] HasProofTrace.traceProof0
@@ -197,7 +197,7 @@ theorem minimum
   ⟨ minimum.aux p 0 i, minimum.aux.thm p 0 i (by grind) h ⟩
 
 theorem event_minimum_prefix
-  {EventT: Type} [ExecTraceTypes.Has (ProtocolEvent.ExecEntryT EventT)]
+  {EventT: Type} [ExecTrace.Has (ProtocolEvent.TracePart.Exec EventT)]
   (pred: EventT → Prop)
   (tr: ExecTrace)
   : (∃ ev, pred ev ∧ tr.EventLogged ev) →
@@ -339,10 +339,10 @@ where
     )
 
 instance
-  [BytesInvariants]
-  [BytesInvariants.Has DiffieHellman.DhPk.invariants]
-  [BytesInvariants.Has Literal.invariants]
-  [BytesInvariants.Has Concat.invariants]
+  [Bytes.Invariants.Def]
+  [Bytes.Invariants.Has DiffieHellman.DhPk.BytesPart.invariants]
+  [Bytes.Invariants.Has Literal.BytesPart.invariants]
+  [Bytes.Invariants.Has Concat.BytesPart.invariants]
   : Signature.SignPredProof
 where
   pred_later := by
@@ -357,16 +357,16 @@ end BytesInvariants
 public section BytesInvariantsConfig
 
 class HasBytesInvariants extends HasProofTrace where
-  [bytesInv: BytesInvariants]
-  [bytesInvProof: BytesInvariantsProofs]
-  [bytesInv0: BytesInvariants.Has Random.invariants]
-  [bytesInv1: BytesInvariants.Has Literal.invariants]
-  [bytesInv2: BytesInvariants.Has Concat.invariants]
-  [bytesInv3: BytesInvariants.Has Hash.invariants]
-  [bytesInv4: BytesInvariants.Has Signature.invariants]
-  [bytesInv5: BytesInvariants.Has DiffieHellman.invariants]
-  [bytesInv6: BytesInvariants.Has KdfExtract.invariants]
-  [bytesInv7: BytesInvariants.Has KdfExpand.invariants]
+  [bytesInv: Bytes.Invariants.Def]
+  [bytesInvProof: Bytes.Invariants.Lawful]
+  [bytesInv0: Bytes.Invariants.Has Random.BytesPart.invariants]
+  [bytesInv1: Bytes.Invariants.Has Literal.BytesPart.invariants]
+  [bytesInv2: Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [bytesInv3: Bytes.Invariants.Has Hash.BytesPart.invariants]
+  [bytesInv4: Bytes.Invariants.Has Signature.BytesPart.invariants]
+  [bytesInv5: Bytes.Invariants.Has DiffieHellman.BytesPart.invariants]
+  [bytesInv6: Bytes.Invariants.Has KdfExtract.BytesPart.invariants]
+  [bytesInv7: Bytes.Invariants.Has KdfExpand.BytesPart.invariants]
 
 attribute [reducible, scoped instance] HasBytesInvariants.bytesInv
 attribute [           scoped instance] HasBytesInvariants.bytesInvProof
@@ -506,15 +506,15 @@ end TraceInvariant
 public section TraceInvariantConfig
 
 class HasTraceInvariant extends HasBytesInvariants where
-  [traceInv: TraceInvariant]
-  [traceInv0: TraceInvariant.Has Network.ProofEntryT]
-  [traceInv1: TraceInvariant.Has Random.ProofEntryT]
-  [traceInv2: TraceInvariant.Has (ProtocolEvent.ProofEntryT RatchetEvent)]
-  [traceInv3: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT StateMyTurn)]
-  [traceInv4: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT StateOtherTurn)]
-  [traceInv5: TraceInvariant.Has (LongTermKeys.ProofEntryT "Ratchet PKI")]
-  [attBaseThm: BaseAttackerKnowledgeTheorem]
-  [attThm: AttackerKnowledgeTheorem]
+  [traceInv: Trace.Invariant.Def]
+  [traceInv0: Trace.Invariant.Has Network.TracePart.Proof]
+  [traceInv1: Trace.Invariant.Has Random.TracePart.Proof]
+  [traceInv2: Trace.Invariant.Has (ProtocolEvent.TracePart.Proof RatchetEvent)]
+  [traceInv3: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof StateMyTurn)]
+  [traceInv4: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof StateOtherTurn)]
+  [traceInv5: Trace.Invariant.Has (LongTermKeys.TracePart.Proof "Ratchet PKI")]
+  [attBaseThm: Trace.BaseAttackerKnows_implies_Publishable.Proof]
+  [attThm: Bytes.AttackerKnows_implies_Publishable.Proof]
 
 attribute [reducible, scoped instance] HasTraceInvariant.traceInv
 attribute [           scoped instance] HasTraceInvariant.traceInv0
@@ -922,15 +922,15 @@ variable [HasTraceInvariant]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 section
-public instance: ReachableImpliesInvariant initiate.reachability := .mk (fun (me, other, mySigKeyHandle) => initiate.proof me other mySigKeyHandle)
-public instance: ReachableImpliesInvariant processInitiate.reachability := .mk (fun (me, other, otherVerifKeyHandle, msgHandle) => processInitiate.proof me other otherVerifKeyHandle msgHandle)
-public instance: ReachableImpliesInvariant sendUpdate.reachability := .mk (fun (me, mySigKeyHandle, stHandle) => sendUpdate.proof me mySigKeyHandle stHandle)
-public instance: ReachableImpliesInvariant processUpdate.reachability := .mk (fun (me, otherVerifKeyHandle, stHandle, msgHandle) => processUpdate.proof me otherVerifKeyHandle stHandle msgHandle)
-public instance: ReachableImpliesInvariant StateMyTurn.compromise.reachability := .mk (fun (stHandle) => StateMyTurn.compromise.proof stHandle)
-public instance: ReachableImpliesInvariant StateOtherTurn.compromise.reachability := .mk (fun (stHandle) => StateOtherTurn.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part initiate.transition := .mk (fun (me, other, mySigKeyHandle) => initiate.proof me other mySigKeyHandle)
+public instance: Trace.Reachable_implies_Invariant.Part processInitiate.transition := .mk (fun (me, other, otherVerifKeyHandle, msgHandle) => processInitiate.proof me other otherVerifKeyHandle msgHandle)
+public instance: Trace.Reachable_implies_Invariant.Part sendUpdate.transition := .mk (fun (me, mySigKeyHandle, stHandle) => sendUpdate.proof me mySigKeyHandle stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part processUpdate.transition := .mk (fun (me, otherVerifKeyHandle, stHandle, msgHandle) => processUpdate.proof me otherVerifKeyHandle stHandle msgHandle)
+public instance: Trace.Reachable_implies_Invariant.Part StateMyTurn.compromise.transition := .mk (fun (stHandle) => StateMyTurn.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part StateOtherTurn.compromise.transition := .mk (fun (stHandle) => StateOtherTurn.compromise.proof stHandle)
 end
 
-#combine into ReachabilityTheorem from
+#combine into Trace.Reachable_implies_Invariant from
   Network,
   Random,
   LongTermKeys "Ratchet PKI",

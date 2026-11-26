@@ -5,19 +5,19 @@ public meta import DY.Meta.CombineMacro
 
 namespace DY
 
-variable [ExecTraceTypes]
+variable [ExecTrace.Def]
 
 public
-structure ReachabilityConfig where
+structure TransitionSystem where
   Input: Type
   PreCond: Input → ExecTrace → Prop
   step: Input → (Output: Type) × Traceful Output
 
 public
-abbrev ReachabilityConfig.make
+abbrev TransitionSystem.make
   {α β: Type}
   (step: α → Traceful β)
-  : ReachabilityConfig
+  : TransitionSystem
 where
   Input := α
   PreCond _ _ := True
@@ -25,56 +25,56 @@ where
 
 @[expose]
 public
-def ReachabilityConfig.combine {α: Type} (configs: α → ReachabilityConfig): ReachabilityConfig where
+def TransitionSystem.combine {α: Type} (configs: α → TransitionSystem): TransitionSystem where
   Input := (x: α) × (configs x).Input
   PreCond := fun ⟨ x, inp ⟩ tr => (configs x).PreCond inp tr
   step := fun ⟨ x, inp ⟩ => (configs x).step inp
 
 public
-class ReachabilityConfig.HasStep (config1: ReachabilityConfig) (config2: semiOutParam ReachabilityConfig) where
+class TransitionSystem.HasStep (config1: TransitionSystem) (config2: semiOutParam TransitionSystem) where
   inj: config1.Input → config2.Input
   pf_pre: ∀ input tr, config1.PreCond input tr = config2.PreCond (inj input) tr
   pf_step: ∀ input, config1.step input = config2.step (inj input)
 
 public
-class ReachabilityConfig.Has (config1 config2: ReachabilityConfig) where
+class TransitionSystem.Has (config1 config2: TransitionSystem) where
   inj: config1.Input → config2.Input
   pf_pre: ∀ input tr, config1.PreCond input tr = config2.PreCond (inj input) tr
   pf_step (config1 config2): ∀ input, config1.step input = config2.step (inj input)
 
 public
-instance instReachabilityConfigHasItself
-  (config: ReachabilityConfig)
-  : ReachabilityConfig.Has config config
+instance instTransitionSystemHasItself
+  (config: TransitionSystem)
+  : TransitionSystem.Has config config
 where
   inj x := x
   pf_pre input tr := by simp
   pf_step input := by simp
 
 public
-instance instReachabilityConfigHasStep
-  (config1 config2 config3: ReachabilityConfig)
-  [inst12: ReachabilityConfig.HasStep config1 config2]
-  [inst23: ReachabilityConfig.Has config2 config3]
-  : ReachabilityConfig.Has config1 config3
+instance instTransitionSystemHasStep
+  (config1 config2 config3: TransitionSystem)
+  [inst12: TransitionSystem.HasStep config1 config2]
+  [inst23: TransitionSystem.Has config2 config3]
+  : TransitionSystem.Has config1 config3
 where
   inj x := inst23.inj (inst12.inj x)
   pf_pre input tr := by simp [inst23.pf_pre, inst12.pf_pre]
   pf_step input := by simp [inst23.pf_step, inst12.pf_step]
 
 public
-instance instReachabilityConfigCombineHasStep
+instance instTransitionSystemCombineHasStep
   {n: Nat}
-  (configs: Fin n → ReachabilityConfig)
+  (configs: Fin n → TransitionSystem)
   (id: Fin n)
-  : ReachabilityConfig.HasStep (configs id) (.combine configs)
+  : TransitionSystem.HasStep (configs id) (.combine configs)
 where
   inj x := ⟨ id, x ⟩
-  pf_pre input tr := by simp [ReachabilityConfig.combine]
-  pf_step input := by simp [ReachabilityConfig.combine]
+  pf_pre input tr := by simp [TransitionSystem.combine]
+  pf_step input := by simp [TransitionSystem.combine]
 
 public
-inductive Trace.Reachable (config: ReachabilityConfig): ExecTrace → Prop where
+inductive Trace.Reachable (config: TransitionSystem): ExecTrace → Prop where
   | Base:
     Trace.Reachable config Trace.empty
   | Step:
@@ -89,7 +89,7 @@ inductive Trace.Reachable (config: ReachabilityConfig): ExecTrace → Prop where
 public
 def Traceful.PreservesReachabilityFrom
   {a: Type}
-  (config: ReachabilityConfig)
+  (config: TransitionSystem)
   (f: Traceful a)
   (post: a → ExecTrace → Prop)
   (tr: ExecTrace): Prop
@@ -105,7 +105,7 @@ def Traceful.PreservesReachabilityFrom
 public
 def Traceful.PreservesReachability
   {a: Type}
-  (config: ReachabilityConfig)
+  (config: TransitionSystem)
   (f: Traceful a)
   (pre: ExecTrace → Prop)
   (post: a → ExecTrace → Prop)
@@ -119,7 +119,7 @@ def Traceful.PreservesReachability
 public
 theorem Traceful.PreservesReachabilityFrom_bind
   {a b: Type}
-  (config: ReachabilityConfig)
+  (config: TransitionSystem)
   (x: Traceful a) (f: a → Traceful b)
   (postF: b → ExecTrace → Prop)
   (preX: ExecTrace → Prop)
@@ -141,23 +141,23 @@ theorem Traceful.PreservesReachabilityFrom_bind
 
 public
 theorem Traceful.PreservesReachability_base
-  (subConfig config: ReachabilityConfig)
-  [ReachabilityConfig.Has subConfig config]
+  (subConfig config: TransitionSystem)
+  [TransitionSystem.Has subConfig config]
   (input: subConfig.Input)
   : (subConfig.step input).snd.PreservesReachability config (subConfig.PreCond input) (fun _ _ => True)
 := by
   dsimp only [Traceful.PreservesReachability, Traceful.PreservesReachabilityFrom]
   intro tr h_reach h_pre
   apply And.intro
-  · rewrite [ReachabilityConfig.Has.pf_step subConfig config]
-    apply Trace.Reachable.Step (ReachabilityConfig.Has.inj input) <;>
-    grind [ReachabilityConfig.Has.pf_pre]
+  · rewrite [TransitionSystem.Has.pf_step subConfig config]
+    apply Trace.Reachable.Step (TransitionSystem.Has.inj input) <;>
+    grind [TransitionSystem.Has.pf_pre]
   · grind
 
 public
 theorem Traceful.PreservesReachabilityFrom_pure
   {α: Type}
-  (config: ReachabilityConfig)
+  (config: TransitionSystem)
   (x: α)
   (tr: ExecTrace)
   (post: α → ExecTrace → Prop)
@@ -171,7 +171,7 @@ theorem Traceful.PreservesReachabilityFrom_pure
 public
 theorem Traceful.PreservesReachability_to_Reachable
   {a: Type}
-  {config: ReachabilityConfig}
+  {config: TransitionSystem}
   {f: Traceful a}
   {pre: ExecTrace → Prop}
   {post: a → ExecTrace → Prop}
@@ -186,21 +186,21 @@ theorem Traceful.PreservesReachability_to_Reachable
 namespace Meta.CombineMacro
 
 macro_rules
-  | `(command| #combine_one $_options* ReachabilityConfig $params* from $sources,*) => do
+  | `(command| #combine_one $_options* TransitionSystem $params* from $sources,*) => do
     let sources := sources.getElems
 
     let combined ← combineExplicit params sources {
-      name := `reachability
-      combineName := ``DY.ReachabilityConfig.combine
-      internalOutTypeStx := fun _ _ => `(term| ReachabilityConfig)
-      outTypeStx := fun _ => `(term| ReachabilityConfig)
+      name := `transition
+      combineName := ``DY.TransitionSystem.combine
+      internalOutTypeStx := fun _ _ => `(term| TransitionSystem)
+      outTypeStx := fun _ => `(term| TransitionSystem)
       isTheorem := false
     }
 
     let hasStep ← mkHasStep params sources <| .makeSimple {
-      name := `reachability
-      combineName := ``DY.ReachabilityConfig.combine
-      hasStepName := ``DY.ReachabilityConfig.HasStep
+      name := `transition
+      combineName := ``DY.TransitionSystem.combine
+      hasStepName := ``DY.TransitionSystem.HasStep
     }
 
     return Lean.mkNullNode (combined ++ hasStep)

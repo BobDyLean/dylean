@@ -23,30 +23,30 @@ open DY.Comparse
 public section ExecBytesConfig
 
 class HasExecBytes where
-  [bytesFunc: BytesFunctor]
-  [bytesFunc0: BytesFunctor.Has Random.SubF]
-  [bytesFunc1: BytesFunctor.Has Literal.SubF]
-  [bytesFunc2: BytesFunctor.Has Concat.SubF]
-  [bytesFunc3: BytesFunctor.Has Hash.SubF]
-  [bytesFunc4: BytesFunctor.Has Signature'.SubF]
-  [bytesFunc5: BytesFunctor.Has DiffieHellman'.SubF]
-  [bytesFunc6: BytesFunctor.Has KEM.SubF]
-  [bytesLen: BytesLength]
-  [bytesLen0: BytesLength.Has Random.SubF.length]
-  [bytesLen1: BytesLength.Has Literal.SubF.length]
-  [bytesLen2: BytesLength.Has Concat.SubF.length]
-  [bytesLen3: BytesLength.Has Hash.SubF.length]
-  [bytesLen4: BytesLength.Has Signature'.SubF.length]
-  [bytesLen5: BytesLength.Has DiffieHellman'.SubF.length]
-  [bytesLen6: BytesLength.Has KEM.SubF.length]
-  [att: AttackerKnowledge]
-  [att0: AttackerKnowledge.Has Random.attackerKnowledge]
-  [att1: AttackerKnowledge.Has Literal.attackerKnowledge]
-  [att2: AttackerKnowledge.Has Concat.attackerKnowledge]
-  [att3: AttackerKnowledge.Has Hash.attackerKnowledge]
-  [att4: AttackerKnowledge.Has Signature'.attackerKnowledge]
-  [att5: AttackerKnowledge.Has DiffieHellman'.attackerKnowledge]
-  [att6: AttackerKnowledge.Has KEM.attackerKnowledge]
+  [bytesFunc: Bytes.Def]
+  [bytesFunc0: Bytes.Has Random.BytesPart.Functor]
+  [bytesFunc1: Bytes.Has Literal.BytesPart.Functor]
+  [bytesFunc2: Bytes.Has Concat.BytesPart.Functor]
+  [bytesFunc3: Bytes.Has Hash.BytesPart.Functor]
+  [bytesFunc4: Bytes.Has Signature'.BytesPart.Functor]
+  [bytesFunc5: Bytes.Has DiffieHellman'.BytesPart.Functor]
+  [bytesFunc6: Bytes.Has KEM.BytesPart.Functor]
+  [bytesLen: Bytes.length.Def]
+  [bytesLen0: Bytes.length.Has Random.BytesPart.length]
+  [bytesLen1: Bytes.length.Has Literal.BytesPart.length]
+  [bytesLen2: Bytes.length.Has Concat.BytesPart.length]
+  [bytesLen3: Bytes.length.Has Hash.BytesPart.length]
+  [bytesLen4: Bytes.length.Has Signature'.BytesPart.length]
+  [bytesLen5: Bytes.length.Has DiffieHellman'.BytesPart.length]
+  [bytesLen6: Bytes.length.Has KEM.BytesPart.length]
+  [att: Bytes.AttackerKnows.Def]
+  [att0: Bytes.AttackerKnows.Has Random.attackerKnows]
+  [att1: Bytes.AttackerKnows.Has Literal.attackerKnows]
+  [att2: Bytes.AttackerKnows.Has Concat.attackerKnows]
+  [att3: Bytes.AttackerKnows.Has Hash.attackerKnows]
+  [att4: Bytes.AttackerKnows.Has Signature'.attackerKnows]
+  [att5: Bytes.AttackerKnows.Has DiffieHellman'.attackerKnows]
+  [att6: Bytes.AttackerKnows.Has KEM.attackerKnows]
 
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc0
@@ -274,19 +274,19 @@ end Formats
 public section ExecTraceConfig
 
 class HasExecTrace extends HasExecBytes where
-  [traceExec: ExecTraceTypes]
-  [traceExec0: ExecTraceTypes.Has Network.ExecEntryT]
-  [traceExec1: ExecTraceTypes.Has Random.ExecEntryT]
-  [traceExec2: ExecTraceTypes.Has (ProtocolEvent.ExecEntryT SignedDHKEMEvent)]
-  [traceExec3: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientInitiateDHState)]
-  [traceExec4: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientInitiateKEMState)]
-  [traceExec5: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ClientFinishState)]
-  [traceExec6: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ServerFinishState)]
-  [traceExec7: ExecTraceTypes.Has (LongTermKeys.ExecEntryT "SignedDHKEM PKI")]
-  [traceExec8: ExecTraceTypes.Has (KEM.Broken.ExecEntryT)]
-  [traceExec9: ExecTraceTypes.Has (DiffieHellman'.Broken.ExecEntryT)]
-  [traceExec10: ExecTraceTypes.Has (Signature'.Broken.ExecEntryT)]
-  [attBase: BaseAttackerKnowledge]
+  [traceExec: ExecTrace.Def]
+  [traceExec0: ExecTrace.Has Network.TracePart.Exec]
+  [traceExec1: ExecTrace.Has Random.TracePart.Exec]
+  [traceExec2: ExecTrace.Has (ProtocolEvent.TracePart.Exec SignedDHKEMEvent)]
+  [traceExec3: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec ClientInitiateDHState)]
+  [traceExec4: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec ClientInitiateKEMState)]
+  [traceExec5: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec ClientFinishState)]
+  [traceExec6: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec ServerFinishState)]
+  [traceExec7: ExecTrace.Has (LongTermKeys.TracePart.Exec "SignedDHKEM PKI")]
+  [traceExec8: ExecTrace.Has (KEM.Broken.TracePart.Exec)]
+  [traceExec9: ExecTrace.Has (DiffieHellman'.Broken.TracePart.Exec)]
+  [traceExec10: ExecTrace.Has (Signature'.Broken.TracePart.Exec)]
+  [attBase: Trace.BaseAttackerKnows.Def]
 
 attribute [reducible, scoped instance] HasExecTrace.traceExec
 attribute [reducible, scoped instance] HasExecTrace.traceExec0
@@ -450,16 +450,16 @@ variable [HasExecTrace]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 @[expose] public section
-def Client.initiate.reachability: ReachabilityConfig := .make (fun me => Client.initiate me)
-def Server.receive.reachability: ReachabilityConfig := .make (fun (me, skHandle, msgHandle) => Server.receive me skHandle msgHandle)
-def Client.finish.reachability: ReachabilityConfig := .make (fun (me, server, pkHandle, msgHandle, dhStHandle, kemStHandle) => Client.finish me server pkHandle msgHandle dhStHandle kemStHandle)
-def ClientInitiateDHState.compromise.reachability: ReachabilityConfig := .make (fun stHandle => ClientInitiateDHState.compromise stHandle)
-def ClientInitiateKEMState.compromise.reachability: ReachabilityConfig := .make (fun stHandle => ClientInitiateKEMState.compromise stHandle)
-def ServerFinishState.compromise.reachability: ReachabilityConfig := .make (fun stHandle => ServerFinishState.compromise stHandle)
-def ClientFinishState.compromise.reachability: ReachabilityConfig := .make (fun stHandle => ClientFinishState.compromise stHandle)
+def Client.initiate.transition: TransitionSystem := .make (fun me => Client.initiate me)
+def Server.receive.transition: TransitionSystem := .make (fun (me, skHandle, msgHandle) => Server.receive me skHandle msgHandle)
+def Client.finish.transition: TransitionSystem := .make (fun (me, server, pkHandle, msgHandle, dhStHandle, kemStHandle) => Client.finish me server pkHandle msgHandle dhStHandle kemStHandle)
+def ClientInitiateDHState.compromise.transition: TransitionSystem := .make (fun stHandle => ClientInitiateDHState.compromise stHandle)
+def ClientInitiateKEMState.compromise.transition: TransitionSystem := .make (fun stHandle => ClientInitiateKEMState.compromise stHandle)
+def ServerFinishState.compromise.transition: TransitionSystem := .make (fun stHandle => ServerFinishState.compromise stHandle)
+def ClientFinishState.compromise.transition: TransitionSystem := .make (fun stHandle => ClientFinishState.compromise stHandle)
 end
 
-#combine into ReachabilityConfig from
+#combine into TransitionSystem from
   Network,
   Random,
   LongTermKeys "SignedDHKEM PKI",

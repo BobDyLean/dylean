@@ -22,19 +22,19 @@ open DY.Comparse
 public section ExecBytesConfig
 
 class HasExecBytes where
-  [bytesFunc: BytesFunctor]
-  [bytesFunc0: BytesFunctor.Has Random.SubF]
-  [bytesFunc1: BytesFunctor.Has Literal.SubF]
-  [bytesFunc2: BytesFunctor.Has Concat.SubF]
+  [bytesFunc: Bytes.Def]
+  [bytesFunc0: Bytes.Has Random.BytesPart.Functor]
+  [bytesFunc1: Bytes.Has Literal.BytesPart.Functor]
+  [bytesFunc2: Bytes.Has Concat.BytesPart.Functor]
   [canSign: Signature.CanSign Bytes]
-  [bytesLen: BytesLength]
-  [bytesLen0: BytesLength.Has Random.SubF.length]
-  [bytesLen1: BytesLength.Has Literal.SubF.length]
-  [bytesLen2: BytesLength.Has Concat.SubF.length]
-  [att: AttackerKnowledge]
-  [att0: AttackerKnowledge.Has Random.attackerKnowledge]
-  [att1: AttackerKnowledge.Has Literal.attackerKnowledge]
-  [att2: AttackerKnowledge.Has Concat.attackerKnowledge]
+  [bytesLen: Bytes.length.Def]
+  [bytesLen0: Bytes.length.Has Random.BytesPart.length]
+  [bytesLen1: Bytes.length.Has Literal.BytesPart.length]
+  [bytesLen2: Bytes.length.Has Concat.BytesPart.length]
+  [att: Bytes.AttackerKnows.Def]
+  [att0: Bytes.AttackerKnows.Has Random.attackerKnows]
+  [att1: Bytes.AttackerKnows.Has Literal.attackerKnows]
+  [att2: Bytes.AttackerKnows.Has Concat.attackerKnows]
 
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc0
@@ -212,16 +212,16 @@ end Formats
 public section ExecTraceConfig
 
 class HasExecTrace extends HasExecBytes where
-  [traceExec: ExecTraceTypes]
-  [traceExec0: ExecTraceTypes.Has Network.ExecEntryT]
-  [traceExec1: ExecTraceTypes.Has Random.ExecEntryT]
-  [traceExec2: ExecTraceTypes.Has (ProtocolEvent.ExecEntryT ACMEEvent)]
-  [traceExec3: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT OwnerKeyState)]
-  [traceExec4: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT OwnerAddressState)]
-  [traceExec5: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT LetsEncryptPendingChallengeState)]
-  [traceExec6: ExecTraceTypes.Has (PersistentGlobalState.CompromisableState.ExecEntryT DNSEntry)]
-  [traceExec7: ExecTraceTypes.Has (LongTermKeys.ExecEntryT "ACME PKI")]
-  [attBase: BaseAttackerKnowledge]
+  [traceExec: ExecTrace.Def]
+  [traceExec0: ExecTrace.Has Network.TracePart.Exec]
+  [traceExec1: ExecTrace.Has Random.TracePart.Exec]
+  [traceExec2: ExecTrace.Has (ProtocolEvent.TracePart.Exec ACMEEvent)]
+  [traceExec3: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec OwnerKeyState)]
+  [traceExec4: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec OwnerAddressState)]
+  [traceExec5: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec LetsEncryptPendingChallengeState)]
+  [traceExec6: ExecTrace.Has (PersistentGlobalState.CompromisableState.TracePart.Exec DNSEntry)]
+  [traceExec7: ExecTrace.Has (LongTermKeys.TracePart.Exec "ACME PKI")]
+  [attBase: Trace.BaseAttackerKnows.Def]
 
 attribute [reducible, scoped instance] HasExecTrace.traceExec
 attribute [reducible, scoped instance] HasExecTrace.traceExec0
@@ -315,19 +315,19 @@ variable [HasExecTrace]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 @[expose] public section
-def Owner.generateKeyPair.reachability: ReachabilityConfig := .make (fun owner => Owner.generateKeyPair owner)
-def Owner.claimAddress.reachability: ReachabilityConfig := .make (fun (owner, address, oSkHandle) => Owner.claimAddress owner address oSkHandle)
-def LetsEncrypt.initiate.reachability: ReachabilityConfig := .make (fun (server, address, skHandle) => LetsEncrypt.initiate server address skHandle)
-def Owner.respond.reachability: ReachabilityConfig := .make (fun (owner, server, msgHandle, lePkHandle, stHandle) => Owner.respond owner server msgHandle lePkHandle stHandle)
-def LetsEncrypt.finish.reachability: ReachabilityConfig := .make (fun (server, msgHandle, pendingStHandle, dnsEntryHandle) => LetsEncrypt.finish server msgHandle pendingStHandle dnsEntryHandle)
+def Owner.generateKeyPair.transition: TransitionSystem := .make (fun owner => Owner.generateKeyPair owner)
+def Owner.claimAddress.transition: TransitionSystem := .make (fun (owner, address, oSkHandle) => Owner.claimAddress owner address oSkHandle)
+def LetsEncrypt.initiate.transition: TransitionSystem := .make (fun (server, address, skHandle) => LetsEncrypt.initiate server address skHandle)
+def Owner.respond.transition: TransitionSystem := .make (fun (owner, server, msgHandle, lePkHandle, stHandle) => Owner.respond owner server msgHandle lePkHandle stHandle)
+def LetsEncrypt.finish.transition: TransitionSystem := .make (fun (server, msgHandle, pendingStHandle, dnsEntryHandle) => LetsEncrypt.finish server msgHandle pendingStHandle dnsEntryHandle)
 
-def OwnerKeyState.compromise.reachability: ReachabilityConfig := .make (fun stHandle => OwnerKeyState.compromise stHandle)
-def OwnerAddressState.compromise.reachability: ReachabilityConfig := .make (fun stHandle => OwnerAddressState.compromise stHandle)
-def LetsEncryptPendingChallengeState.compromise.reachability: ReachabilityConfig := .make (fun stHandle => LetsEncryptPendingChallengeState.compromise stHandle)
-def DNSEntry.compromise.reachability: ReachabilityConfig := .make (fun stHandle => DNSEntry.compromise stHandle)
+def OwnerKeyState.compromise.transition: TransitionSystem := .make (fun stHandle => OwnerKeyState.compromise stHandle)
+def OwnerAddressState.compromise.transition: TransitionSystem := .make (fun stHandle => OwnerAddressState.compromise stHandle)
+def LetsEncryptPendingChallengeState.compromise.transition: TransitionSystem := .make (fun stHandle => LetsEncryptPendingChallengeState.compromise stHandle)
+def DNSEntry.compromise.transition: TransitionSystem := .make (fun stHandle => DNSEntry.compromise stHandle)
 end
 
-#combine into ReachabilityConfig from
+#combine into TransitionSystem from
   Network,
   Random,
   LongTermKeys "ACME PKI",

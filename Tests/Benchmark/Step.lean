@@ -11,16 +11,16 @@ open DY
 namespace DY.Step.Benchmark
 
 
-#combine +toplevel into BytesFunctor from
+#combine +toplevel into Bytes from
   Literal
 
-#combine +toplevel into ExecEntryT, ProofEntryT from
+#combine +toplevel into ExecTrace, ProofTrace from
   Network
 
-#combine +toplevel into BytesInvariants, BytesInvariantsProofs from
+#combine +toplevel into Bytes.Invariants, Bytes.Invariants.Lawful from
   Literal
 
-#combine +toplevel into SubTraceInvariant from
+#combine +toplevel into Trace.Invariant from
   Network
 
 /--

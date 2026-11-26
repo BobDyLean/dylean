@@ -25,15 +25,15 @@ section Constructors
 namespace Pk
 
 public
-structure SubF (Bytes: Type) where
+structure BytesPart.Functor (Bytes: Type) where
   sk: Bytes
 
 public
-instance: ALaCarte.FunctorSizeOf SubF where
+instance: ALaCarte.FunctorSizeOf BytesPart.Functor where
   sizeOf | {sk} => sizeOf sk
 
 public
-instance: ALaCarte.Representable SubF where
+instance: ALaCarte.Representable BytesPart.Functor where
   CtorId := Unit
   ctors | () => { Data := Unit, nRec := 1 }
 
@@ -52,12 +52,12 @@ instance: ALaCarte.Representable SubF where
     simp_all <;> grind
   sizeOf_eq | {sk} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-public instance: ALaCarte.RepresentableDecidableEq SubF where
-public instance: ALaCarte.RepresentableOrd SubF where
-public instance: SubBytesFunctor SubF where
+public instance: ALaCarte.RepresentableDecidableEq BytesPart.Functor where
+public instance: ALaCarte.RepresentableOrd BytesPart.Functor where
+public instance: Bytes.Part BytesPart.Functor where
 
 public
-def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
+def BytesPart.length [Bytes.Def]: Bytes.length.Part BytesPart.Functor :=
   fun _ _ =>
     800 -- ML-KEM-512
 
@@ -66,16 +66,16 @@ end Pk
 namespace Encap
 
 public
-structure SubF (Bytes: Type) where
+structure BytesPart.Functor (Bytes: Type) where
   pk: Bytes
   entropy: Bytes
 
 public
-instance: ALaCarte.FunctorSizeOf SubF where
+instance: ALaCarte.FunctorSizeOf BytesPart.Functor where
   sizeOf | {pk, entropy} => sizeOf pk + sizeOf entropy
 
 public
-instance: ALaCarte.Representable SubF where
+instance: ALaCarte.Representable BytesPart.Functor where
   CtorId := Unit
   ctors | () => { Data := Unit, nRec := 2 }
 
@@ -95,12 +95,12 @@ instance: ALaCarte.Representable SubF where
     simp_all <;> grind
   sizeOf_eq | {pk, entropy} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-public instance: ALaCarte.RepresentableDecidableEq SubF where
-public instance: ALaCarte.RepresentableOrd SubF where
-public instance: SubBytesFunctor SubF where
+public instance: ALaCarte.RepresentableDecidableEq BytesPart.Functor where
+public instance: ALaCarte.RepresentableOrd BytesPart.Functor where
+public instance: Bytes.Part BytesPart.Functor where
 
 public
-def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
+def BytesPart.length [Bytes.Def]: Bytes.length.Part BytesPart.Functor :=
   fun _ _ =>
     768 -- ML-KEM-512
 
@@ -109,15 +109,15 @@ end Encap
 namespace SharedSecret
 
 public
-structure SubF (Bytes: Type) where
+structure BytesPart.Functor (Bytes: Type) where
   entropy: Bytes
 
 public
-instance: ALaCarte.FunctorSizeOf SubF where
+instance: ALaCarte.FunctorSizeOf BytesPart.Functor where
   sizeOf | {entropy} => sizeOf entropy
 
 public
-instance: ALaCarte.Representable SubF where
+instance: ALaCarte.Representable BytesPart.Functor where
   CtorId := Unit
   ctors | () => { Data := Unit, nRec := 1 }
 
@@ -136,43 +136,43 @@ instance: ALaCarte.Representable SubF where
     simp_all <;> grind
   sizeOf_eq | {entropy} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-public instance: ALaCarte.RepresentableDecidableEq SubF where
-public instance: ALaCarte.RepresentableOrd SubF where
-public instance: SubBytesFunctor SubF where
+public instance: ALaCarte.RepresentableDecidableEq BytesPart.Functor where
+public instance: ALaCarte.RepresentableOrd BytesPart.Functor where
+public instance: Bytes.Part BytesPart.Functor where
 
 public
-def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
+def BytesPart.length [Bytes.Def]: Bytes.length.Part BytesPart.Functor :=
   fun _ _ =>
     32 -- ML-KEM-512
 
 end SharedSecret
 
-#combine into BytesFunctor, BytesLength from
+#combine into Bytes, Bytes.length from
   Pk,
   Encap,
   SharedSecret,
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
 
-public abbrev Pk.SubF.pack (x: Pk.SubF Bytes) := BytesView.pack x
-public abbrev Encap.SubF.pack (x: Encap.SubF Bytes) := BytesView.pack x
-public abbrev SharedSecret.SubF.pack (x: SharedSecret.SubF Bytes) := BytesView.pack x
+public abbrev Pk.BytesPart.Functor.pack (x: Pk.BytesPart.Functor Bytes) := BytesView.pack x
+public abbrev Encap.BytesPart.Functor.pack (x: Encap.BytesPart.Functor Bytes) := BytesView.pack x
+public abbrev SharedSecret.BytesPart.Functor.pack (x: SharedSecret.BytesPart.Functor Bytes) := BytesView.pack x
 
 public
 instance: CanKem Bytes where
   kemPk sk :=
-    ({sk}: Pk.SubF Bytes).pack
+    ({sk}: Pk.BytesPart.Functor Bytes).pack
 
   kemEncap pk entropy :=
-    (({pk, entropy}: Encap.SubF Bytes).pack, ({ entropy }: SharedSecret.SubF Bytes).pack)
+    (({pk, entropy}: Encap.BytesPart.Functor Bytes).pack, ({ entropy }: SharedSecret.BytesPart.Functor Bytes).pack)
 
   kemDecap sk cipher :=
-    match cipher.view? Encap.SubF with
+    match cipher.view? Encap.BytesPart.Functor with
     | some { pk, entropy } =>
-      match pk.view? Pk.SubF with
+      match pk.view? Pk.BytesPart.Functor with
       | some { sk := sk' } =>
         if sk = sk' then
-          some ({ entropy }: SharedSecret.SubF Bytes).pack
+          some ({ entropy }: SharedSecret.BytesPart.Functor Bytes).pack
         else
           none
       | none => none
@@ -191,7 +191,7 @@ theorem kemDecap_kemEncap
 -- but through a Traceful function
 public
 def kemPkInvert (pk: Bytes): Err Bytes :=
-  match pk.view? Pk.SubF with
+  match pk.view? Pk.BytesPart.Functor with
   | some { sk } => some sk
   | none => none
 
@@ -218,14 +218,14 @@ end Constructors
 section AttackerKnowledge
 
 public
-def kemPk.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
+def kemPk.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ sk,
       out = kemPk sk ∧
       p sk
 
 public
-def kemEncapCipher.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
+def kemEncapCipher.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ pk entropy rhs,
       (out, rhs) = kemEncap pk entropy ∧
@@ -233,7 +233,7 @@ def kemEncapCipher.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: Sub
       p entropy
 
 public
-def kemEncapSS.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
+def kemEncapSS.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ pk entropy lhs,
       (lhs, out) = kemEncap pk entropy ∧
@@ -241,22 +241,22 @@ def kemEncapSS.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAtta
       p entropy
 
 public
-def kemDecap.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
+def kemDecap.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ sk cipher,
       some out = kemDecap sk cipher ∧
       p sk ∧
       p cipher
 
-#combine [BytesFunctor.Has SubF] into attackerKnowledge' from
+#combine [Bytes.Has BytesPart.Functor] into Bytes.AttackerKnows.merge from
   kemPk,
   kemEncapCipher,
   kemEncapSS,
   kemDecap,
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
-variable [ExecTraceTypes] [BaseAttackerKnowledge]
-variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
 
 public
 theorem kemPk.attacker_knows
@@ -265,8 +265,8 @@ theorem kemPk.attacker_knows
     (kemPk sk).AttackerKnows tr
 := by
   intro h_inp
-  apply Bytes.AttackerKnows.prove kemPk.attackerKnowledge
-  simp only [kemPk.attackerKnowledge]
+  apply Bytes.AttackerKnows.prove kemPk.attackerKnows
+  simp only [kemPk.attackerKnows]
   grind
 
 public
@@ -279,11 +279,11 @@ theorem kemEncap.attacker_knows
 := by
   intro h_pk h_entropy
   apply And.intro
-  · apply Bytes.AttackerKnows.prove kemEncapCipher.attackerKnowledge
-    simp only [kemEncapCipher.attackerKnowledge]
+  · apply Bytes.AttackerKnows.prove kemEncapCipher.attackerKnows
+    simp only [kemEncapCipher.attackerKnows]
     grind
-  · apply Bytes.AttackerKnows.prove kemEncapSS.attackerKnowledge
-    simp only [kemEncapSS.attackerKnowledge]
+  · apply Bytes.AttackerKnows.prove kemEncapSS.attackerKnows
+    simp only [kemEncapSS.attackerKnows]
     grind
 
 public
@@ -298,23 +298,23 @@ theorem kemDecap.attacker_knows
   intro h_sk h_cipher
   split
   · grind
-  apply Bytes.AttackerKnows.prove kemDecap.attackerKnowledge
-  simp only [kemDecap.attackerKnowledge]
+  apply Bytes.AttackerKnows.prove kemDecap.attackerKnows
+  simp only [kemDecap.attackerKnows]
   grind
 
 end AttackerKnowledge
 
 namespace Broken
 
-variable [BytesFunctor]
+variable [Bytes.Def]
 
 public
 structure BrokenKemEvent where
   brokenPk: Bytes
 
-#combine into ExecEntryT, baseAttackerKnowledge from ProtocolEvent BrokenKemEvent
+#combine into ExecTrace, Trace.BaseAttackerKnows from ProtocolEvent BrokenKemEvent
 
-variable [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT]
+variable [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
 
 public
 def ThisKemPkHasBeenBroken (brokenPk: Bytes) (tr: ExecTrace): Prop :=
@@ -351,8 +351,8 @@ public
 def label (brokenPk: Bytes): Label where
   isCorrupt tr := ThisKemPkHasBeenBroken brokenPk tr
 
-variable [BytesFunctor.Has KEM.SubF]
-variable [ExecTraceTypes.Has Network.ExecEntryT]
+variable [Bytes.Has KEM.BytesPart.Functor]
+variable [ExecTrace.Has Network.TracePart.Exec]
 
 public
 def breakKemPk (msgHandle: Nat): Traceful Nat := do
@@ -364,7 +364,7 @@ def breakKemPk (msgHandle: Nat): Traceful Nat := do
 
 @[expose]
 public
-def breakKemPk.reachability: ReachabilityConfig := .make (fun handle => breakKemPk handle)
+def breakKemPk.transition: TransitionSystem := .make (fun handle => breakKemPk handle)
 
 end Broken
 
@@ -372,12 +372,12 @@ section Invariants
 
 section Definition
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has KEM.SubF]
-variable [ExecTraceTypes.Has Broken.ExecEntryT]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def] [Bytes.Has KEM.BytesPart.Functor]
+variable [ExecTrace.Has Broken.TracePart.Exec]
 
 public
-def Pk.invariants: Bytes.PartialInvariants Pk.SubF where
+def Pk.BytesPart.invariants: Bytes.Invariants.Part Pk.BytesPart.Functor where
   well_formed := fun {sk := sk} rec tr =>
     (rec sk) tr
 
@@ -392,16 +392,16 @@ def Pk.invariants: Bytes.PartialInvariants Pk.SubF where
     (rec sk) tr
 
 public
-theorem Pk.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Pk.invariants where
+theorem Pk.BytesPart.invariantsLawful [Bytes.Invariants.Def]: Bytes.Invariants.Part.Lawful Pk.BytesPart.invariants where
 
 end Definition
 
 section PkLemmas
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has KEM.SubF]
-variable [ExecTraceTypes.Has Broken.ExecEntryT]
-variable [BytesInvariants] [BytesInvariants.Has Pk.invariants]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def] [Bytes.Has KEM.BytesPart.Functor]
+variable [ExecTrace.Has Broken.TracePart.Exec]
+variable [Bytes.Invariants.Def] [Bytes.Invariants.Has Pk.BytesPart.invariants]
 
 @[simp]
 public
@@ -409,7 +409,7 @@ theorem kemPk.WellFormed
   (inp: Bytes) (tr: ProofTrace)
   : (kemPk inp).WellFormed tr = inp.WellFormed tr
 := by
-  simp [kemPk, Bytes.WellFormed.eq, Pk.invariants]
+  simp [kemPk, Bytes.WellFormed.eq, Pk.BytesPart.invariants]
 
 @[simp]
 public
@@ -417,7 +417,7 @@ theorem kemPk.label
   (inp: Bytes) (tr: ProofTrace)
   : (kemPk inp).label tr = Label.pub
 := by
-  simp [kemPk, Bytes.label.eq, Pk.invariants]
+  simp [kemPk, Bytes.label.eq, Pk.BytesPart.invariants]
 
 @[simp]
 public
@@ -427,7 +427,7 @@ theorem kemPk.Invariant
     (sk.label tr).canFlow (Broken.label (kemPk sk)) tr.erase →
     (kemPk sk).Invariant tr
 := by
-  simp [kemPk, Bytes.Invariant.eq, Pk.invariants]
+  simp [kemPk, Bytes.Invariant.eq, Pk.BytesPart.invariants]
   grind
 
 end PkLemmas
@@ -439,11 +439,11 @@ end KEM
 
 section ExtractKemPk
 
-variable [BytesFunctor] [BytesFunctor.Has KEM.SubF]
+variable [Bytes.Def] [Bytes.Has KEM.BytesPart.Functor]
 
 noncomputable
 def KEM.extractKemSk (pk: Bytes): Option Bytes :=
-  match pk.view? KEM.Pk.SubF with
+  match pk.view? KEM.Pk.BytesPart.Functor with
   | some { sk } =>
     some sk
   | none => none
@@ -456,11 +456,11 @@ theorem KEM.kemPk_extractKemSk (b: Bytes):
   simp [extractKemSk, KEM.kemPk]
   grind
 
-variable [ExecTraceTypes] [ProofTraceTypes]
+variable [ExecTrace.Def] [ProofTrace.Def]
 
 theorem KEM.extractKemSk.preserves_WellFormed
-  [ExecTraceTypes.Has KEM.Broken.ExecEntryT]
-  [BytesInvariants] [BytesInvariants.Has KEM.Pk.invariants]
+  [ExecTrace.Has KEM.Broken.TracePart.Exec]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Has KEM.Pk.BytesPart.invariants]
 : ExtractPreservesWellFormed KEM.extractKemSk
 := by
   simp [ExtractPreservesWellFormed]
@@ -468,14 +468,14 @@ theorem KEM.extractKemSk.preserves_WellFormed
 
 public
 def Bytes.KemSkHasUsage
-  [BytesInvariants]
+  [Bytes.Invariants.Def]
   (pk: Bytes) (skUsg: Usage) (tr: ProofTrace): Prop
 :=
   Bytes.XXXHasUsage KEM.extractKemSk pk skUsg tr
 
 public
 theorem Bytes.KemSkHasUsage_kemPk
-  [BytesInvariants]
+  [Bytes.Invariants.Def]
   (sk: Bytes) (skUsg: Usage) (tr: ProofTrace)
   : (KEM.kemPk sk).KemSkHasUsage skUsg tr = sk.HasUsage skUsg tr
 := by
@@ -486,10 +486,10 @@ grind_pattern Bytes.KemSkHasUsage_kemPk => (KEM.kemPk sk).KemSkHasUsage skUsg tr
 
 public
 theorem Bytes.KemSkHasUsage_later
-  [BytesInvariants]
-  [ExecTraceTypes.Has KEM.Broken.ExecEntryT]
-  [BytesInvariants.Has KEM.Pk.invariants]
-  [GetUsageLater] [GetLabelLater]
+  [Bytes.Invariants.Def]
+  [ExecTrace.Has KEM.Broken.TracePart.Exec]
+  [Bytes.Invariants.Has KEM.Pk.BytesPart.invariants]
+  [Bytes.usage_later.Proof] [Bytes.label_later.Proof]
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
   : b.WellFormed tr1 →
     tr1 ≤ tr2 →
@@ -503,9 +503,9 @@ grind_pattern Bytes.KemSkHasUsage_later => tr1 ≤ tr2, b.KemSkHasUsage usg tr1
 
 public
 theorem Bytes.KemSkHasUsage_later_fast
-  [BytesInvariants] [BytesInvariantsProofs]
-  [ExecTraceTypes.Has KEM.Broken.ExecEntryT]
-  [BytesInvariants.Has KEM.Pk.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
+  [ExecTrace.Has KEM.Broken.TracePart.Exec]
+  [Bytes.Invariants.Has KEM.Pk.BytesPart.invariants]
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
   : b.Invariant tr1 →
     tr1 ≤ tr2 →
@@ -518,16 +518,16 @@ grind_pattern [grind_later] Bytes.KemSkHasUsage_later_fast => tr1 ≤ tr2, b.Kem
 public
 noncomputable
 def Bytes.kemSkLabel
-  [GetLabel]
+  [Bytes.label.Def]
   (pk: Bytes) (tr: ProofTrace): Label
 :=
   Bytes.xxxLabel KEM.extractKemSk pk tr
 
 public
 theorem Bytes.kemSkLabel_kemPk
-  [BytesInvariants]
-  [ExecTraceTypes.Has KEM.Broken.ExecEntryT]
-  [BytesInvariants.Has KEM.Pk.invariants]
+  [Bytes.Invariants.Def]
+  [ExecTrace.Has KEM.Broken.TracePart.Exec]
+  [Bytes.Invariants.Has KEM.Pk.BytesPart.invariants]
   (sk: Bytes) (tr: ProofTrace)
   : (KEM.kemPk sk).kemSkLabel tr = sk.label tr
 := by
@@ -538,10 +538,10 @@ grind_pattern Bytes.kemSkLabel_kemPk => (KEM.kemPk sk).kemSkLabel tr
 
 public
 theorem Bytes.kemSkLabel_later
-  [BytesInvariants]
-  [ExecTraceTypes.Has KEM.Broken.ExecEntryT]
-  [BytesInvariants.Has KEM.Pk.invariants]
-  [GetLabelLater]
+  [Bytes.Invariants.Def]
+  [ExecTrace.Has KEM.Broken.TracePart.Exec]
+  [Bytes.Invariants.Has KEM.Pk.BytesPart.invariants]
+  [Bytes.label_later.Proof]
   (b: Bytes) (tr1 tr2: ProofTrace)
   : b.WellFormed tr1 →
     tr1 ≤ tr2 →
@@ -554,9 +554,9 @@ grind_pattern Bytes.kemSkLabel_later => tr1 ≤ tr2, b.kemSkLabel tr1
 
 public
 theorem Bytes.kemSkLabel_later_fast
-  [BytesInvariants] [BytesInvariantsProofs]
-  [ExecTraceTypes.Has KEM.Broken.ExecEntryT]
-  [BytesInvariants.Has KEM.Pk.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
+  [ExecTrace.Has KEM.Broken.TracePart.Exec]
+  [Bytes.Invariants.Has KEM.Pk.BytesPart.invariants]
   (b: Bytes) (tr1 tr2: ProofTrace)
   : b.Invariant tr1 →
     tr1 ≤ tr2 →
@@ -573,11 +573,11 @@ section Invariants
 
 section Definition
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def]
 
 public
-def Encap.invariants [BytesFunctor.Has KEM.SubF]: Bytes.PartialInvariants Encap.SubF where
+def Encap.BytesPart.invariants [Bytes.Has KEM.BytesPart.Functor]: Bytes.Invariants.Part Encap.BytesPart.Functor where
   well_formed := fun {pk, entropy} rec tr =>
       (rec pk) tr ∧
       (rec entropy) tr
@@ -603,10 +603,10 @@ def Encap.invariants [BytesFunctor.Has KEM.SubF]: Bytes.PartialInvariants Encap.
       )
 
 public
-theorem Encap.invariantsProofs [BytesInvariants] [BytesFunctor.Has KEM.SubF] [ExecTraceTypes.Has Broken.ExecEntryT] [BytesInvariants.Has Pk.invariants]: Bytes.PartialInvariantsProofs Encap.invariants where
+theorem Encap.BytesPart.invariantsLawful [Bytes.Invariants.Def] [Bytes.Has KEM.BytesPart.Functor] [ExecTrace.Has Broken.TracePart.Exec] [Bytes.Invariants.Has Pk.BytesPart.invariants]: Bytes.Invariants.Part.Lawful Encap.BytesPart.invariants where
 
 public
-def SharedSecret.invariants: Bytes.PartialInvariants SharedSecret.SubF where
+def SharedSecret.BytesPart.invariants: Bytes.Invariants.Part SharedSecret.BytesPart.Functor where
   well_formed := fun {entropy := entropy} rec tr =>
     (rec entropy) tr
 
@@ -620,13 +620,13 @@ def SharedSecret.invariants: Bytes.PartialInvariants SharedSecret.SubF where
     (rec entropy) tr
 
 public
-theorem SharedSecret.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs SharedSecret.invariants where
+theorem SharedSecret.BytesPart.invariantsLawful [Bytes.Invariants.Def]: Bytes.Invariants.Part.Lawful SharedSecret.BytesPart.invariants where
 
 end Definition
 
-#combine [BytesFunctor.Has SubF] [ExecTraceTypes.Has Broken.ExecEntryT] into
-  BytesInvariants,
-  BytesInvariantsProofs [BytesInvariants.Has Pk.invariants]
+#combine [Bytes.Has BytesPart.Functor] [ExecTrace.Has Broken.TracePart.Exec] into
+  Bytes.Invariants,
+  Bytes.Invariants.Lawful [Bytes.Invariants.Has Pk.BytesPart.invariants]
 from
   Pk,
   Encap,
@@ -634,10 +634,10 @@ from
 
 section EncapLemmas
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has KEM.SubF]
-variable [ExecTraceTypes.Has Broken.ExecEntryT]
-variable [BytesInvariants] [BytesInvariants.Has KEM.invariants]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def] [Bytes.Has KEM.BytesPart.Functor]
+variable [ExecTrace.Has Broken.TracePart.Exec]
+variable [Bytes.Invariants.Def] [Bytes.Invariants.Has KEM.BytesPart.invariants]
 
 public
 theorem kemEncap.WellFormed
@@ -646,7 +646,7 @@ theorem kemEncap.WellFormed
     cipher.WellFormed tr = (pk.WellFormed tr ∧ entropy.WellFormed tr) ∧
     ss.WellFormed tr = entropy.WellFormed tr
 := by
-  simp [kemEncap, Bytes.WellFormed.eq, Encap.invariants, SharedSecret.invariants]
+  simp [kemEncap, Bytes.WellFormed.eq, Encap.BytesPart.invariants, SharedSecret.BytesPart.invariants]
 
 public
 theorem kemEncap.ss_label
@@ -654,16 +654,16 @@ theorem kemEncap.ss_label
   : let (_, ss) := kemEncap pk entropy
     ss.label tr = entropy.label tr
 := by
-  simp [kemEncap, SharedSecret.invariants]
+  simp [kemEncap, SharedSecret.BytesPart.invariants]
 
 end EncapLemmas
 
 section DecapLemmas
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has KEM.SubF]
-variable [ExecTraceTypes.Has Broken.ExecEntryT]
-variable [BytesInvariants] [BytesInvariants.Has KEM.invariants]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def] [Bytes.Has KEM.BytesPart.Functor]
+variable [ExecTrace.Has Broken.TracePart.Exec]
+variable [Bytes.Invariants.Def] [Bytes.Invariants.Has KEM.BytesPart.invariants]
 
 public
 theorem kemDecap.WellFormed
@@ -681,11 +681,11 @@ theorem kemDecap.WellFormed
     split at heq
     · rename_i sk' _
       split at heq
-      · have := Bytes.pack_view? Encap.SubF cipher
-        have := Bytes.pack_view? Pk.SubF pk
+      · have := Bytes.pack_view? Encap.BytesPart.Functor cipher
+        have := Bytes.pack_view? Pk.BytesPart.Functor pk
         simp_all only
         subst_eqs
-        simp_all [Bytes.WellFormed.eq, Pk.invariants, Encap.invariants, SharedSecret.invariants]
+        simp_all [Bytes.WellFormed.eq, Pk.BytesPart.invariants, Encap.BytesPart.invariants, SharedSecret.BytesPart.invariants]
       · grind
     · grind
   · grind
@@ -696,10 +696,10 @@ end Invariants
 
 section HoareTriples
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has KEM.SubF]
-variable [ExecTraceTypes.Has Broken.ExecEntryT]
-variable [BytesInvariants] [BytesInvariants.Has KEM.invariants]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def] [Bytes.Has KEM.BytesPart.Functor]
+variable [ExecTrace.Has Broken.TracePart.Exec]
+variable [Bytes.Invariants.Def] [Bytes.Invariants.Has KEM.BytesPart.invariants]
 
 public
 instance kemPk_hoareTriple
@@ -746,12 +746,12 @@ instance kemEncap_hoareTriple
     )
 where
   pf := by
-    simp [kemEncap, Bytes.Publishable, Bytes.Invariant.eq, Encap.invariants, SharedSecret.invariants]
+    simp [kemEncap, Bytes.Publishable, Bytes.Invariant.eq, Encap.BytesPart.invariants, SharedSecret.BytesPart.invariants]
     grind
 
 public
 instance kemDecap_hoareTriple
-  [TraceInvariant]
+  [Trace.Invariant.Def]
   (sk cipher: Bytes)
   : HoareTriple
     (kemDecap sk cipher)
@@ -778,13 +778,13 @@ where
       split at heq
       · rename_i sk' _
         split at heq
-        · have := Bytes.pack_view? Encap.SubF cipher
-          have := Bytes.pack_view? Pk.SubF pk
+        · have := Bytes.pack_view? Encap.BytesPart.Functor cipher
+          have := Bytes.pack_view? Pk.BytesPart.Functor pk
           have := Bytes.kemSkLabel_kemPk sk tr
           simp only [kemPk] at this
           simp_all only
           subst_eqs
-          simp_all [Pk.invariants, Encap.invariants, SharedSecret.invariants]
+          simp_all [Pk.BytesPart.invariants, Encap.BytesPart.invariants, SharedSecret.BytesPart.invariants]
         · grind
       · grind
     · grind
@@ -793,42 +793,42 @@ end HoareTriples
 
 section AttackerKnowledgeTheorem
 
-variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-variable [BytesFunctor] [BytesInvariants]
-variable [BytesFunctor.Has KEM.SubF]
-variable [ExecTraceTypes.Has Broken.ExecEntryT]
-variable [BytesInvariants.Has KEM.invariants]
+variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+variable [Bytes.Def] [Bytes.Invariants.Def]
+variable [Bytes.Has KEM.BytesPart.Functor]
+variable [ExecTrace.Has Broken.TracePart.Exec]
+variable [Bytes.Invariants.Has KEM.BytesPart.invariants]
 
 -- Preserve publishability
 
 public
-instance: SubAttackerKnowledgeTheorem kemPk.attackerKnowledge where
+instance: Bytes.AttackerKnows_implies_Publishable.Part kemPk.attackerKnows where
   pf := by
-    simp only [kemPk.attackerKnowledge]
+    simp only [kemPk.attackerKnows]
     intro out tr h_tr ⟨sk, ⟨ h_out, h_sk ⟩⟩
     subst h_out
     simp_all [Bytes.Publishable]
     grind [kemPk.Invariant, canFlowTrans]
 
 public
-instance: SubAttackerKnowledgeTheorem kemEncapCipher.attackerKnowledge where
+instance: Bytes.AttackerKnows_implies_Publishable.Part kemEncapCipher.attackerKnows where
   pf := by
-    simp only [kemEncapCipher.attackerKnowledge]
+    simp only [kemEncapCipher.attackerKnows]
     intro out tr h_tr ⟨pk, entropy, rhs, ⟨ h_out, h_inputs ⟩⟩
-    simp_all [kemEncap, Bytes.Publishable, Bytes.Publishable, Bytes.Invariant.eq, Encap.invariants]
+    simp_all [kemEncap, Bytes.Publishable, Bytes.Publishable, Bytes.Invariant.eq, Encap.BytesPart.invariants]
     grind [canFlowTrans]
 
 public
-instance: SubAttackerKnowledgeTheorem kemEncapSS.attackerKnowledge where
+instance: Bytes.AttackerKnows_implies_Publishable.Part kemEncapSS.attackerKnows where
   pf := by
-    simp only [kemEncapSS.attackerKnowledge]
+    simp only [kemEncapSS.attackerKnows]
     intro out tr h_tr ⟨pk, entropy, lhs, ⟨ h_out, h_inputs ⟩⟩
-    simp_all [kemEncap, Bytes.Publishable, Bytes.Publishable, Bytes.Invariant.eq, SharedSecret.invariants]
+    simp_all [kemEncap, Bytes.Publishable, Bytes.Publishable, Bytes.Invariant.eq, SharedSecret.BytesPart.invariants]
 
 public
-instance: SubAttackerKnowledgeTheorem kemDecap.attackerKnowledge where
+instance: Bytes.AttackerKnows_implies_Publishable.Part kemDecap.attackerKnows where
   pf := by
-    simp only [kemDecap.attackerKnowledge]
+    simp only [kemDecap.attackerKnows]
     intro out tr h_tr ⟨sk, cipher, ⟨ h_out, h_inputs ⟩⟩
     have := (kemDecap_hoareTriple sk cipher).pf
     simp only [hoareTriple, wp, OptionT.run, ← h_out] at this
@@ -837,7 +837,7 @@ instance: SubAttackerKnowledgeTheorem kemDecap.attackerKnowledge where
 end AttackerKnowledgeTheorem
 section AttackerKnowledgeTheorem
 
-#combine [BytesFunctor.Has SubF] [ExecTraceTypes.Has Broken.ExecEntryT] [BytesInvariants.Has invariants] into SubAttackerKnowledgeTheorem' from
+#combine [Bytes.Has BytesPart.Functor] [ExecTrace.Has Broken.TracePart.Exec] [Bytes.Invariants.Has BytesPart.invariants] into Bytes.AttackerKnows_implies_Publishable.merge from
   kemPk,
   kemEncapCipher,
   kemEncapSS,
@@ -847,10 +847,10 @@ end AttackerKnowledgeTheorem
 
 namespace Broken
 
-variable [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [BytesInvariants]
-variable [BytesFunctor.Has KEM.SubF]
-variable [ExecTraceTypes.Has Broken.ExecEntryT]
-variable [BytesInvariants.Has KEM.invariants]
+variable [Bytes.Def] [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def] [Bytes.Invariants.Def]
+variable [Bytes.Has KEM.BytesPart.Functor]
+variable [ExecTrace.Has Broken.TracePart.Exec]
+variable [Bytes.Invariants.Has KEM.BytesPart.invariants]
 
 @[instance]
 theorem kemPkInvert.proof (pk: Bytes)
@@ -868,7 +868,7 @@ theorem kemPkInvert.proof (pk: Bytes)
   have: pk = kemPk sk := by grind [kemPk_kemPkInvert pk]
   have h: (kemPk sk).Publishable tr := by grind
   simp only [kemPk, Bytes.Publishable] at h
-  simp only [Bytes.Invariant.eq, KEM.Pk.invariants] at h
+  simp only [Bytes.Invariant.eq, KEM.Pk.BytesPart.invariants] at h
   simp only [Label.canFlow, Broken.label, Broken.ThisKemPkHasBeenBroken] at h
   simp only [Bytes.Publishable]
   grind
@@ -878,16 +878,16 @@ instance: ProtocolEvent.EventInv (BrokenKemEvent) where
   invariant _ _ := True
 
 #combine into
-  ProofEntryT,
-  SubTraceInvariant,
-  SubBaseAttackerKnowledgeTheorem,
+  ProofTrace,
+  Trace.Invariant,
+  Trace.BaseAttackerKnows_implies_Publishable,
 from ProtocolEvent Broken.BrokenKemEvent
 
-variable [BytesInvariantsProofs]
-variable [ExecTraceTypes.Has Network.ExecEntryT]
-variable [ProofTraceTypes.Has Broken.ProofEntryT] [ProofTraceTypes.Has Network.ProofEntryT]
-variable [TraceInvariant.Has Network.ProofEntryT]
-variable [TraceInvariant.Has Broken.ProofEntryT]
+variable [Bytes.Invariants.Lawful]
+variable [ExecTrace.Has Network.TracePart.Exec]
+variable [ProofTrace.Has Broken.TracePart.Proof] [ProofTrace.Has Network.TracePart.Proof]
+variable [Trace.Invariant.Has Network.TracePart.Proof]
+variable [Trace.Invariant.Has Broken.TracePart.Proof]
 
 @[instance]
 theorem breakKemPk.proof (msgHandle: Nat)
@@ -903,7 +903,7 @@ theorem breakKemPk.proof (msgHandle: Nat)
   step
   grind
 
-public instance: ReachableImpliesInvariant breakKemPk.reachability := .mk (fun (msgHandle) => breakKemPk.proof msgHandle)
+public instance: Trace.Reachable_implies_Invariant.Part breakKemPk.transition := .mk (fun (msgHandle) => breakKemPk.proof msgHandle)
 
 end Broken
 

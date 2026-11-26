@@ -10,10 +10,10 @@ public meta import DY.Actions.Network
 
 namespace DY.Benchmark.TraceRuntime
 
-#combine +toplevel into BytesFunctor, BytesLength from
+#combine +toplevel into Bytes, Bytes.length from
   Literal
 
-#combine +toplevel into ExecEntryT from
+#combine +toplevel into ExecTrace from
   Network
 
 def run (n: Nat): Traceful Unit := do

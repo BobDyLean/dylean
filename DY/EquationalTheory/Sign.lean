@@ -22,15 +22,15 @@ section Constructors
 namespace Vk
 
 public
-structure SubF (Bytes: Type) where
+structure BytesPart.Functor (Bytes: Type) where
   sk: Bytes
 
 public
-instance: ALaCarte.FunctorSizeOf SubF where
+instance: ALaCarte.FunctorSizeOf BytesPart.Functor where
   sizeOf | {sk} => sizeOf sk
 
 public
-instance: ALaCarte.Representable SubF where
+instance: ALaCarte.Representable BytesPart.Functor where
   CtorId := Unit
   ctors | () => { Data := Unit, nRec := 1 }
 
@@ -49,12 +49,12 @@ instance: ALaCarte.Representable SubF where
     simp_all <;> grind
   sizeOf_eq | {sk} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-public instance: ALaCarte.RepresentableDecidableEq SubF where
-public instance: ALaCarte.RepresentableOrd SubF where
-public instance: SubBytesFunctor SubF where
+public instance: ALaCarte.RepresentableDecidableEq BytesPart.Functor where
+public instance: ALaCarte.RepresentableOrd BytesPart.Functor where
+public instance: Bytes.Part BytesPart.Functor where
 
 public
-def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
+def BytesPart.length [Bytes.Def]: Bytes.length.Part BytesPart.Functor :=
   fun _ _ =>
     32
 
@@ -63,17 +63,17 @@ end Vk
 namespace Sign
 
 public
-structure SubF (Bytes: Type) where
+structure BytesPart.Functor (Bytes: Type) where
   sk: Bytes
   nonce: Bytes
   msg: Bytes
 
 public
-instance: ALaCarte.FunctorSizeOf SubF where
+instance: ALaCarte.FunctorSizeOf BytesPart.Functor where
   sizeOf | {sk, nonce, msg} => sizeOf sk + sizeOf nonce + sizeOf msg
 
 public
-instance: ALaCarte.Representable SubF where
+instance: ALaCarte.Representable BytesPart.Functor where
   CtorId := Unit
   ctors | () => { Data := Unit, nRec := 3 }
 
@@ -94,39 +94,39 @@ instance: ALaCarte.Representable SubF where
     simp_all <;> grind
   sizeOf_eq | {sk, nonce, msg} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-public instance: ALaCarte.RepresentableDecidableEq SubF where
-public instance: ALaCarte.RepresentableOrd SubF where
-public instance: SubBytesFunctor SubF where
+public instance: ALaCarte.RepresentableDecidableEq BytesPart.Functor where
+public instance: ALaCarte.RepresentableOrd BytesPart.Functor where
+public instance: Bytes.Part BytesPart.Functor where
 
 public
-def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
+def BytesPart.length [Bytes.Def]: Bytes.length.Part BytesPart.Functor :=
   fun _ _ =>
     64
 
 end Sign
 
-#combine into BytesFunctor, BytesLength from
+#combine into Bytes, Bytes.length from
   Vk,
   Sign
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
 
-public abbrev Vk.SubF.pack (x: Vk.SubF Bytes) := BytesView.pack x
-public abbrev Sign.SubF.pack (x: Sign.SubF Bytes) := BytesView.pack x
+public abbrev Vk.BytesPart.Functor.pack (x: Vk.BytesPart.Functor Bytes) := BytesView.pack x
+public abbrev Sign.BytesPart.Functor.pack (x: Sign.BytesPart.Functor Bytes) := BytesView.pack x
 
 public
 instance: CanSign Bytes where
   vk sk :=
-    ({sk}: Vk.SubF Bytes).pack
+    ({sk}: Vk.BytesPart.Functor Bytes).pack
 
   sign sk nonce msg :=
-    ({sk, nonce, msg}: Sign.SubF Bytes).pack
+    ({sk, nonce, msg}: Sign.BytesPart.Functor Bytes).pack
 
   verify vk msg sig :=
-    match sig.view? Sign.SubF with
+    match sig.view? Sign.BytesPart.Functor with
     | some { sk, nonce := _, msg := msg' } =>
       msg = msg' &&
-      vk = ({sk} : Vk.SubF Bytes).pack
+      vk = ({sk} : Vk.BytesPart.Functor Bytes).pack
     | none => false
 
 public
@@ -142,14 +142,14 @@ end Constructors
 section AttackerKnowledge
 
 public
-def vk.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
+def vk.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ sk,
       out = vk sk ∧
       p sk
 
 public
-def sign.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
+def sign.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ sk nonce msg,
       out = sign sk nonce msg ∧
@@ -157,13 +157,13 @@ def sign.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKn
       p nonce ∧
       p msg
 
-#combine [BytesFunctor.Has SubF] into attackerKnowledge' from
+#combine [Bytes.Has BytesPart.Functor] into Bytes.AttackerKnows.merge from
   vk,
   sign
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
-variable [ExecTraceTypes] [BaseAttackerKnowledge]
-variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
 
 public
 theorem attacker_knows_vk
@@ -172,8 +172,8 @@ theorem attacker_knows_vk
     (vk sk).AttackerKnows tr
 := by
   intro h_inp
-  apply Bytes.AttackerKnows.prove vk.attackerKnowledge
-  simp only [vk.attackerKnowledge]
+  apply Bytes.AttackerKnows.prove vk.attackerKnows
+  simp only [vk.attackerKnows]
   grind
 
 public
@@ -185,8 +185,8 @@ theorem attacker_knows_sign
     (sign sk nonce msg).AttackerKnows tr
 := by
   intro h_inp h_nonce h_msg
-  apply Bytes.AttackerKnows.prove sign.attackerKnowledge
-  simp only [sign.attackerKnowledge]
+  apply Bytes.AttackerKnows.prove sign.attackerKnows
+  simp only [sign.attackerKnows]
   grind
 
 end AttackerKnowledge
@@ -195,11 +195,11 @@ section Invariants
 
 section Definition
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def]
 
 public
-def Vk.invariants: Bytes.PartialInvariants Vk.SubF where
+def Vk.BytesPart.invariants: Bytes.Invariants.Part Vk.BytesPart.Functor where
   well_formed := fun {sk := sk} rec tr =>
     (rec sk) tr
 
@@ -213,15 +213,15 @@ def Vk.invariants: Bytes.PartialInvariants Vk.SubF where
     (rec sk) tr
 
 public
-theorem Vk.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Vk.invariants where
+theorem Vk.BytesPart.invariantsLawful [Bytes.Invariants.Def]: Bytes.Invariants.Part.Lawful Vk.BytesPart.invariants where
 
 end Definition
 
 section VkLemmas
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has Signature.SubF]
-variable [BytesInvariants] [BytesInvariants.Has Vk.invariants]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def] [Bytes.Has Signature.BytesPart.Functor]
+variable [Bytes.Invariants.Def] [Bytes.Invariants.Has Vk.BytesPart.invariants]
 
 @[simp]
 public
@@ -229,7 +229,7 @@ theorem vk.WellFormed
   (inp: Bytes) (tr: ProofTrace)
   : (vk inp).WellFormed tr = inp.WellFormed tr
 := by
-  simp [vk, Bytes.WellFormed.eq, Vk.invariants]
+  simp [vk, Bytes.WellFormed.eq, Vk.BytesPart.invariants]
 
 @[simp]
 public
@@ -237,7 +237,7 @@ theorem vk.label
   (inp: Bytes) (tr: ProofTrace)
   : (vk inp).label tr = Label.pub
 := by
-  simp [vk, Bytes.label.eq, Vk.invariants]
+  simp [vk, Bytes.label.eq, Vk.BytesPart.invariants]
 
 @[simp]
 public
@@ -246,23 +246,23 @@ theorem vk.Invariant
   : inp.Invariant tr →
     (vk inp).Invariant tr
 := by
-  simp [vk, Bytes.Invariant.eq, Vk.invariants]
+  simp [vk, Bytes.Invariant.eq, Vk.BytesPart.invariants]
 
 end VkLemmas
 
 section Definition
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def]
 
 public
 class SignPred where
-  pred: [BytesWellFormed] → [GetUsage] → [GetLabel] → Usage → Bytes → Bytes → ProofTrace → Prop
+  pred: [Bytes.WellFormed.Def] → [Bytes.usage.Def] → [Bytes.label.Def] → Usage → Bytes → Bytes → ProofTrace → Prop
 
 public
-class SignPredProof [BytesInvariants] [SignPred] where
+class SignPredProof [Bytes.Invariants.Def] [SignPred] where
   pred_later:
-    [BytesWellFormedLater] → [GetUsageLater] → [GetLabelLater] →
+    [Bytes.WellFormed.later.Proof] → [Bytes.usage_later.Proof] → [Bytes.label_later.Proof] →
     ∀ skUsg vk msg tr1 tr2,
       vk.WellFormed tr1 →
       msg.WellFormed tr1 →
@@ -274,7 +274,7 @@ grind_pattern SignPredProof.pred_later => tr1 ≤ tr2, SignPred.pred skUsg vk ms
 
 public
 theorem SignPredProof.pred_later_fast
-  [BytesInvariants] [SignPred] [SignPredProof] [BytesInvariantsProofs]
+  [Bytes.Invariants.Def] [SignPred] [SignPredProof] [Bytes.Invariants.Lawful]
   (skUsg: Usage) (vk msg: Bytes) (tr1 tr2: ProofTrace)
   : vk.Invariant tr1 →
     msg.Invariant tr1 →
@@ -286,7 +286,7 @@ theorem SignPredProof.pred_later_fast
 grind_pattern [grind_later] SignPredProof.pred_later_fast => tr1 ≤ tr2, SignPred.pred skUsg vk msg tr1
 
 public
-def Sign.invariants [BytesFunctor.Has Signature.SubF] [SignPred]: Bytes.PartialInvariants Sign.SubF where
+def Sign.BytesPart.invariants [Bytes.Has Signature.BytesPart.Functor] [SignPred]: Bytes.Invariants.Part Sign.BytesPart.Functor where
   well_formed := fun {sk, nonce, msg} rec tr =>
       (rec sk) tr ∧
       (rec nonce) tr ∧
@@ -332,19 +332,19 @@ def Sign.invariants [BytesFunctor.Has Signature.SubF] [SignPred]: Bytes.PartialI
       )
 
 public
-theorem Sign.invariantsProofs [BytesFunctor.Has Signature.SubF] [BytesInvariants] [BytesInvariants.Has Vk.invariants] [SignPred] [SignPredProof]: Bytes.PartialInvariantsProofs Sign.invariants where
+theorem Sign.BytesPart.invariantsLawful [Bytes.Has Signature.BytesPart.Functor] [Bytes.Invariants.Def] [Bytes.Invariants.Has Vk.BytesPart.invariants] [SignPred] [SignPredProof]: Bytes.Invariants.Part.Lawful Sign.BytesPart.invariants where
   invariant_later := by
     intro _ _ _ _ x rec tr1 tr2
     cases x
-    simp_all [invariants, DY.ALaCarte.FunctorSizeOf.sizeOf, BytesInvariantLaterT]
+    simp_all [BytesPart.invariants, DY.ALaCarte.FunctorSizeOf.sizeOf]
     -- TODO: grind set
     grind [vk.WellFormed]
 
 end Definition
 
-#combine [BytesFunctor.Has SubF] [SignPred] into
-  BytesInvariants,
-  BytesInvariantsProofs [BytesInvariants.Has Vk.invariants] [SignPredProof]
+#combine [Bytes.Has BytesPart.Functor] [SignPred] into
+  Bytes.Invariants,
+  Bytes.Invariants.Lawful [Bytes.Invariants.Has Vk.BytesPart.invariants] [SignPredProof]
 from
   Vk,
   Sign
@@ -356,11 +356,11 @@ end Signature
 
 section ExtractSignKey
 
-variable [BytesFunctor] [BytesFunctor.Has Signature.SubF]
+variable [Bytes.Def] [Bytes.Has Signature.BytesPart.Functor]
 
 noncomputable
 def Signature.extractSignkey (vk: Bytes): Option Bytes :=
-  match vk.view? Signature.Vk.SubF with
+  match vk.view? Signature.Vk.BytesPart.Functor with
   | some { sk } =>
     some sk
   | none => none
@@ -373,10 +373,10 @@ theorem Signature.vk_extractSignkey (b: Bytes):
   simp [extractSignkey, Signature.vk]
   grind
 
-variable [ExecTraceTypes] [ProofTraceTypes]
+variable [ExecTrace.Def] [ProofTrace.Def]
 
 theorem Signature.extractSignkey.preserves_WellFormed
-  [BytesInvariants] [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
+  [Bytes.Invariants.Def] [Signature.SignPred] [Bytes.Invariants.Has Signature.BytesPart.invariants]
 : ExtractPreservesWellFormed extractSignkey
 := by
   simp [ExtractPreservesWellFormed]
@@ -384,14 +384,14 @@ theorem Signature.extractSignkey.preserves_WellFormed
 
 public
 def Bytes.SignkeyHasUsage
-  [BytesInvariants]
+  [Bytes.Invariants.Def]
   (vk: Bytes) (skUsg: Usage) (tr: ProofTrace): Prop
 :=
   Bytes.XXXHasUsage Signature.extractSignkey vk skUsg tr
 
 public
 theorem Bytes.SignkeyHasUsage_vk
-  [BytesInvariants]
+  [Bytes.Invariants.Def]
   (sk: Bytes) (skUsg: Usage) (tr: ProofTrace)
   : (Signature.vk sk).SignkeyHasUsage skUsg tr = sk.HasUsage skUsg tr
 := by
@@ -402,8 +402,8 @@ grind_pattern Bytes.SignkeyHasUsage_vk => (Signature.vk sk).SignkeyHasUsage skUs
 
 public
 theorem Bytes.SignkeyHasUsage_later
-  [BytesInvariants] [BytesInvariantsProofs]
-  [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
+  [Signature.SignPred] [Bytes.Invariants.Has Signature.BytesPart.invariants]
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
   : b.WellFormed tr1 →
     tr1 ≤ tr2 →
@@ -417,8 +417,8 @@ grind_pattern Bytes.SignkeyHasUsage_later => tr1 ≤ tr2, b.SignkeyHasUsage usg 
 
 public
 theorem Bytes.SignkeyHasUsage_later_fast
-  [BytesInvariants] [BytesInvariantsProofs]
-  [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
+  [Signature.SignPred] [Bytes.Invariants.Has Signature.BytesPart.invariants]
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
   : b.Invariant tr1 →
     tr1 ≤ tr2 →
@@ -431,15 +431,15 @@ grind_pattern [grind_later] Bytes.SignkeyHasUsage_later_fast => tr1 ≤ tr2, b.S
 public
 noncomputable
 def Bytes.signkeyLabel
-  [BytesInvariants]
+  [Bytes.Invariants.Def]
   (vk: Bytes) (tr: ProofTrace): Label
 :=
   Bytes.xxxLabel Signature.extractSignkey vk tr
 
 public
 theorem Bytes.signkeyLabel_vk
-  [BytesInvariants]
-  [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
+  [Bytes.Invariants.Def]
+  [Signature.SignPred] [Bytes.Invariants.Has Signature.BytesPart.invariants]
   (sk: Bytes) (tr: ProofTrace)
   : (Signature.vk sk).signkeyLabel tr = sk.label tr
 := by
@@ -450,8 +450,8 @@ grind_pattern Bytes.signkeyLabel_vk => (Signature.vk sk).signkeyLabel tr
 
 public
 theorem Bytes.signkeyLabel_later
-  [BytesInvariants] [BytesInvariantsProofs]
-  [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
+  [Signature.SignPred] [Bytes.Invariants.Has Signature.BytesPart.invariants]
   (b: Bytes) (tr1 tr2: ProofTrace)
   : b.WellFormed tr1 →
     tr1 ≤ tr2 →
@@ -464,8 +464,8 @@ grind_pattern Bytes.signkeyLabel_later => tr1 ≤ tr2, b.signkeyLabel tr1
 
 public
 theorem Bytes.signkeyLabel_later_fast
-  [BytesInvariants] [BytesInvariantsProofs]
-  [Signature.SignPred] [BytesInvariants.Has Signature.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
+  [Signature.SignPred] [Bytes.Invariants.Has Signature.BytesPart.invariants]
   (b: Bytes) (tr1 tr2: ProofTrace)
   : b.Invariant tr1 →
     tr1 ≤ tr2 →
@@ -480,12 +480,12 @@ namespace Signature
 
 section Invariants
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
 
 variable [SignPred]
-variable [BytesInvariants]
-variable [BytesInvariants.Has invariants]
+variable [Bytes.Invariants.Def]
+variable [Bytes.Invariants.Has BytesPart.invariants]
 
 @[simp]
 public
@@ -497,7 +497,7 @@ theorem sign.WellFormed
       msg.WellFormed tr
     )
 := by
-  simp [sign, Bytes.WellFormed.eq, Sign.invariants]
+  simp [sign, Bytes.WellFormed.eq, Sign.BytesPart.invariants]
 
 @[simp]
 public
@@ -505,7 +505,7 @@ theorem sign.label
   (sk nonce msg: Bytes) (tr: ProofTrace)
   : (sign sk nonce msg).label tr = msg.label tr
 := by
-  simp [sign, Bytes.label.eq, Sign.invariants]
+  simp [sign, Bytes.label.eq, Sign.BytesPart.invariants]
 
 @[simp]
 public
@@ -530,7 +530,7 @@ theorem sign.Invariant
     (sign sk nonce msg).Invariant tr
 := by
   have := vk.WellFormed sk tr
-  simp [sign, Bytes.Invariant.eq, Sign.invariants]
+  simp [sign, Bytes.Invariant.eq, Sign.BytesPart.invariants]
   grind
 
 @[simp]
@@ -553,12 +553,12 @@ theorem verify.Invariant
   simp [verify]
   split
   · rename_i sk nonce msg heq
-    have := Bytes.pack_view? Sign.SubF sig
+    have := Bytes.pack_view? Sign.BytesPart.Functor sig
     simp only [heq] at this
     subst this
-    have: ({sk}: Vk.SubF Bytes).pack = CanSign.vk sk := rfl
+    have: ({sk}: Vk.BytesPart.Functor Bytes).pack = CanSign.vk sk := rfl
     have := Bytes.HasUsage_inj sk skUsg
-    simp_all [Bytes.Invariant.eq, Sign.invariants]
+    simp_all [Bytes.Invariant.eq, Sign.BytesPart.invariants]
     grind
   · simp
 
@@ -566,13 +566,13 @@ end Invariants
 
 section HoareTriples
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes]
+  [ExecTrace.Def] [ProofTrace.Def]
   [SignPred]
-  [BytesInvariants] [BytesInvariants.Has invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
   (sk: Bytes)
   : HoareTriplePure
     (vk sk)
@@ -627,9 +627,9 @@ where
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes]
+  [ExecTrace.Def] [ProofTrace.Def]
   [SignPred]
-  [BytesInvariants] [BytesInvariants.Has invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
   (sk nonce msg: Bytes) (skUsg: Usage)
   : HoareTriplePureGhost
     (sign sk nonce msg)
@@ -695,9 +695,9 @@ where
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes]
+  [ExecTrace.Def] [ProofTrace.Def]
   [SignPred]
-  [BytesInvariants] [BytesInvariants.Has invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
   (vkey msg sig: Bytes) (skUsg: Usage)
   : HoareTriplePureGhost
     (verify vkey msg sig)
@@ -726,37 +726,37 @@ end HoareTriples
 
 section AttackerKnowledgeTheorem
 
-variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-variable [BytesFunctor] [BytesInvariants]
-variable [BytesFunctor.Has SubF]
+variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+variable [Bytes.Def] [Bytes.Invariants.Def]
+variable [Bytes.Has BytesPart.Functor]
 variable [SignPred]
-variable [BytesInvariants.Has invariants]
+variable [Bytes.Invariants.Has BytesPart.invariants]
 
 -- Preserve publishability
 
 public
-instance: SubAttackerKnowledgeTheorem vk.attackerKnowledge where
+instance: Bytes.AttackerKnows_implies_Publishable.Part vk.attackerKnows where
   pf := by
-    simp only [vk.attackerKnowledge]
+    simp only [vk.attackerKnows]
     intro out tr h_tr ⟨sk, ⟨ h_out, h_sk ⟩⟩
     subst h_out
     simp_all [Bytes.Publishable]
     grind
 
 public
-instance: SubAttackerKnowledgeTheorem sign.attackerKnowledge where
+instance: Bytes.AttackerKnows_implies_Publishable.Part sign.attackerKnows where
   pf := by
-    simp only [sign.attackerKnowledge]
+    simp only [sign.attackerKnows]
     intro out tr h_tr ⟨sk, nonce, msg, ⟨ h_out, h_inputs ⟩⟩
     subst h_out
     simp_all [Bytes.Publishable]
-    simp [sign, Bytes.Invariant.eq, Sign.invariants]
+    simp [sign, Bytes.Invariant.eq, Sign.BytesPart.invariants]
     grind
 
 end AttackerKnowledgeTheorem
 section AttackerKnowledgeTheorem
 
-#combine [BytesFunctor.Has SubF] [SignPred] [BytesInvariants.Has invariants] into SubAttackerKnowledgeTheorem' from
+#combine [Bytes.Has BytesPart.Functor] [SignPred] [Bytes.Invariants.Has BytesPart.invariants] into Bytes.AttackerKnows_implies_Publishable.merge from
   vk,
   sign
 

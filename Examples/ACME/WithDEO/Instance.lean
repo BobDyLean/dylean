@@ -7,7 +7,7 @@ namespace DY.Example.ACME.WithDEO
 
 public section
 
-#combine +toplevel into BytesFunctor, BytesLength, attackerKnowledge from
+#combine +toplevel into Bytes, Bytes.length, Bytes.AttackerKnows from
   Random,
   Literal,
   Concat,
@@ -16,8 +16,8 @@ public section
 instance: HasExecBytes where
 
 #combine +toplevel into
-  ExecEntryT,
-  baseAttackerKnowledge,
+  ExecTrace,
+  Trace.BaseAttackerKnows,
 from
   Network,
   Random,

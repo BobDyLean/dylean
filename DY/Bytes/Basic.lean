@@ -5,7 +5,7 @@
   In particular, we require symbolic bytes to have `DecidableEq` and to have an order.
   Furthermore, at any point in a Lean file,
   it never makes sense to work with two different types for symbolic bytes.
-  We capture this with the argumentless typeclass `BytesFunctor`
+  We capture this with the argumentless typeclass `Bytes.Def`
   that captures *the* set of constructors in the symbolic bytes term
   we are currently working with in this context.
 -/
@@ -23,33 +23,36 @@ import DY.Bytes.NormalizationMetaTheory
 namespace DY
 
 public
-class SubBytesFunctor (SubF: Type → Type) where
+class Bytes.Part (SubF: Type → Type) where
   [sizeOf: ALaCarte.FunctorSizeOf SubF]
   [repr: ALaCarte.Representable SubF]
   [deq: ALaCarte.RepresentableDecidableEq SubF]
   [ord: ALaCarte.RepresentableOrd SubF]
 
-public instance (SubF: Type → Type) [inst: SubBytesFunctor SubF]: ALaCarte.FunctorSizeOf SubF := inst.sizeOf
-public instance (SubF: Type → Type) [inst: SubBytesFunctor SubF]: ALaCarte.Representable SubF := inst.repr
-public instance (SubF: Type → Type) [inst: SubBytesFunctor SubF]: ALaCarte.RepresentableDecidableEq SubF := inst.deq
-public instance (SubF: Type → Type) [inst: SubBytesFunctor SubF]: ALaCarte.RepresentableOrd SubF := inst.ord
+public instance (SubF: Type → Type) [inst: Bytes.Part SubF]: ALaCarte.FunctorSizeOf SubF := inst.sizeOf
+public instance (SubF: Type → Type) [inst: Bytes.Part SubF]: ALaCarte.Representable SubF := inst.repr
+public instance (SubF: Type → Type) [inst: Bytes.Part SubF]: ALaCarte.RepresentableDecidableEq SubF := inst.deq
+public instance (SubF: Type → Type) [inst: Bytes.Part SubF]: ALaCarte.RepresentableOrd SubF := inst.ord
 
 public
-class BytesFunctor where
-  BytesF: Type → Type
-  [inst: SubBytesFunctor BytesF]
-export BytesFunctor (BytesF)
+class Bytes.Def where
+  whole: Type → Type
+  [part: Bytes.Part whole]
 
-public instance [inst: BytesFunctor]: SubBytesFunctor BytesF := inst.inst
+/-- The global functor of symbolic bytes. -/
+public
+abbrev Bytes.Functor [Bytes.Def]: Type → Type := Bytes.Def.whole
+
+public instance [inst: Bytes.Def]: Bytes.Part Bytes.Functor := inst.part
 
 -- Sanity checks
 
-example [inst: BytesFunctor]: ALaCarte.FunctorSizeOf BytesF := inferInstance
-example [inst: BytesFunctor]: ALaCarte.Representable BytesF := inferInstance
-example [inst: BytesFunctor]: ALaCarte.RepresentableDecidableEq BytesF := inferInstance
-example [inst: BytesFunctor]: ALaCarte.RepresentableOrd BytesF := inferInstance
+example [inst: Bytes.Def]: ALaCarte.FunctorSizeOf Bytes.Functor := inferInstance
+example [inst: Bytes.Def]: ALaCarte.Representable Bytes.Functor := inferInstance
+example [inst: Bytes.Def]: ALaCarte.RepresentableDecidableEq Bytes.Functor := inferInstance
+example [inst: Bytes.Def]: ALaCarte.RepresentableOrd Bytes.Functor := inferInstance
 
-variable [BytesFunctor]
+variable [Bytes.Def]
 
 -- We want to prevent DefEq abuse with Bytes,
 -- but on the other hand we cannot box it into a `structure`
@@ -59,7 +62,7 @@ variable [BytesFunctor]
 -- As a middle ground, we mark it irreducible.
 @[irreducible, expose]
 public
-def Bytes := ALaCarte.ContainerFor BytesF
+def Bytes := ALaCarte.ContainerFor Bytes.Functor
 
 -- In this file, we need to "defeq abuse" the definition of Bytes.
 -- However, outside this file, it should not be needed.
@@ -67,62 +70,62 @@ attribute [local semireducible] Bytes
 
 public
 noncomputable
-instance: SizeOf Bytes := inferInstanceAs (SizeOf (ALaCarte.ContainerFor BytesF))
+instance: SizeOf Bytes := inferInstanceAs (SizeOf (ALaCarte.ContainerFor Bytes.Functor))
 
-public instance: DecidableEq Bytes := inferInstanceAs (DecidableEq (ALaCarte.ContainerFor BytesF))
+public instance: DecidableEq Bytes := inferInstanceAs (DecidableEq (ALaCarte.ContainerFor Bytes.Functor))
 
-public instance: Ord Bytes := inferInstanceAs (Ord (ALaCarte.ContainerFor BytesF))
-public instance: Std.ReflOrd Bytes := inferInstanceAs (Std.ReflOrd (ALaCarte.ContainerFor BytesF))
-public instance: Std.LawfulEqOrd Bytes := inferInstanceAs (Std.LawfulEqOrd (ALaCarte.ContainerFor BytesF))
-public instance: Std.OrientedOrd Bytes := inferInstanceAs (Std.OrientedOrd (ALaCarte.ContainerFor BytesF))
-public instance: Std.TransOrd Bytes := inferInstanceAs (Std.TransOrd (ALaCarte.ContainerFor BytesF))
+public instance: Ord Bytes := inferInstanceAs (Ord (ALaCarte.ContainerFor Bytes.Functor))
+public instance: Std.ReflOrd Bytes := inferInstanceAs (Std.ReflOrd (ALaCarte.ContainerFor Bytes.Functor))
+public instance: Std.LawfulEqOrd Bytes := inferInstanceAs (Std.LawfulEqOrd (ALaCarte.ContainerFor Bytes.Functor))
+public instance: Std.OrientedOrd Bytes := inferInstanceAs (Std.OrientedOrd (ALaCarte.ContainerFor Bytes.Functor))
+public instance: Std.TransOrd Bytes := inferInstanceAs (Std.TransOrd (ALaCarte.ContainerFor Bytes.Functor))
 
 public instance: LE Bytes := LE.ofOrd Bytes
 public instance: Std.IsLinearOrder Bytes := Std.IsLinearOrder.of_ord
 
 public
-class BytesFunctor.HasStep (SubF1: Type → Type) (SubF2: semiOutParam (Type → Type)) [SubBytesFunctor SubF1] [semiOutParam (SubBytesFunctor SubF2)] extends ALaCarte.SubFunctor SubF1 SubF2
+class Bytes.HasStep (SubF1: Type → Type) (SubF2: semiOutParam (Type → Type)) [Bytes.Part SubF1] [semiOutParam (Bytes.Part SubF2)] extends ALaCarte.SubFunctor SubF1 SubF2
 
 public
-class BytesFunctor.Has (SubF: Type → Type) [SubBytesFunctor SubF] extends ALaCarte.SubFunctorTC SubF BytesF
+class Bytes.Has (SubF: Type → Type) [Bytes.Part SubF] extends ALaCarte.SubFunctorTC SubF Bytes.Functor
 
 -- To avoid instance name clashing with other files
-namespace BytesFunctor
+namespace Bytes.Def
 
-public instance: BytesFunctor.Has BytesF where
+public instance: Bytes.Has Bytes.Functor where
 public instance
   (SubF1 SubF2: Type → Type)
-  [SubBytesFunctor SubF1] [SubBytesFunctor SubF2]
-  [BytesFunctor.HasStep SubF1 SubF2]
-  [BytesFunctor.Has SubF2]
-  : BytesFunctor.Has SubF1
+  [Bytes.Part SubF1] [Bytes.Part SubF2]
+  [Bytes.HasStep SubF1 SubF2]
+  [Bytes.Has SubF2]
+  : Bytes.Has SubF1
 where
 
-end BytesFunctor
+end Bytes.Def
 
 public
-abbrev BytesFunctor.combine {n: Nat} (SubFs: Fin n → Type → Type): Type → Type :=
+abbrev Bytes.combine {n: Nat} (SubFs: Fin n → Type → Type): Type → Type :=
   ALaCarte.FunctorUnion SubFs
 
-public instance {n: Nat} (SubFs: Fin n → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]: SubBytesFunctor (BytesFunctor.combine SubFs) where
+public instance {n: Nat} (SubFs: Fin n → Type → Type) [∀ id, Bytes.Part (SubFs id)]: Bytes.Part (Bytes.combine SubFs) where
 
 public instance
   {n: Nat}
-  (SubFs: Fin n → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]
+  (SubFs: Fin n → Type → Type) [∀ id, Bytes.Part (SubFs id)]
   (id: Fin n)
-  : BytesFunctor.HasStep (SubFs id) (BytesFunctor.combine SubFs)
+  : Bytes.HasStep (SubFs id) (Bytes.combine SubFs)
 where
 
 public
 abbrev BytesView (SubF: Type → Type) := SubF Bytes
 
 public
-def Bytes.view? (b: Bytes) (SubF: Type → Type) [SubBytesFunctor SubF] [BytesFunctor.Has SubF] : Option (BytesView SubF) :=
+def Bytes.view? (b: Bytes) (SubF: Type → Type) [Bytes.Part SubF] [Bytes.Has SubF] : Option (BytesView SubF) :=
   ALaCarte.Container.view SubF b
 
 public
 def BytesView.pack
-  {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
+  {SubF: Type → Type} [Bytes.Part SubF] [Bytes.Has SubF]
   (b: BytesView SubF)
   : Bytes
 :=
@@ -130,7 +133,7 @@ def BytesView.pack
 
 public
 theorem Bytes.pack_view?
-  (SubF: Type → Type) [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
+  (SubF: Type → Type) [Bytes.Part SubF] [Bytes.Has SubF]
   (b: Bytes)
   :
   match b.view? SubF with
@@ -145,7 +148,7 @@ grind_pattern Bytes.pack_view? => b.view? SubF
 
 public
 theorem BytesView.view_pack
-  {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
+  {SubF: Type → Type} [Bytes.Part SubF] [Bytes.Has SubF]
   (b: BytesView SubF)
   : (b.pack).view? SubF = some b
 := by
@@ -155,7 +158,7 @@ grind_pattern BytesView.view_pack => b.pack
 
 public
 theorem Bytes.sizeOf_view
-  (SubF: Type → Type) [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
+  (SubF: Type → Type) [Bytes.Part SubF] [Bytes.Has SubF]
   (b: Bytes)
   :
   match b.view? SubF with
@@ -171,109 +174,109 @@ theorem Bytes.sizeOf_view
 
 grind_pattern Bytes.sizeOf_view => b.view? SubF
 
--- Unfolding of `ALaCarte.Container.PartialFun SubF BytesF a` that use the type `Bytes` instead of `ContainerFor BytesF`,
+-- Unfolding of `ALaCarte.Container.PartialFun SubF Bytes.Functor a` that use the type `Bytes` instead of `ContainerFor Bytes.Functor`,
 -- and with an autoParam to prove well-founded recursion automatically.
 public
-abbrev Bytes.PartialFunction (SubF: Type → Type) [SubBytesFunctor SubF] (a: Type) :=
+abbrev Bytes.Function.Part (SubF: Type → Type) [Bytes.Part SubF] (a: Type) :=
   ∀ x: SubF Bytes, (∀ y: Bytes, (h: sizeOf y ≤ DY.ALaCarte.FunctorSizeOf.sizeOf x := by simp_all +arith [DY.ALaCarte.FunctorSizeOf.sizeOf] <;> grind) → a) → a
 
 public
-abbrev Bytes.Function (a: Type) := Bytes.PartialFunction BytesF a
+abbrev Bytes.Function (a: Type) := Bytes.Function.Part Bytes.Functor a
 
 public
 def Bytes.rec {a: Type} (f: Bytes.Function a) (x: Bytes) : a :=
   ALaCarte.Container.rec f x
 
 public
-class Bytes.SubFunctionStep
+class Bytes.Function.HasStep
   {SubF1 SubF2: Type → Type} {a: Type}
-  [SubBytesFunctor SubF1] [SubBytesFunctor SubF2]
-  [BytesFunctor.HasStep SubF1 SubF2]
-  (partialFun1: Bytes.PartialFunction SubF1 a)
-  (partialFun2: semiOutParam (Bytes.PartialFunction SubF2 a))
+  [Bytes.Part SubF1] [Bytes.Part SubF2]
+  [Bytes.HasStep SubF1 SubF2]
+  (partialFun1: Bytes.Function.Part SubF1 a)
+  (partialFun2: semiOutParam (Bytes.Function.Part SubF2 a))
 where
   [toALaCarte: ALaCarte.SubPartialFun partialFun1 partialFun2]
 
-attribute [local instance] Bytes.SubFunctionStep.toALaCarte
+attribute [local instance] Bytes.Function.HasStep.toALaCarte
 
 public
-class Bytes.SubFunction
+class Bytes.Function.Has
   {SubF: Type → Type}
-  [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
+  [Bytes.Part SubF] [Bytes.Has SubF]
   {a: Type}
-  (partialFun: Bytes.PartialFunction SubF a)
+  (partialFun: Bytes.Function.Part SubF a)
   (totalFun: Bytes.Function a)
 where
   [toALaCarte: ALaCarte.SubPartialFunTC partialFun totalFun]
 
-attribute [local instance] Bytes.SubFunction.toALaCarte
+attribute [local instance] Bytes.Function.Has.toALaCarte
 
 public
 instance
   {a: Type}
   (totalFun: Bytes.Function a)
-  : Bytes.SubFunction totalFun totalFun
+  : Bytes.Function.Has totalFun totalFun
 where
   toALaCarte := DY.ALaCarte.instSubPartialFunTC_refl _
 
 public
 instance
   {SubF1 SubF2: Type → Type}
-  [SubBytesFunctor SubF1] [SubBytesFunctor SubF2]
-  [BytesFunctor.HasStep SubF1 SubF2]
-  [BytesFunctor.Has SubF2]
+  [Bytes.Part SubF1] [Bytes.Part SubF2]
+  [Bytes.HasStep SubF1 SubF2]
+  [Bytes.Has SubF2]
   {a: Type}
-  (partialFun1: Bytes.PartialFunction SubF1 a)
-  (partialFun2: Bytes.PartialFunction SubF2 a)
+  (partialFun1: Bytes.Function.Part SubF1 a)
+  (partialFun2: Bytes.Function.Part SubF2 a)
   (totalFun: Bytes.Function a)
-  [Bytes.SubFunctionStep partialFun1 partialFun2]
-  [Bytes.SubFunction partialFun2 totalFun]
-  : Bytes.SubFunction partialFun1 totalFun
+  [Bytes.Function.HasStep partialFun1 partialFun2]
+  [Bytes.Function.Has partialFun2 totalFun]
+  : Bytes.Function.Has partialFun1 totalFun
 where
   toALaCarte := DY.ALaCarte.instSubPartialFunTC_trans _ partialFun2 _
 
 public
-def Bytes.PartialFunction.combine
+def Bytes.Function.combine
   {n: Nat}
-  {SubFs: Fin n → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {SubFs: Fin n → Type → Type} [∀ id, Bytes.Part (SubFs id)]
   {a: Type}
-  (funs: (id: Fin n) → Bytes.PartialFunction (SubFs id) a)
-  : Bytes.PartialFunction (BytesFunctor.combine SubFs) a
+  (funs: (id: Fin n) → Bytes.Function.Part (SubFs id) a)
+  : Bytes.Function.Part (Bytes.combine SubFs) a
 :=
   ALaCarte.Container.PartialFun.combine funs
 
 public
 instance
   {n: Nat}
-  {SubFs: Fin n → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {SubFs: Fin n → Type → Type} [∀ id, Bytes.Part (SubFs id)]
   {a: Type}
-  (funs: (id: Fin n) → Bytes.PartialFunction (SubFs id) a)
+  (funs: (id: Fin n) → Bytes.Function.Part (SubFs id) a)
   (id: Fin n)
-  : Bytes.SubFunctionStep (funs id) (Bytes.PartialFunction.combine funs)
+  : Bytes.Function.HasStep (funs id) (Bytes.Function.combine funs)
 where
   toALaCarte := DY.ALaCarte.instSubPartialFun_combine _ _
 
 public
 theorem Bytes.rec_eq
-  {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
+  {SubF: Type → Type} [Bytes.Part SubF] [Bytes.Has SubF]
   {a: Type}
-  (partialFun: Bytes.PartialFunction SubF a)
+  (partialFun: Bytes.Function.Part SubF a)
   (totalFun: Bytes.Function a)
-  [Bytes.SubFunction partialFun totalFun]
+  [Bytes.Function.Has partialFun totalFun]
   (x: BytesView SubF)
   : x.pack.rec totalFun = partialFun x (fun y _ => y.rec totalFun)
 :=
   ALaCarte.Container.rec_eq partialFun totalFun x
 
--- Unfolding of `ALaCarte.Container.PartialProof1 fn rec p` that use the type `Bytes` instead of `ContainerFor BytesF`
+-- Unfolding of `ALaCarte.Container.PartialProof1 fn rec p` that use the type `Bytes` instead of `ContainerFor Bytes.Functor`
 @[expose]
 public
-def Bytes.PartialProof1 {SubF: Type → Type} [SubBytesFunctor SubF] {a: Type} (fn: Bytes.PartialFunction SubF a) (rec: Bytes → a) (p: a → Prop) :=
+def Bytes.Proof1.Part {SubF: Type → Type} [Bytes.Part SubF] {a: Type} (fn: Bytes.Function.Part SubF a) (rec: Bytes → a) (p: a → Prop) :=
   ∀ x: SubF Bytes, (∀ y: Bytes, sizeOf y ≤ DY.ALaCarte.FunctorSizeOf.sizeOf x → p (rec y)) → p (fn x (fun y _ => rec y))
 
 @[expose]
 public
-def Bytes.Proof1 {a: Type} (fn: Bytes.Function a) (p: a → Prop) := Bytes.PartialProof1 fn (Bytes.rec fn) p
+def Bytes.Proof1 {a: Type} (fn: Bytes.Function a) (p: a → Prop) := Bytes.Proof1.Part fn (Bytes.rec fn) p
 
 public
 theorem Bytes.Proof1.prove
@@ -287,26 +290,26 @@ theorem Bytes.Proof1.prove
   ALaCarte.Container.rec (ALaCarte.Container.PartialProof1.into pf) x
 
 public
-theorem Bytes.PartialProof1.combine
+theorem Bytes.Proof1.combine
   {n: Nat}
-  {SubFs: Fin n → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {SubFs: Fin n → Type → Type} [∀ id, Bytes.Part (SubFs id)]
   {a: Type}
-  {funs: (id: Fin n) → Bytes.PartialFunction (SubFs id) a}
+  {funs: (id: Fin n) → Bytes.Function.Part (SubFs id) a}
   {rec: Bytes → a} {p: a → Prop}
-  (pfs: (id: Fin n) → Bytes.PartialProof1 (funs id) rec p)
-  : Bytes.PartialProof1 (Bytes.PartialFunction.combine funs) rec p
+  (pfs: (id: Fin n) → Bytes.Proof1.Part (funs id) rec p)
+  : Bytes.Proof1.Part (Bytes.Function.combine funs) rec p
 :=
   ALaCarte.Container.PartialProof1.combine pfs
 
--- Unfolding of `ALaCarte.Container.PartialProof2 fn1 fn2 rec1 rec2 p` that use the type `Bytes` instead of `ContainerFor BytesF`
+-- Unfolding of `ALaCarte.Container.PartialProof2 fn1 fn2 rec1 rec2 p` that use the type `Bytes` instead of `ContainerFor Bytes.Functor`
 @[expose]
 public
-def Bytes.PartialProof2 {SubF: Type → Type} [SubBytesFunctor SubF] {a b: Type} (fn1: Bytes.PartialFunction SubF a) (fn2: Bytes.PartialFunction SubF b) (rec1: Bytes → a) (rec2: Bytes → b) (p: a × b → Prop) :=
+def Bytes.Proof2.Part {SubF: Type → Type} [Bytes.Part SubF] {a b: Type} (fn1: Bytes.Function.Part SubF a) (fn2: Bytes.Function.Part SubF b) (rec1: Bytes → a) (rec2: Bytes → b) (p: a × b → Prop) :=
   ∀ x: SubF Bytes, (∀ y: Bytes, sizeOf y ≤ DY.ALaCarte.FunctorSizeOf.sizeOf x → p (rec1 y, rec2 y)) → p (fn1 x (fun y _ => rec1 y), fn2 x (fun y _ => rec2 y))
 
 @[expose]
 public
-def Bytes.Proof2 {a b: Type} (fn1: Bytes.Function a) (fn2: Bytes.Function b) (p: a × b → Prop) := Bytes.PartialProof2 fn1 fn2 (Bytes.rec fn1) (Bytes.rec fn2) p
+def Bytes.Proof2 {a b: Type} (fn1: Bytes.Function a) (fn2: Bytes.Function b) (p: a × b → Prop) := Bytes.Proof2.Part fn1 fn2 (Bytes.rec fn1) (Bytes.rec fn2) p
 
 public
 theorem Bytes.Proof2.prove
@@ -321,93 +324,93 @@ theorem Bytes.Proof2.prove
   ALaCarte.Container.rec (ALaCarte.Container.PartialProof2.into pf) x
 
 public
-theorem Bytes.PartialProof2.combine
+theorem Bytes.Proof2.combine
   {n: Nat}
-  {SubFs: Fin n → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
+  {SubFs: Fin n → Type → Type} [∀ id, Bytes.Part (SubFs id)]
   {a: Type} {b: Type}
-  {funs1: (id: Fin n) → Bytes.PartialFunction (SubFs id) a}
-  {funs2: (id: Fin n) → Bytes.PartialFunction (SubFs id) b}
+  {funs1: (id: Fin n) → Bytes.Function.Part (SubFs id) a}
+  {funs2: (id: Fin n) → Bytes.Function.Part (SubFs id) b}
   {rec1: Bytes → a} {rec2: Bytes → b} {p: a × b → Prop}
-  (pfs: (id: Fin n) → Bytes.PartialProof2 (funs1 id) (funs2 id) rec1 rec2 p)
-  : Bytes.PartialProof2 (Bytes.PartialFunction.combine funs1) (Bytes.PartialFunction.combine funs2) rec1 rec2 p
+  (pfs: (id: Fin n) → Bytes.Proof2.Part (funs1 id) (funs2 id) rec1 rec2 p)
+  : Bytes.Proof2.Part (Bytes.Function.combine funs1) (Bytes.Function.combine funs2) rec1 rec2 p
 :=
   ALaCarte.Container.PartialProof2.combine pfs
 
 public
-class BytesLength where
-  funs: Bytes.Function Nat
+class Bytes.length.Def where
+  whole: Bytes.Function Nat
 
 public
-def Bytes.length [BytesLength] (b: Bytes): Nat :=
-  Bytes.rec BytesLength.funs b
+def Bytes.length [Bytes.length.Def] (b: Bytes): Nat :=
+  Bytes.rec Bytes.length.Def.whole b
 
 public
-abbrev Bytes.PartialLength [BytesFunctor] (SubF: Type → Type) [SubBytesFunctor SubF] := Bytes.PartialFunction SubF Nat
+abbrev Bytes.length.Part [Bytes.Def] (SubF: Type → Type) [Bytes.Part SubF] := Bytes.Function.Part SubF Nat
 
 public
-class BytesLength.HasStep
+class Bytes.length.HasStep
   {SubF1 SubF2: Type → Type}
-  [SubBytesFunctor SubF1] [SubBytesFunctor SubF2]
-  [BytesFunctor.HasStep SubF1 SubF2]
-  (partialLength1: outParam (Bytes.PartialLength SubF1))
-  (partialLength2: Bytes.PartialLength SubF2)
-  extends Bytes.SubFunctionStep partialLength1 partialLength2
+  [Bytes.Part SubF1] [Bytes.Part SubF2]
+  [Bytes.HasStep SubF1 SubF2]
+  (partialLength1: outParam (Bytes.length.Part SubF1))
+  (partialLength2: Bytes.length.Part SubF2)
+  extends Bytes.Function.HasStep partialLength1 partialLength2
 
 public
-class BytesLength.Has
-  [BytesLength]
+class Bytes.length.Has
+  [Bytes.length.Def]
   {SubF: Type → Type}
-  [SubBytesFunctor SubF]
-  [BytesFunctor.Has SubF]
-  (binv: outParam (Bytes.PartialLength SubF))
-  extends Bytes.SubFunction binv BytesLength.funs
+  [Bytes.Part SubF]
+  [Bytes.Has SubF]
+  (binv: outParam (Bytes.length.Part SubF))
+  extends Bytes.Function.Has binv Bytes.length.Def.whole
 
 public
-abbrev Bytes.PartialLength.combine
+abbrev Bytes.length.combine
   {n: Nat}
-  {SubFs: Fin n → Type → Type} [∀ id, SubBytesFunctor (SubFs id)]
-  (lens: ∀ id, Bytes.PartialLength (SubFs id))
-  : Bytes.PartialLength (BytesFunctor.combine SubFs)
+  {SubFs: Fin n → Type → Type} [∀ id, Bytes.Part (SubFs id)]
+  (lens: ∀ id, Bytes.length.Part (SubFs id))
+  : Bytes.length.Part (Bytes.combine SubFs)
 :=
-  Bytes.PartialFunction.combine lens
+  Bytes.Function.combine lens
 
-namespace BytesLength
+namespace Bytes.length.Def
 
 public
-instance [BytesLength]: BytesLength.Has (BytesLength.funs) where
+instance [Bytes.length.Def]: Bytes.length.Has (Bytes.length.Def.whole) where
 
 public
 instance
-  [BytesLength]
+  [Bytes.length.Def]
   {SubF1 SubF2: Type → Type}
-  [SubBytesFunctor SubF1] [SubBytesFunctor SubF2]
-  [BytesFunctor.HasStep SubF1 SubF2]
-  [BytesFunctor.Has SubF2]
-  (partialLen1: Bytes.PartialLength SubF1)
-  (partialLen2: Bytes.PartialLength SubF2)
-  [inst1: BytesLength.HasStep partialLen1 partialLen2]
-  [inst2: BytesLength.Has partialLen2]
-  : BytesLength.Has partialLen1
+  [Bytes.Part SubF1] [Bytes.Part SubF2]
+  [Bytes.HasStep SubF1 SubF2]
+  [Bytes.Has SubF2]
+  (partialLen1: Bytes.length.Part SubF1)
+  (partialLen2: Bytes.length.Part SubF2)
+  [inst1: Bytes.length.HasStep partialLen1 partialLen2]
+  [inst2: Bytes.length.Has partialLen2]
+  : Bytes.length.Has partialLen1
 where
 
 public
 instance
   {n: Nat}
-  (SubFs: Fin n → Type → Type) [∀ id, SubBytesFunctor (SubFs id)]
-  (invs: ∀ id, Bytes.PartialLength (SubFs id))
+  (SubFs: Fin n → Type → Type) [∀ id, Bytes.Part (SubFs id)]
+  (invs: ∀ id, Bytes.length.Part (SubFs id))
   (id: Fin n)
-  : BytesLength.HasStep (invs id) (Bytes.PartialLength.combine invs)
+  : Bytes.length.HasStep (invs id) (Bytes.length.combine invs)
 where
 
-end BytesLength
+end Bytes.length.Def
 
 @[simp]
 public
 theorem Bytes.length.eq
-  {SubF: Type → Type} [SubBytesFunctor SubF] [BytesFunctor.Has SubF]
-  [BytesLength]
-  {subLength: Bytes.PartialLength SubF}
-  [BytesLength.Has subLength]
+  {SubF: Type → Type} [Bytes.Part SubF] [Bytes.Has SubF]
+  [Bytes.length.Def]
+  {subLength: Bytes.length.Part SubF}
+  [Bytes.length.Has subLength]
   (b: BytesView SubF)
   : b.pack.length = subLength b (fun y _ => y.length)
 := by
@@ -418,61 +421,61 @@ grind_pattern Bytes.length.eq => b.pack.length
 namespace Meta.CombineMacro
 
 macro_rules
-  | `(command| #combine_one $options* BytesFunctor $params* from $sources,*) => do
+  | `(command| #combine_one $options* Bytes $params* from $sources,*) => do
     let options := parseOptions options
     let sources := sources.getElems
 
     let combined ← combineExplicit params sources {
-      name := `SubF
-      combineName := ``DY.BytesFunctor.combine
+      name := `BytesPart.Functor
+      combineName := ``DY.Bytes.combine
       internalOutTypeStx := fun _ _ => `(term| Type → Type)
       outTypeStx := fun _ => `(term| Type → Type)
       isTheorem := false
     }
 
     let typeclass ← combineTypeclass params sources <| .makeSimple {
-      refereeName := `SubF
-      combineName := ``DY.BytesFunctor.combine
-      outTypeName := ``DY.SubBytesFunctor
+      refereeName := `BytesPart.Functor
+      combineName := ``DY.Bytes.combine
+      outTypeName := ``DY.Bytes.Part
     }
 
     let hasStep ← mkHasStep params sources <| .makeSimple {
-      name := `SubF
-      combineName := ``DY.BytesFunctor.combine
-      hasStepName := ``DY.BytesFunctor.HasStep
+      name := `BytesPart.Functor
+      combineName := ``DY.Bytes.combine
+      hasStepName := ``DY.Bytes.HasStep
     }
 
-    let subfStx := Lean.mkIdent `SubF
-    let topLevelInst ← `(command| public instance: DY.BytesFunctor where BytesF := $subfStx)
-    let topLevelHas ← `(command| public instance: DY.BytesFunctor.Has $subfStx := inferInstanceAs (DY.BytesFunctor.Has DY.BytesFunctor.BytesF))
+    let subfStx := Lean.mkIdent `BytesPart.Functor
+    let topLevelInst ← `(command| public instance: DY.Bytes.Def where whole := $subfStx)
+    let topLevelHas ← `(command| public instance: DY.Bytes.Has $subfStx := inferInstanceAs (DY.Bytes.Has DY.Bytes.Functor))
     let topLevel := if options.toplevel then #[topLevelInst, topLevelHas] else #[]
 
     return Lean.mkNullNode (combined ++ typeclass ++ hasStep ++ topLevel)
 
 macro_rules
-  | `(command| #combine_one $options* BytesLength $params* from $sources,*) => do
+  | `(command| #combine_one $options* Bytes.length $params* from $sources,*) => do
     let options := parseOptions options
-    let baseParams := #[(← `(bracketedBinder| [DY.BytesFunctor]))]
+    let baseParams := #[(← `(bracketedBinder| [DY.Bytes.Def]))]
     let params := if options.toplevel then params else baseParams ++ params
     let sources := sources.getElems
 
     let combined ← combineExplicit params sources  <| .makeSimple {
-      name := `SubF.length
-      refereeName := `SubF
-      combineName := ``DY.Bytes.PartialLength.combine
-      outTypeName := `DY.Bytes.PartialLength
+      name := `BytesPart.length
+      refereeName := `BytesPart.Functor
+      combineName := ``DY.Bytes.length.combine
+      outTypeName := `DY.Bytes.length.Part
       isTheorem := false
     }
 
     let hasStep ← mkHasStep params sources <| .makeSimple {
-      name := `SubF.length
-      combineName := ``DY.Bytes.PartialLength.combine
-      hasStepName := ``DY.BytesLength.HasStep
+      name := `BytesPart.length
+      combineName := ``DY.Bytes.length.combine
+      hasStepName := ``DY.Bytes.length.HasStep
     }
 
-    let lengthStx := Lean.mkIdent `SubF.length
-    let topLevelInst ← `(command| public instance: DY.BytesLength where funs := $lengthStx)
-    let topLevelHas ← `(command| public instance: DY.BytesLength.Has $lengthStx := inferInstanceAs (DY.BytesLength.Has DY.BytesLength.funs))
+    let lengthStx := Lean.mkIdent `BytesPart.length
+    let topLevelInst ← `(command| public instance: DY.Bytes.length.Def where whole := $lengthStx)
+    let topLevelHas ← `(command| public instance: DY.Bytes.length.Has $lengthStx := inferInstanceAs (DY.Bytes.length.Has DY.Bytes.length.Def.whole))
     let topLevel := if options.toplevel then #[topLevelInst, topLevelHas] else #[]
 
     return Lean.mkNullNode (combined ++ hasStep ++ topLevel)
