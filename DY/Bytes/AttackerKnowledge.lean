@@ -141,7 +141,6 @@ where
 
 end AttackerKnowledge
 
-public
 def Bytes.AttackerKnows.baseKnowledge [ExecTraceTypes] [BaseAttackerKnowledge] (tr: ExecTrace): SubAttackerKnowledge BytesF :=
   SubAttackerKnowledge.fromPred tr.BaseAttackerKnows
 
@@ -296,12 +295,12 @@ theorem Bytes.AttackerKnows.is_least_fixpoint
   (pred: Bytes → Prop)
   (b: Bytes) (tr: ExecTrace)
   (pf1: SubAttackerKnowledge.Implies AttackerKnowledge.attackerKnowledge pred)
-  (pf2: SubAttackerKnowledge.Implies (Bytes.AttackerKnows.baseKnowledge tr) pred)
+  (pf2: ∀ b, tr.BaseAttackerKnows b → pred b)
   : Bytes.AttackerKnows b tr →
     pred b
 :=
   Fixpoint.mkLeastFixpoint_is_least ((Bytes.AttackerKnows.attackerKnowledge tr).pred) ((Bytes.AttackerKnows.attackerKnowledge tr).pred_isMonotonic) pred (by
-    simp [attackerKnowledge, SubAttackerKnowledge.combine', Fixpoint.combine]
+    simp only [attackerKnowledge, baseKnowledge, SubAttackerKnowledge.fromPred, SubAttackerKnowledge.combine', Fixpoint.combine]
     intro b
     have := pf1 b
     have := pf2 b

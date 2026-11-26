@@ -11,7 +11,6 @@ module
 public import DY.Bytes.Basic
 public import DY.Bytes.Invariants
 public import DY.Bytes.AttackerKnowledge
-import all DY.Bytes.AttackerKnowledge
 public import DY.Trace
 public meta import DY.Meta.CombineMacro
 
@@ -77,7 +76,6 @@ theorem Bytes.AttackerKnows_implies_Publishable
   · intro b
     exact inst.inst.pf b tr h_tr
   · intro b
-    simp only [AttackerKnows.baseKnowledge, SubAttackerKnowledge.fromPred]
     apply Trace.BaseAttackerKnows_implies_Publishable
     assumption
 
