@@ -43,7 +43,7 @@ public meta
 initialize hasSuffixAttr: ParametricAttribute Name ←
   registerParametricAttribute {
     name := `has_suffix
-    descr := "naming convention for the argument of a `D.Has` typeclass, used by `D has% X`"
+    descr := "naming convention for the argument of a `D.Has` typeclass, used by `D has% P`"
     getParam := fun _ stx =>
       match stx with
       | `(attr| has_suffix $suffix:ident) => pure suffix.getId
@@ -51,7 +51,7 @@ initialize hasSuffixAttr: ParametricAttribute Name ←
   }
 
 /--
-  `D has% P arg1 ... argn` is expands to `D.Has (P.xxx arg1 ... argn)`,
+  `D has% P arg1 ... argn` expands to `D.Has (P.xxx arg1 ... argn)`,
   where `xxx` was registered with the attribute `@[has_suffix xxx]`
   on the definition of `D.Has`.
 -/
