@@ -13,20 +13,20 @@ public section ExecBytesConfig
 
 class HasExecBytesWithoutDEO where
   [bytesFunc: Bytes.Def]
-  [bytesFunc0: Bytes.Has Random.BytesPart.Functor]
-  [bytesFunc1: Bytes.Has Literal.BytesPart.Functor]
-  [bytesFunc2: Bytes.Has Concat.BytesPart.Functor]
-  [bytesFunc3: Bytes.Has Signature.BytesPart.Functor]
+  [bytesFunc0: Bytes has% Random]
+  [bytesFunc1: Bytes has% Literal]
+  [bytesFunc2: Bytes has% Concat]
+  [bytesFunc3: Bytes has% Signature]
   [bytesLen: Bytes.length.Def]
-  [bytesLen0: Bytes.length.Has Random.BytesPart.length]
-  [bytesLen1: Bytes.length.Has Literal.BytesPart.length]
-  [bytesLen2: Bytes.length.Has Concat.BytesPart.length]
-  [bytesLen3: Bytes.length.Has Signature.BytesPart.length]
+  [bytesLen0: Bytes.length has% Random]
+  [bytesLen1: Bytes.length has% Literal]
+  [bytesLen2: Bytes.length has% Concat]
+  [bytesLen3: Bytes.length has% Signature]
   [att: Bytes.AttackerKnows.Def]
-  [att0: Bytes.AttackerKnows.Has Random.attackerKnows]
-  [att1: Bytes.AttackerKnows.Has Literal.attackerKnows]
-  [att2: Bytes.AttackerKnows.Has Concat.attackerKnows]
-  [att3: Bytes.AttackerKnows.Has Signature.attackerKnows]
+  [att0: Bytes.AttackerKnows has% Random]
+  [att1: Bytes.AttackerKnows has% Literal]
+  [att2: Bytes.AttackerKnows has% Concat]
+  [att3: Bytes.AttackerKnows has% Signature]
 
 attribute [reducible, scoped instance] HasExecBytesWithoutDEO.bytesFunc
 attribute [reducible, scoped instance] HasExecBytesWithoutDEO.bytesFunc0
@@ -54,14 +54,14 @@ public section ExecTraceConfig
 -- same as HasExecTrace, but instead extends HasExecBytesWithoutDEO
 class HasExecTraceWithoutDEO extends HasExecBytesWithoutDEO where
   [traceExec: ExecTrace.Def]
-  [traceExec0: ExecTrace.Has Network.TracePart.Exec]
-  [traceExec1: ExecTrace.Has Random.TracePart.Exec]
-  [traceExec2: ExecTrace.Has (ProtocolEvent.TracePart.Exec ACMEEvent)]
-  [traceExec3: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec OwnerKeyState)]
-  [traceExec4: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec OwnerAddressState)]
-  [traceExec5: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec LetsEncryptPendingChallengeState)]
-  [traceExec6: ExecTrace.Has (PersistentGlobalState.CompromisableState.TracePart.Exec DNSEntry)]
-  [traceExec7: ExecTrace.Has (LongTermKeys.TracePart.Exec "ACME PKI")]
+  [traceExec0: ExecTrace has% Network]
+  [traceExec1: ExecTrace has% Random]
+  [traceExec2: ExecTrace has% ProtocolEvent ACMEEvent]
+  [traceExec3: ExecTrace has% PersistentLocalState.CompromisableState OwnerKeyState]
+  [traceExec4: ExecTrace has% PersistentLocalState.CompromisableState OwnerAddressState]
+  [traceExec5: ExecTrace has% PersistentLocalState.CompromisableState LetsEncryptPendingChallengeState]
+  [traceExec6: ExecTrace has% PersistentGlobalState.CompromisableState DNSEntry]
+  [traceExec7: ExecTrace has% LongTermKeys "ACME PKI"]
   [attBase: Trace.BaseAttackerKnows.Def]
 
 attribute [reducible, scoped instance] HasExecTraceWithoutDEO.traceExec
@@ -84,14 +84,14 @@ public section ProofTraceConfig
 
 class HasProofTrace extends HasExecTraceWithoutDEO where
   [traceProof: ProofTrace.Def]
-  [traceProof0: ProofTrace.Has Network.TracePart.Proof]
-  [traceProof1: ProofTrace.Has Random.TracePart.Proof]
-  [traceProof2: ProofTrace.Has (ProtocolEvent.TracePart.Proof ACMEEvent)]
-  [traceProof3: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof OwnerKeyState)]
-  [traceProof4: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof OwnerAddressState)]
-  [traceProof5: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof LetsEncryptPendingChallengeState)]
-  [traceProof6: ProofTrace.Has (PersistentGlobalState.CompromisableState.TracePart.Proof DNSEntry)]
-  [traceProof7: ProofTrace.Has (LongTermKeys.TracePart.Proof "ACME PKI")]
+  [traceProof0: ProofTrace has% Network]
+  [traceProof1: ProofTrace has% Random]
+  [traceProof2: ProofTrace has% ProtocolEvent ACMEEvent]
+  [traceProof3: ProofTrace has% PersistentLocalState.CompromisableState OwnerKeyState]
+  [traceProof4: ProofTrace has% PersistentLocalState.CompromisableState OwnerAddressState]
+  [traceProof5: ProofTrace has% PersistentLocalState.CompromisableState LetsEncryptPendingChallengeState]
+  [traceProof6: ProofTrace has% PersistentGlobalState.CompromisableState DNSEntry]
+  [traceProof7: ProofTrace has% LongTermKeys "ACME PKI"]
 
 attribute [reducible, scoped instance] HasProofTrace.traceProof
 attribute [reducible, scoped instance] HasProofTrace.traceProof0
@@ -128,10 +128,10 @@ public section BytesInvariantsConfig
 class HasBytesInvariants extends HasProofTrace where
   [bytesInv: Bytes.Invariants.Def]
   [bytesInvProof: Bytes.Invariants.Lawful]
-  [bytesInv0: Bytes.Invariants.Has Random.BytesPart.invariants]
-  [bytesInv1: Bytes.Invariants.Has Literal.BytesPart.invariants]
-  [bytesInv2: Bytes.Invariants.Has Concat.BytesPart.invariants]
-  [bytesInv3: Bytes.Invariants.Has Signature.BytesPart.invariants]
+  [bytesInv0: Bytes.Invariants has% Random]
+  [bytesInv1: Bytes.Invariants has% Literal]
+  [bytesInv2: Bytes.Invariants has% Concat]
+  [bytesInv3: Bytes.Invariants has% Signature]
 
 attribute [reducible, scoped instance] HasBytesInvariants.bytesInv
 attribute [           scoped instance] HasBytesInvariants.bytesInvProof
@@ -237,14 +237,14 @@ public section TraceInvariantConfig
 
 class HasTraceInvariant extends HasBytesInvariants where
   [traceInv: Trace.Invariant.Def]
-  [traceInv0: Trace.Invariant.Has Network.TracePart.Proof]
-  [traceInv1: Trace.Invariant.Has Random.TracePart.Proof]
-  [traceInv2: Trace.Invariant.Has (ProtocolEvent.TracePart.Proof ACMEEvent)]
-  [traceInv3: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof OwnerKeyState)]
-  [traceInv4: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof OwnerAddressState)]
-  [traceInv5: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof LetsEncryptPendingChallengeState)]
-  [traceInv6: Trace.Invariant.Has (PersistentGlobalState.CompromisableState.TracePart.Proof DNSEntry)]
-  [traceInv7: Trace.Invariant.Has (LongTermKeys.TracePart.Proof "ACME PKI")]
+  [traceInv0: Trace.Invariant has% Network]
+  [traceInv1: Trace.Invariant has% Random]
+  [traceInv2: Trace.Invariant has% ProtocolEvent ACMEEvent]
+  [traceInv3: Trace.Invariant has% PersistentLocalState.CompromisableState OwnerKeyState]
+  [traceInv4: Trace.Invariant has% PersistentLocalState.CompromisableState OwnerAddressState]
+  [traceInv5: Trace.Invariant has% PersistentLocalState.CompromisableState LetsEncryptPendingChallengeState]
+  [traceInv6: Trace.Invariant has% PersistentGlobalState.CompromisableState DNSEntry]
+  [traceInv7: Trace.Invariant has% LongTermKeys "ACME PKI"]
   [attBaseThm: Trace.BaseAttackerKnows_implies_Publishable.Proof]
   [attThm: Bytes.AttackerKnows_implies_Publishable.Proof]
 

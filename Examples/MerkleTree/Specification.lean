@@ -275,23 +275,23 @@ public section ExecBytesConfig
 
 class HasExecBytes where
   [bytesFunc: Bytes.Def]
-  [bytesFunc0: Bytes.Has Literal.BytesPart.Functor]
-  [bytesFunc1: Bytes.Has Concat.BytesPart.Functor]
-  [bytesFunc2: Bytes.Has Hash.BytesPart.Functor]
-  [bytesFunc3: Bytes.Has Signature.BytesPart.Functor]
-  [bytesFunc4: Bytes.Has Random.BytesPart.Functor]
+  [bytesFunc0: Bytes has% Literal]
+  [bytesFunc1: Bytes has% Concat]
+  [bytesFunc2: Bytes has% Hash]
+  [bytesFunc3: Bytes has% Signature]
+  [bytesFunc4: Bytes has% Random]
   [bytesLen: Bytes.length.Def]
-  [bytesLen0: Bytes.length.Has Literal.BytesPart.length]
-  [bytesLen1: Bytes.length.Has Concat.BytesPart.length]
-  [bytesLen2: Bytes.length.Has Hash.BytesPart.length]
-  [bytesLen3: Bytes.length.Has Signature.BytesPart.length]
-  [bytesLen4: Bytes.length.Has Random.BytesPart.length]
+  [bytesLen0: Bytes.length has% Literal]
+  [bytesLen1: Bytes.length has% Concat]
+  [bytesLen2: Bytes.length has% Hash]
+  [bytesLen3: Bytes.length has% Signature]
+  [bytesLen4: Bytes.length has% Random]
   [att: Bytes.AttackerKnows.Def]
-  [att0: Bytes.AttackerKnows.Has Literal.attackerKnows]
-  [att1: Bytes.AttackerKnows.Has Concat.attackerKnows]
-  [att2: Bytes.AttackerKnows.Has Hash.attackerKnows]
-  [att3: Bytes.AttackerKnows.Has Signature.attackerKnows]
-  [att4: Bytes.AttackerKnows.Has Random.attackerKnows]
+  [att0: Bytes.AttackerKnows has% Literal]
+  [att1: Bytes.AttackerKnows has% Concat]
+  [att2: Bytes.AttackerKnows has% Hash]
+  [att3: Bytes.AttackerKnows has% Signature]
+  [att4: Bytes.AttackerKnows has% Random]
 
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc0
@@ -423,11 +423,11 @@ public section ExecTraceConfig
 
 class HasExecTrace extends HasExecBytes where
   [traceExec: ExecTrace.Def]
-  [traceExec0: ExecTrace.Has Network.TracePart.Exec]
-  [traceExec1: ExecTrace.Has Random.TracePart.Exec]
-  [traceExec2: ExecTrace.Has (ProtocolEvent.TracePart.Exec TheEvent)]
-  [traceExec3: ExecTrace.Has (LongTermKeys.TracePart.Exec "MerkleTree PKI")]
-  [traceExec4: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec ServerState)]
+  [traceExec0: ExecTrace has% Network]
+  [traceExec1: ExecTrace has% Random]
+  [traceExec2: ExecTrace has% ProtocolEvent TheEvent]
+  [traceExec3: ExecTrace has% LongTermKeys "MerkleTree PKI"]
+  [traceExec4: ExecTrace has% PersistentLocalState.CompromisableState ServerState]
   [attBase: Trace.BaseAttackerKnows.Def]
 
 attribute [reducible, scoped instance] HasExecTrace.traceExec

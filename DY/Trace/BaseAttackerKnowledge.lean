@@ -15,6 +15,7 @@ public
 class Trace.BaseAttackerKnows.Def [Bytes.Def] [ExecTrace.Def] where
   whole: Trace.BaseAttackerKnows.Part ExecTrace.Entry
 
+@[has_suffix TracePart.baseAttackerKnows]
 public
 class Trace.BaseAttackerKnows.Has
   [Bytes.Def] [ExecTrace.Def]

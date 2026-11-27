@@ -116,13 +116,13 @@ end Dh
   DhPk,
   Dh,
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+public
+abbrev DhPk.BytesPart.Functor.pack [Bytes.Def] [Bytes has% DhPk] (x: DhPk.BytesPart.Functor Bytes) := BytesView.pack x
 
 public
-abbrev DhPk.BytesPart.Functor.pack (x: DhPk.BytesPart.Functor Bytes) := BytesView.pack x
+abbrev Dh.BytesPart.Functor.pack [Bytes.Def] [Bytes has% Dh] (x: Dh.BytesPart.Functor Bytes) := BytesView.pack x
 
-public
-abbrev Dh.BytesPart.Functor.pack (x: Dh.BytesPart.Functor Bytes) := BytesView.pack x
+variable [Bytes.Def] [Bytes has% DiffieHellman]
 
 public
 instance: CanDH Bytes where
@@ -154,27 +154,27 @@ end Constructors
 section AttackerKnowledge
 
 public
-def dhPk.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def dhPk.attackerKnows [Bytes.Def] [Bytes has% DiffieHellman]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ sk,
       out = dhPk sk ∧
       p sk
 
 public
-def dh.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def dh.attackerKnows [Bytes.Def] [Bytes has% DiffieHellman]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ pk sk,
       out = dh pk sk ∧
       p pk ∧
       p sk
 
-#combine [Bytes.Has BytesPart.Functor] into Bytes.AttackerKnows.merge from
+#combine [Bytes has% DiffieHellman] into Bytes.AttackerKnows.merge from
   dhPk,
   dh,
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% DiffieHellman]
 variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
-variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows has% DiffieHellman]
 
 public
 theorem attacker_knows_dhPk
@@ -230,8 +230,8 @@ end Definition
 section DhPkLemmas
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has DiffieHellman.BytesPart.Functor]
-variable [Bytes.Invariants.Def] [Bytes.Invariants.Has DhPk.BytesPart.invariants]
+variable [Bytes.Def] [Bytes has% DiffieHellman]
+variable [Bytes.Invariants.Def] [Bytes.Invariants has% DhPk]
 
 @[simp]
 public
@@ -265,7 +265,7 @@ end DhPkLemmas
 section Definition
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has DiffieHellman.BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% DiffieHellman]
 
 public
 def Dh.BytesPart.invariants: Bytes.Invariants.Part Dh.BytesPart.Functor where
@@ -287,7 +287,7 @@ def Dh.BytesPart.invariants: Bytes.Invariants.Part Dh.BytesPart.Functor where
       (rec sk) tr
 
 public
-theorem Dh.BytesPart.invariantsLawful [Bytes.Invariants.Def] [Bytes.Invariants.Has DhPk.BytesPart.invariants]: Bytes.Invariants.Part.Lawful Dh.BytesPart.invariants where
+theorem Dh.BytesPart.invariantsLawful [Bytes.Invariants.Def] [Bytes.Invariants has% DhPk]: Bytes.Invariants.Part.Lawful Dh.BytesPart.invariants where
   label_later := by
     intro _ x rec tr1 tr2
     cases x
@@ -295,9 +295,9 @@ theorem Dh.BytesPart.invariantsLawful [Bytes.Invariants.Def] [Bytes.Invariants.H
 
 end Definition
 
-#combine [Bytes.Has BytesPart.Functor] into
+#combine [Bytes has% DiffieHellman] into
   Bytes.Invariants,
-  Bytes.Invariants.Lawful [Bytes.Invariants.Has DhPk.BytesPart.invariants]
+  Bytes.Invariants.Lawful [Bytes.Invariants has% DhPk]
 from
   DhPk,
   Dh,
@@ -309,7 +309,7 @@ end DiffieHellman
 
 section ExtractDhSk
 
-variable [Bytes.Def] [Bytes.Has DiffieHellman.BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% DiffieHellman]
 
 noncomputable
 def DiffieHellman.extractDhSk (pk: Bytes): Option Bytes :=
@@ -329,7 +329,7 @@ theorem DiffieHellman.dhPk_extractDhSk (b: Bytes):
 variable [ExecTrace.Def] [ProofTrace.Def]
 
 theorem DiffieHellman.extractDhSk.preserves_WellFormed
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has DiffieHellman.BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% DiffieHellman]
 : ExtractPreservesWellFormed extractDhSk
 := by
   simp [ExtractPreservesWellFormed]
@@ -346,7 +346,7 @@ def Bytes.dhSkLabel
 public
 theorem Bytes.dhSkLabel_dhPk
   [Bytes.Invariants.Def]
-  [Bytes.Invariants.Has DiffieHellman.BytesPart.invariants]
+  [Bytes.Invariants has% DiffieHellman]
   (sk: Bytes) (tr: ProofTrace)
   : (DiffieHellman.dhPk sk).dhSkLabel tr = sk.label tr
 := by
@@ -358,7 +358,7 @@ grind_pattern Bytes.dhSkLabel_dhPk => (DiffieHellman.dhPk sk).dhSkLabel tr
 public
 theorem Bytes.dhSkLabel_later
   [Bytes.Invariants.Def]
-  [Bytes.Invariants.Has DiffieHellman.BytesPart.invariants]
+  [Bytes.Invariants has% DiffieHellman]
   [Bytes.label_later.Proof]
   (b: Bytes) (tr1 tr2: ProofTrace)
   :
@@ -374,7 +374,7 @@ grind_pattern Bytes.dhSkLabel_later => tr1 ≤ tr2, b.dhSkLabel tr1
 public
 theorem Bytes.dhSkLabel_later_fast
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [Bytes.Invariants.Has DiffieHellman.BytesPart.invariants]
+  [Bytes.Invariants has% DiffieHellman]
   (b: Bytes) (tr1 tr2: ProofTrace)
   :
     b.Invariant tr1 →
@@ -390,8 +390,8 @@ namespace DiffieHellman
 section Invariants
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
-variable [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes.Def] [Bytes has% DiffieHellman]
+variable [Bytes.Invariants.Def] [Bytes.Invariants has% DiffieHellman]
 
 @[simp]
 public
@@ -450,9 +450,9 @@ end Invariants
 
 section HoareTriples
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% DiffieHellman]
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes.Invariants.Def] [Bytes.Invariants has% DiffieHellman]
 
 public
 instance
@@ -494,8 +494,8 @@ section AttackerKnowledgeTheorem
 
 variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
 variable [Bytes.Def] [Bytes.Invariants.Def]
-variable [Bytes.Has BytesPart.Functor]
-variable [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes has% DiffieHellman]
+variable [Bytes.Invariants has% DiffieHellman]
 
 public
 instance: Bytes.AttackerKnows_implies_Publishable.Part dhPk.attackerKnows where
@@ -518,7 +518,7 @@ instance: Bytes.AttackerKnows_implies_Publishable.Part dh.attackerKnows where
 end AttackerKnowledgeTheorem
 section AttackerKnowledgeTheorem
 
-#combine [Bytes.Has BytesPart.Functor] [Bytes.Invariants.Has BytesPart.invariants] into Bytes.AttackerKnows_implies_Publishable.merge from
+#combine [Bytes has% DiffieHellman] [Bytes.Invariants has% DiffieHellman] into Bytes.AttackerKnows_implies_Publishable.merge from
   dhPk,
   dh
 

@@ -53,11 +53,10 @@ end DEO
   Signature.Vk,
   Signature.Sign,
   DEO
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
 
-public abbrev __root__.DY.Signature.Vk.BytesPart.Functor.pack (x: Signature.Vk.BytesPart.Functor Bytes) := BytesView.pack x
-public abbrev __root__.DY.Signature.Vk.BytesPart.Functor.Sign.BytesPart.Functor.pack (x: Signature.Sign.BytesPart.Functor Bytes) := BytesView.pack x
-public abbrev DEO.BytesPart.Functor.pack (x: DEO.BytesPart.Functor Bytes) := BytesView.pack x
+public abbrev DEO.BytesPart.Functor.pack [Bytes.Def] [Bytes has% DEO] (x: DEO.BytesPart.Functor Bytes) := BytesView.pack x
+
+variable [Bytes.Def] [Bytes has% SignDEO]
 
 public
 instance: Signature.CanSign Bytes where
@@ -105,14 +104,14 @@ end Constructors
 section AttackerKnowledge
 
 public
-def vk.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def vk.attackerKnows [Bytes.Def] [Bytes has% SignDEO]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ sk,
       out = Signature.vk sk ∧
       p sk
 
 public
-def sign.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def sign.attackerKnows [Bytes.Def] [Bytes has% SignDEO]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ sk nonce msg,
       out = Signature.sign sk nonce msg ∧
@@ -121,21 +120,21 @@ def sign.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.Attacker
       p msg
 
 public
-def deogen.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def deogen.attackerKnows [Bytes.Def] [Bytes has% SignDEO]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ msg sig,
       out = deogen msg sig ∧
       p msg ∧
       p sig
 
-#combine [Bytes.Has BytesPart.Functor] into Bytes.AttackerKnows.merge from
+#combine [Bytes has% SignDEO] into Bytes.AttackerKnows.merge from
   vk,
   sign,
   deogen
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% SignDEO]
 variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
-variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows has% SignDEO]
 
 public
 theorem attacker_knows_vk

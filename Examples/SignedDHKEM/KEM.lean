@@ -152,11 +152,11 @@ end SharedSecret
   Encap,
   SharedSecret,
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+public abbrev Pk.BytesPart.Functor.pack [Bytes.Def] [Bytes has% Pk] (x: Pk.BytesPart.Functor Bytes) := BytesView.pack x
+public abbrev Encap.BytesPart.Functor.pack [Bytes.Def] [Bytes has% Encap] (x: Encap.BytesPart.Functor Bytes) := BytesView.pack x
+public abbrev SharedSecret.BytesPart.Functor.pack [Bytes.Def] [Bytes has% SharedSecret] (x: SharedSecret.BytesPart.Functor Bytes) := BytesView.pack x
 
-public abbrev Pk.BytesPart.Functor.pack (x: Pk.BytesPart.Functor Bytes) := BytesView.pack x
-public abbrev Encap.BytesPart.Functor.pack (x: Encap.BytesPart.Functor Bytes) := BytesView.pack x
-public abbrev SharedSecret.BytesPart.Functor.pack (x: SharedSecret.BytesPart.Functor Bytes) := BytesView.pack x
+variable [Bytes.Def] [Bytes has% KEM]
 
 public
 instance: CanKem Bytes where
@@ -218,14 +218,14 @@ end Constructors
 section AttackerKnowledge
 
 public
-def kemPk.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def kemPk.attackerKnows [Bytes.Def] [Bytes has% KEM]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ sk,
       out = kemPk sk ∧
       p sk
 
 public
-def kemEncapCipher.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def kemEncapCipher.attackerKnows [Bytes.Def] [Bytes has% KEM]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ pk entropy rhs,
       (out, rhs) = kemEncap pk entropy ∧
@@ -233,7 +233,7 @@ def kemEncapCipher.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Byte
       p entropy
 
 public
-def kemEncapSS.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def kemEncapSS.attackerKnows [Bytes.Def] [Bytes has% KEM]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ pk entropy lhs,
       (lhs, out) = kemEncap pk entropy ∧
@@ -241,22 +241,22 @@ def kemEncapSS.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.At
       p entropy
 
 public
-def kemDecap.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def kemDecap.attackerKnows [Bytes.Def] [Bytes has% KEM]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ sk cipher,
       some out = kemDecap sk cipher ∧
       p sk ∧
       p cipher
 
-#combine [Bytes.Has BytesPart.Functor] into Bytes.AttackerKnows.merge from
+#combine [Bytes has% KEM] into Bytes.AttackerKnows.merge from
   kemPk,
   kemEncapCipher,
   kemEncapSS,
   kemDecap,
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% KEM]
 variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
-variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows has% KEM]
 
 public
 theorem kemPk.attacker_knows
@@ -314,7 +314,7 @@ structure BrokenKemEvent where
 
 #combine into ExecTrace, Trace.BaseAttackerKnows from ProtocolEvent BrokenKemEvent
 
-variable [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
+variable [ExecTrace.Def] [ExecTrace has% Broken]
 
 public
 def ThisKemPkHasBeenBroken (brokenPk: Bytes) (tr: ExecTrace): Prop :=
@@ -351,8 +351,8 @@ public
 def label (brokenPk: Bytes): Label where
   isCorrupt tr := ThisKemPkHasBeenBroken brokenPk tr
 
-variable [Bytes.Has KEM.BytesPart.Functor]
-variable [ExecTrace.Has Network.TracePart.Exec]
+variable [Bytes has% KEM]
+variable [ExecTrace has% Network]
 
 public
 def breakKemPk (msgHandle: Nat): Traceful Nat := do
@@ -373,8 +373,8 @@ section Invariants
 section Definition
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has KEM.BytesPart.Functor]
-variable [ExecTrace.Has Broken.TracePart.Exec]
+variable [Bytes.Def] [Bytes has% KEM]
+variable [ExecTrace has% Broken]
 
 public
 def Pk.BytesPart.invariants: Bytes.Invariants.Part Pk.BytesPart.Functor where
@@ -399,9 +399,9 @@ end Definition
 section PkLemmas
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has KEM.BytesPart.Functor]
-variable [ExecTrace.Has Broken.TracePart.Exec]
-variable [Bytes.Invariants.Def] [Bytes.Invariants.Has Pk.BytesPart.invariants]
+variable [Bytes.Def] [Bytes has% KEM]
+variable [ExecTrace has% Broken]
+variable [Bytes.Invariants.Def] [Bytes.Invariants has% Pk]
 
 @[simp]
 public
@@ -439,7 +439,7 @@ end KEM
 
 section ExtractKemPk
 
-variable [Bytes.Def] [Bytes.Has KEM.BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% KEM]
 
 noncomputable
 def KEM.extractKemSk (pk: Bytes): Option Bytes :=
@@ -459,8 +459,8 @@ theorem KEM.kemPk_extractKemSk (b: Bytes):
 variable [ExecTrace.Def] [ProofTrace.Def]
 
 theorem KEM.extractKemSk.preserves_WellFormed
-  [ExecTrace.Has KEM.Broken.TracePart.Exec]
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has KEM.Pk.BytesPart.invariants]
+  [ExecTrace has% KEM.Broken]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% KEM.Pk]
 : ExtractPreservesWellFormed KEM.extractKemSk
 := by
   simp [ExtractPreservesWellFormed]
@@ -487,8 +487,8 @@ grind_pattern Bytes.KemSkHasUsage_kemPk => (KEM.kemPk sk).KemSkHasUsage skUsg tr
 public
 theorem Bytes.KemSkHasUsage_later
   [Bytes.Invariants.Def]
-  [ExecTrace.Has KEM.Broken.TracePart.Exec]
-  [Bytes.Invariants.Has KEM.Pk.BytesPart.invariants]
+  [ExecTrace has% KEM.Broken]
+  [Bytes.Invariants has% KEM.Pk]
   [Bytes.usage_later.Proof] [Bytes.label_later.Proof]
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
   : b.WellFormed tr1 →
@@ -504,8 +504,8 @@ grind_pattern Bytes.KemSkHasUsage_later => tr1 ≤ tr2, b.KemSkHasUsage usg tr1
 public
 theorem Bytes.KemSkHasUsage_later_fast
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [ExecTrace.Has KEM.Broken.TracePart.Exec]
-  [Bytes.Invariants.Has KEM.Pk.BytesPart.invariants]
+  [ExecTrace has% KEM.Broken]
+  [Bytes.Invariants has% KEM.Pk]
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
   : b.Invariant tr1 →
     tr1 ≤ tr2 →
@@ -526,8 +526,8 @@ def Bytes.kemSkLabel
 public
 theorem Bytes.kemSkLabel_kemPk
   [Bytes.Invariants.Def]
-  [ExecTrace.Has KEM.Broken.TracePart.Exec]
-  [Bytes.Invariants.Has KEM.Pk.BytesPart.invariants]
+  [ExecTrace has% KEM.Broken]
+  [Bytes.Invariants has% KEM.Pk]
   (sk: Bytes) (tr: ProofTrace)
   : (KEM.kemPk sk).kemSkLabel tr = sk.label tr
 := by
@@ -539,8 +539,8 @@ grind_pattern Bytes.kemSkLabel_kemPk => (KEM.kemPk sk).kemSkLabel tr
 public
 theorem Bytes.kemSkLabel_later
   [Bytes.Invariants.Def]
-  [ExecTrace.Has KEM.Broken.TracePart.Exec]
-  [Bytes.Invariants.Has KEM.Pk.BytesPart.invariants]
+  [ExecTrace has% KEM.Broken]
+  [Bytes.Invariants has% KEM.Pk]
   [Bytes.label_later.Proof]
   (b: Bytes) (tr1 tr2: ProofTrace)
   : b.WellFormed tr1 →
@@ -555,8 +555,8 @@ grind_pattern Bytes.kemSkLabel_later => tr1 ≤ tr2, b.kemSkLabel tr1
 public
 theorem Bytes.kemSkLabel_later_fast
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [ExecTrace.Has KEM.Broken.TracePart.Exec]
-  [Bytes.Invariants.Has KEM.Pk.BytesPart.invariants]
+  [ExecTrace has% KEM.Broken]
+  [Bytes.Invariants has% KEM.Pk]
   (b: Bytes) (tr1 tr2: ProofTrace)
   : b.Invariant tr1 →
     tr1 ≤ tr2 →
@@ -577,7 +577,7 @@ variable [ExecTrace.Def] [ProofTrace.Def]
 variable [Bytes.Def]
 
 public
-def Encap.BytesPart.invariants [Bytes.Has KEM.BytesPart.Functor]: Bytes.Invariants.Part Encap.BytesPart.Functor where
+def Encap.BytesPart.invariants [Bytes has% KEM]: Bytes.Invariants.Part Encap.BytesPart.Functor where
   well_formed := fun {pk, entropy} rec tr =>
       (rec pk) tr ∧
       (rec entropy) tr
@@ -603,7 +603,7 @@ def Encap.BytesPart.invariants [Bytes.Has KEM.BytesPart.Functor]: Bytes.Invarian
       )
 
 public
-theorem Encap.BytesPart.invariantsLawful [Bytes.Invariants.Def] [Bytes.Has KEM.BytesPart.Functor] [ExecTrace.Has Broken.TracePart.Exec] [Bytes.Invariants.Has Pk.BytesPart.invariants]: Bytes.Invariants.Part.Lawful Encap.BytesPart.invariants where
+theorem Encap.BytesPart.invariantsLawful [Bytes.Invariants.Def] [Bytes has% KEM] [ExecTrace has% Broken] [Bytes.Invariants has% Pk]: Bytes.Invariants.Part.Lawful Encap.BytesPart.invariants where
 
 public
 def SharedSecret.BytesPart.invariants: Bytes.Invariants.Part SharedSecret.BytesPart.Functor where
@@ -624,9 +624,9 @@ theorem SharedSecret.BytesPart.invariantsLawful [Bytes.Invariants.Def]: Bytes.In
 
 end Definition
 
-#combine [Bytes.Has BytesPart.Functor] [ExecTrace.Has Broken.TracePart.Exec] into
+#combine [Bytes has% KEM] [ExecTrace has% Broken] into
   Bytes.Invariants,
-  Bytes.Invariants.Lawful [Bytes.Invariants.Has Pk.BytesPart.invariants]
+  Bytes.Invariants.Lawful [Bytes.Invariants has% Pk]
 from
   Pk,
   Encap,
@@ -635,9 +635,9 @@ from
 section EncapLemmas
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has KEM.BytesPart.Functor]
-variable [ExecTrace.Has Broken.TracePart.Exec]
-variable [Bytes.Invariants.Def] [Bytes.Invariants.Has KEM.BytesPart.invariants]
+variable [Bytes.Def] [Bytes has% KEM]
+variable [ExecTrace has% Broken]
+variable [Bytes.Invariants.Def] [Bytes.Invariants has% KEM]
 
 public
 theorem kemEncap.WellFormed
@@ -661,9 +661,9 @@ end EncapLemmas
 section DecapLemmas
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has KEM.BytesPart.Functor]
-variable [ExecTrace.Has Broken.TracePart.Exec]
-variable [Bytes.Invariants.Def] [Bytes.Invariants.Has KEM.BytesPart.invariants]
+variable [Bytes.Def] [Bytes has% KEM]
+variable [ExecTrace has% Broken]
+variable [Bytes.Invariants.Def] [Bytes.Invariants has% KEM]
 
 public
 theorem kemDecap.WellFormed
@@ -697,9 +697,9 @@ end Invariants
 section HoareTriples
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has KEM.BytesPart.Functor]
-variable [ExecTrace.Has Broken.TracePart.Exec]
-variable [Bytes.Invariants.Def] [Bytes.Invariants.Has KEM.BytesPart.invariants]
+variable [Bytes.Def] [Bytes has% KEM]
+variable [ExecTrace has% Broken]
+variable [Bytes.Invariants.Def] [Bytes.Invariants has% KEM]
 
 public
 instance kemPk_hoareTriple
@@ -795,9 +795,9 @@ section AttackerKnowledgeTheorem
 
 variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
 variable [Bytes.Def] [Bytes.Invariants.Def]
-variable [Bytes.Has KEM.BytesPart.Functor]
-variable [ExecTrace.Has Broken.TracePart.Exec]
-variable [Bytes.Invariants.Has KEM.BytesPart.invariants]
+variable [Bytes has% KEM]
+variable [ExecTrace has% Broken]
+variable [Bytes.Invariants has% KEM]
 
 -- Preserve publishability
 
@@ -837,7 +837,7 @@ instance: Bytes.AttackerKnows_implies_Publishable.Part kemDecap.attackerKnows wh
 end AttackerKnowledgeTheorem
 section AttackerKnowledgeTheorem
 
-#combine [Bytes.Has BytesPart.Functor] [ExecTrace.Has Broken.TracePart.Exec] [Bytes.Invariants.Has BytesPart.invariants] into Bytes.AttackerKnows_implies_Publishable.merge from
+#combine [Bytes has% KEM] [ExecTrace has% Broken] [Bytes.Invariants has% KEM] into Bytes.AttackerKnows_implies_Publishable.merge from
   kemPk,
   kemEncapCipher,
   kemEncapSS,
@@ -848,9 +848,9 @@ end AttackerKnowledgeTheorem
 namespace Broken
 
 variable [Bytes.Def] [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def] [Bytes.Invariants.Def]
-variable [Bytes.Has KEM.BytesPart.Functor]
-variable [ExecTrace.Has Broken.TracePart.Exec]
-variable [Bytes.Invariants.Has KEM.BytesPart.invariants]
+variable [Bytes has% KEM]
+variable [ExecTrace has% Broken]
+variable [Bytes.Invariants has% KEM]
 
 @[instance]
 theorem kemPkInvert.proof (pk: Bytes)
@@ -884,10 +884,10 @@ instance: ProtocolEvent.EventInv (BrokenKemEvent) where
 from ProtocolEvent Broken.BrokenKemEvent
 
 variable [Bytes.Invariants.Lawful]
-variable [ExecTrace.Has Network.TracePart.Exec]
-variable [ProofTrace.Has Broken.TracePart.Proof] [ProofTrace.Has Network.TracePart.Proof]
-variable [Trace.Invariant.Has Network.TracePart.Proof]
-variable [Trace.Invariant.Has Broken.TracePart.Proof]
+variable [ExecTrace has% Network]
+variable [ProofTrace has% Broken] [ProofTrace has% Network]
+variable [Trace.Invariant has% Network]
+variable [Trace.Invariant has% Broken]
 
 @[instance]
 theorem breakKemPk.proof (msgHandle: Nat)

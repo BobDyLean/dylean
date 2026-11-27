@@ -69,10 +69,10 @@ end Hash
 #combine into Bytes, Bytes.length from
   Hash,
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
-
 public
-abbrev Hash.BytesPart.Functor.pack (x: Hash.BytesPart.Functor Bytes) := BytesView.pack x
+abbrev Hash.BytesPart.Functor.pack [Bytes.Def] [Bytes has% Hash] (x: Hash.BytesPart.Functor Bytes) := BytesView.pack x
+
+variable [Bytes.Def] [Bytes has% DY.Hash]
 
 public
 instance: CanHash Bytes where
@@ -91,7 +91,7 @@ theorem hash_inj
 @[simp]
 public
 theorem length_hash
-  [Bytes.length.Def] [Bytes.length.Has BytesPart.length]
+  [Bytes.length.Def] [Bytes.length has% DY.Hash]
   (inp: Bytes)
   : Bytes.length (hash inp) = hashLength
 := by
@@ -103,18 +103,18 @@ end Constructors
 section AttackerKnowledge
 
 public
-def hash.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def hash.attackerKnows [Bytes.Def] [Bytes has% DY.Hash]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ inp,
       out = hash inp ∧
       p inp
 
-#combine [Bytes.Has BytesPart.Functor] into Bytes.AttackerKnows.merge from
+#combine [Bytes has% DY.Hash] into Bytes.AttackerKnows.merge from
   hash,
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% DY.Hash]
 variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
-variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows has% DY.Hash]
 
 public
 theorem attacker_knows_hash
@@ -161,8 +161,8 @@ from
   Hash,
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
-variable [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes.Def] [Bytes has% DY.Hash]
+variable [Bytes.Invariants.Def] [Bytes.Invariants has% DY.Hash]
 
 @[simp]
 public
@@ -197,9 +197,9 @@ section HoareTriples
 
 public
 instance
-  [Bytes.Def] [Bytes.Has BytesPart.Functor]
+  [Bytes.Def] [Bytes has% DY.Hash]
   [ExecTrace.Def] [ProofTrace.Def]
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% DY.Hash]
   (b: Bytes)
   : HoareTriplePure
     (hash b)
@@ -218,8 +218,8 @@ section AttackerKnowledgeTheorem
 
 variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
 variable [Bytes.Def] [Bytes.Invariants.Def]
-variable [Bytes.Has BytesPart.Functor]
-variable [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes has% DY.Hash]
+variable [Bytes.Invariants has% DY.Hash]
 
 public
 instance: Bytes.AttackerKnows_implies_Publishable.Part hash.attackerKnows where
@@ -232,7 +232,7 @@ instance: Bytes.AttackerKnows_implies_Publishable.Part hash.attackerKnows where
 end AttackerKnowledgeTheorem
 section AttackerKnowledgeTheorem
 
-#combine [Bytes.Has BytesPart.Functor] [Bytes.Invariants.Has BytesPart.invariants] into Bytes.AttackerKnows_implies_Publishable.merge from
+#combine [Bytes has% DY.Hash] [Bytes.Invariants has% DY.Hash] into Bytes.AttackerKnows_implies_Publishable.merge from
   hash,
 
 end AttackerKnowledgeTheorem

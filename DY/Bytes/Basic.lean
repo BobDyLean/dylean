@@ -16,6 +16,7 @@ public import DY.ALaCarte.Basic
 public import DY.ALaCarte.DecidableEq
 public import DY.ALaCarte.Ordering
 public meta import DY.Meta.CombineMacro
+public meta import DY.Meta.HasElaborator
 -- transitively import to check its proofs,
 -- not as a real dependency
 import DY.Bytes.NormalizationMetaTheory
@@ -86,6 +87,7 @@ public instance: Std.IsLinearOrder Bytes := Std.IsLinearOrder.of_ord
 public
 class Bytes.HasStep (SubF1: Type → Type) (SubF2: semiOutParam (Type → Type)) [Bytes.Part SubF1] [semiOutParam (Bytes.Part SubF2)] extends ALaCarte.SubFunctor SubF1 SubF2
 
+@[has_suffix BytesPart.Functor]
 public
 class Bytes.Has (SubF: Type → Type) [Bytes.Part SubF] extends ALaCarte.SubFunctorTC SubF Bytes.Functor
 
@@ -356,6 +358,7 @@ class Bytes.length.HasStep
   (partialLength2: Bytes.length.Part SubF2)
   extends Bytes.Function.HasStep partialLength1 partialLength2
 
+@[has_suffix BytesPart.length]
 public
 class Bytes.length.Has
   [Bytes.length.Def]

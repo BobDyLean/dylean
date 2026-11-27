@@ -19,20 +19,20 @@ def TracePart.baseAttackerKnows [ExecTrace.Def]: Trace.BaseAttackerKnows.Part Tr
   attackerKnows _ entry msg := msg = entry.msg
 
 public
-def sendMessage [ExecTrace.Def] [ExecTrace.Has TracePart.Exec] (msg: Bytes): Traceful Nat :=
+def sendMessage [ExecTrace.Def] [ExecTrace has% Network] (msg: Bytes): Traceful Nat :=
   do
   let entry: TracePart.Exec := TracePart.Exec.mk msg
   appendEntry entry
 
 public
-def receiveMessage [ExecTrace.Def] [ExecTrace.Has TracePart.Exec] (handle: Nat): Traceful Bytes :=
+def receiveMessage [ExecTrace.Def] [ExecTrace has% Network] (handle: Nat): Traceful Bytes :=
   do
   let msg: TracePart.Exec ← getEntry handle
   return msg.msg
 
 public
 def _root_.DY.Trace.MessageSentAt
-  [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
+  [ExecTrace.Def] [ExecTrace has% Network]
   (tr: ExecTrace) (b: Bytes) (i: Nat)
   : Prop
 :=
@@ -40,7 +40,7 @@ def _root_.DY.Trace.MessageSentAt
 
 public
 def _root_.DY.Trace.MessageSent
-  [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
+  [ExecTrace.Def] [ExecTrace has% Network]
   (tr: ExecTrace) (b: Bytes)
   : Prop
 :=
@@ -48,7 +48,7 @@ def _root_.DY.Trace.MessageSent
 
 public
 def _root_.DY.Trace.getMessageSentAt
-  [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
+  [ExecTrace.Def] [ExecTrace has% Network]
   (i: Nat)
   (tr: ExecTrace)
   : Option Bytes
@@ -60,7 +60,7 @@ def _root_.DY.Trace.getMessageSentAt
 public
 theorem _root_.DY.Trace.MessageSentAt_eq_getMessageSentAt
   [ExecTrace.Def]
-  [ExecTrace.Has TracePart.Exec]
+  [ExecTrace has% Network]
   (msg: Bytes) (i: Nat) (tr: ExecTrace)
   : tr.MessageSentAt msg i = (tr.getMessageSentAt i = some msg)
 := by
@@ -69,9 +69,9 @@ theorem _root_.DY.Trace.MessageSentAt_eq_getMessageSentAt
 
 public
 theorem _root_.DY.Trace.MessageSentAt_implies_AttackerKnows
-  [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
+  [ExecTrace.Def] [ExecTrace has% Network]
   [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
-  [Trace.BaseAttackerKnows.Has TracePart.baseAttackerKnows]
+  [Trace.BaseAttackerKnows has% Network]
   (tr: ExecTrace) (b: Bytes) (i: Nat)
   : tr.MessageSentAt b i →
     b.AttackerKnows tr
@@ -107,9 +107,9 @@ where
 public
 instance
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def] [Bytes.Invariants.Def]
-  [ExecTrace.Has TracePart.Exec]
-  [ProofTrace.Has TracePart.Proof]
-  [Trace.Invariant.Has TracePart.Proof]:
+  [ExecTrace has% Network]
+  [ProofTrace has% Network]
+  [Trace.Invariant has% Network]:
   Trace.BaseAttackerKnows_implies_Publishable.Part TracePart.Proof TracePart.baseAttackerKnows
 where
   pf trBefore entry b := by
@@ -121,9 +121,9 @@ public
 theorem sendMessage.proof
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [ExecTrace.Has TracePart.Exec]
-  [ProofTrace.Has TracePart.Proof]
-  [Trace.Invariant.Has TracePart.Proof]
+  [ExecTrace has% Network]
+  [ProofTrace has% Network]
+  [Trace.Invariant has% Network]
   (msg: Bytes)
   : HoareTriple
     (sendMessage msg)
@@ -140,9 +140,9 @@ public
 theorem receiveMessage.proof
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [ExecTrace.Has TracePart.Exec]
-  [ProofTrace.Has TracePart.Proof]
-  [Trace.Invariant.Has TracePart.Proof]
+  [ExecTrace has% Network]
+  [ProofTrace has% Network]
+  [Trace.Invariant has% Network]
   (handle: Nat)
   : HoareTriple
     (receiveMessage handle)
@@ -160,7 +160,7 @@ end Proof
 
 section Reachability
 
-variable [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
+variable [ExecTrace.Def] [ExecTrace has% Network]
 variable [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
 
 public
@@ -171,7 +171,7 @@ abbrev transitionSystem : TransitionSystem where
 
 public
 theorem receiveMessage.preservesReachability
-  [Trace.BaseAttackerKnows.Has TracePart.baseAttackerKnows]
+  [Trace.BaseAttackerKnows has% Network]
   (config: TransitionSystem)
   (msgHandle: Nat)
   : (receiveMessage msgHandle).PreservesReachability config (fun _ => True) (fun msg tr => msg.AttackerKnows tr)
@@ -194,7 +194,7 @@ theorem receiveMessage.preservesReachability
 
 variable [ProofTrace.Def] [Trace.Invariant.Def]
 variable [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-variable [ProofTrace.Has TracePart.Proof] [Trace.Invariant.Has TracePart.Proof]
+variable [ProofTrace has% Network] [Trace.Invariant has% Network]
 variable [Trace.BaseAttackerKnows_implies_Publishable.Proof] [Bytes.AttackerKnows_implies_Publishable.Proof]
 
 public

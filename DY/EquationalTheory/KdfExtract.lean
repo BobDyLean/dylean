@@ -60,10 +60,10 @@ end KdfExtract
 #combine into Bytes, Bytes.length from
   KdfExtract,
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
-
 public
-abbrev KdfExtract.BytesPart.Functor.pack (x: KdfExtract.BytesPart.Functor Bytes) := BytesView.pack x
+abbrev KdfExtract.BytesPart.Functor.pack [Bytes.Def] [Bytes has% KdfExtract] (x: KdfExtract.BytesPart.Functor Bytes) := BytesView.pack x
+
+variable [Bytes.Def] [Bytes has% DY.KdfExtract]
 
 public
 instance: CanKdfExtract Bytes where
@@ -74,19 +74,19 @@ end Constructors
 section AttackerKnowledge
 
 public
-def kdfExtract.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def kdfExtract.attackerKnows [Bytes.Def] [Bytes has% DY.KdfExtract]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ salt ikm,
       out = kdfExtract salt ikm ∧
       p salt ∧
       p ikm
 
-#combine [Bytes.Has BytesPart.Functor] into Bytes.AttackerKnows.merge from
+#combine [Bytes has% DY.KdfExtract] into Bytes.AttackerKnows.merge from
   kdfExtract,
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% DY.KdfExtract]
 variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
-variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows has% DY.KdfExtract]
 
 public
 theorem attacker_knows_kdfExtract
@@ -134,12 +134,12 @@ from
   KdfExtract,
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% DY.KdfExtract]
 
 @[simp]
 public
 theorem kdfExtract.WellFormed
-  [Bytes.WellFormed.Def] [Bytes.WellFormed.Has KdfExtract.BytesPart.invariants.well_formed]
+  [Bytes.WellFormed.Def] [Bytes.WellFormed has% KdfExtract]
   (salt ikm: Bytes) (tr: ProofTrace)
   : (kdfExtract salt ikm).WellFormed tr = (salt.WellFormed tr ∧ ikm.WellFormed tr)
 := by
@@ -148,7 +148,7 @@ theorem kdfExtract.WellFormed
 @[simp]
 public
 theorem kdfExtract.label
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% DY.KdfExtract]
   (salt ikm: Bytes) (tr: ProofTrace)
   : (kdfExtract salt ikm).label tr = Label.meet (salt.label tr) (ikm.label tr)
 := by
@@ -157,7 +157,7 @@ theorem kdfExtract.label
 @[simp]
 public
 theorem kdfExtract.Invariant
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% DY.KdfExtract]
   (salt ikm: Bytes) (tr: ProofTrace)
   : (kdfExtract salt ikm).Invariant tr = (salt.Invariant tr ∧ ikm.Invariant tr)
 := by
@@ -167,9 +167,9 @@ end Invariants
 
 section HoareTriples
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% DY.KdfExtract]
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes.Invariants.Def] [Bytes.Invariants has% DY.KdfExtract]
 
 public
 instance
@@ -195,8 +195,8 @@ section AttackerKnowledgeTheorem
 
 variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
 variable [Bytes.Def] [Bytes.Invariants.Def]
-variable [Bytes.Has BytesPart.Functor]
-variable [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes has% DY.KdfExtract]
+variable [Bytes.Invariants has% DY.KdfExtract]
 
 public
 instance: Bytes.AttackerKnows_implies_Publishable.Part kdfExtract.attackerKnows where
@@ -210,7 +210,7 @@ instance: Bytes.AttackerKnows_implies_Publishable.Part kdfExtract.attackerKnows 
 end AttackerKnowledgeTheorem
 section AttackerKnowledgeTheorem
 
-#combine [Bytes.Has BytesPart.Functor] [Bytes.Invariants.Has BytesPart.invariants] into Bytes.AttackerKnows_implies_Publishable.merge from
+#combine [Bytes has% DY.KdfExtract] [Bytes.Invariants has% DY.KdfExtract] into Bytes.AttackerKnows_implies_Publishable.merge from
   kdfExtract,
 
 end AttackerKnowledgeTheorem

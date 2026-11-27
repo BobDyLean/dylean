@@ -30,6 +30,7 @@ public
 def Bytes.WellFormed [Bytes.WellFormed.Def] (b: Bytes) : BytesWellFormedT :=
   Bytes.rec Bytes.WellFormed.Def.whole b
 
+@[has_suffix BytesPart.invariants.well_formed]
 public
 class Bytes.WellFormed.Has [Bytes.WellFormed.Def] {SubF: Type → Type} [Bytes.Part SubF] [Bytes.Has SubF] (binv: outParam (Bytes.Function.Part SubF BytesWellFormedT)) where
   pf: Bytes.Function.Has binv Bytes.WellFormed.Def.whole
@@ -97,6 +98,7 @@ public
 def Bytes.usage [Bytes.usage.Def] (b: Bytes) : GetUsageT :=
   Bytes.rec Bytes.usage.Def.whole b
 
+@[has_suffix BytesPart.invariants.usage]
 public
 class Bytes.usage.Has [Bytes.usage.Def] {SubF: Type → Type} [Bytes.Part SubF] [Bytes.Has SubF] (binv: outParam (Bytes.Function.Part SubF GetUsageT)) where
   pf: Bytes.Function.Has binv Bytes.usage.Def.whole
@@ -151,6 +153,7 @@ public
 def Bytes.label [Bytes.label.Def] (b: Bytes) : GetLabelT :=
   Bytes.rec Bytes.label.Def.whole b
 
+@[has_suffix BytesPart.invariants.label]
 public
 class Bytes.label.Has [Bytes.label.Def] {SubF: Type → Type} [Bytes.Part SubF] [Bytes.Has SubF] (binv: outParam (Bytes.Function.Part SubF GetLabelT)) where
   pf: Bytes.Function.Has binv Bytes.label.Def.whole
@@ -205,6 +208,7 @@ public
 def Bytes.Invariant [Bytes.Invariant.Def] (b: Bytes) (tr: ProofTrace) : Prop :=
   Bytes.rec Bytes.Invariant.Def.whole b tr
 
+@[has_suffix BytesPart.invariants.invariant]
 public
 class Bytes.Invariant.Has [Bytes.Invariant.Def] {SubF: Type → Type} [Bytes.Part SubF] [Bytes.Has SubF] (binv: outParam (Bytes.Function.Part SubF BytesInvariantT)) where
   pf: Bytes.Function.Has binv Bytes.Invariant.Def.whole
@@ -385,6 +389,7 @@ where
   [label_sub: Bytes.Function.HasStep partialInvs1.label partialInvs2.label]
   [invariant_sub: Bytes.Function.HasStep partialInvs1.invariant partialInvs2.invariant]
 
+@[has_suffix BytesPart.invariants]
 public
 class Bytes.Invariants.Has
   [Bytes.Invariants.Def]

@@ -112,10 +112,10 @@ end Sign
   Vk,
   Sign
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+public abbrev Vk.BytesPart.Functor.pack [Bytes.Def] [Bytes has% Vk] (x: Vk.BytesPart.Functor Bytes) := BytesView.pack x
+public abbrev Sign.BytesPart.Functor.pack [Bytes.Def] [Bytes has% Sign] (x: Sign.BytesPart.Functor Bytes) := BytesView.pack x
 
-public abbrev Vk.BytesPart.Functor.pack (x: Vk.BytesPart.Functor Bytes) := BytesView.pack x
-public abbrev Sign.BytesPart.Functor.pack (x: Sign.BytesPart.Functor Bytes) := BytesView.pack x
+variable [Bytes.Def] [Bytes has% Signature']
 
 public
 instance: CanSign Bytes where
@@ -145,14 +145,14 @@ end Constructors
 section AttackerKnowledge
 
 public
-def vk.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def vk.attackerKnows [Bytes.Def] [Bytes has% Signature']: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ sk,
       out = vk sk ∧
       p sk
 
 public
-def sign.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def sign.attackerKnows [Bytes.Def] [Bytes has% Signature']: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ sk nonce msg,
       out = sign sk nonce msg ∧
@@ -160,13 +160,13 @@ def sign.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.Attacker
       p nonce ∧
       p msg
 
-#combine [Bytes.Has BytesPart.Functor] into Bytes.AttackerKnows.merge from
+#combine [Bytes has% Signature'] into Bytes.AttackerKnows.merge from
   vk,
   sign
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% Signature']
 variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
-variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows has% Signature']
 
 public
 theorem attacker_knows_vk
@@ -201,14 +201,14 @@ variable [Bytes.Def]
 -- not exposed to the attacker through attacker knowledge,
 -- but through a Traceful function
 public
-def vkInvert [Bytes.Has BytesPart.Functor] (pk: Bytes): Err Bytes :=
+def vkInvert [Bytes has% Signature'] (pk: Bytes): Err Bytes :=
   match pk.view? Vk.BytesPart.Functor with
   | some { sk } => some sk
   | none => none
 
 public
 theorem vkInvert_vk
-  [Bytes.Has BytesPart.Functor]
+  [Bytes has% Signature']
   (sk: Bytes)
   : vkInvert (vk sk) = some sk
 := by
@@ -217,7 +217,7 @@ theorem vkInvert_vk
 
 public
 theorem vk_vkInvert
-  [Bytes.Has BytesPart.Functor]
+  [Bytes has% Signature']
   (pk: Bytes)
   : match vkInvert pk with
     | none => True
@@ -232,7 +232,7 @@ structure BrokenDhEvent where
 
 #combine into ExecTrace, Trace.BaseAttackerKnows from ProtocolEvent BrokenDhEvent
 
-variable [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
+variable [ExecTrace.Def] [ExecTrace has% Broken]
 
 public
 def ThisVkHasBeenBroken (brokenPk: Bytes) (tr: ExecTrace): Prop :=
@@ -269,8 +269,8 @@ public
 def label (brokenPk: Bytes): Label where
   isCorrupt tr := ThisVkHasBeenBroken brokenPk tr
 
-variable [Bytes.Has Signature'.BytesPart.Functor]
-variable [ExecTrace.Has Network.TracePart.Exec]
+variable [Bytes has% Signature']
+variable [ExecTrace has% Network]
 
 public
 def breakVk (msgHandle: Nat): Traceful Nat := do
@@ -291,8 +291,8 @@ section Invariants
 section Definition
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has Signature'.BytesPart.Functor]
-variable [ExecTrace.Has Broken.TracePart.Exec]
+variable [Bytes.Def] [Bytes has% Signature']
+variable [ExecTrace has% Broken]
 
 public
 def Vk.BytesPart.invariants: Bytes.Invariants.Part Vk.BytesPart.Functor where
@@ -317,9 +317,9 @@ end Definition
 section VkLemmas
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has Signature'.BytesPart.Functor]
-variable [ExecTrace.Has Broken.TracePart.Exec]
-variable [Bytes.Invariants.Def] [Bytes.Invariants.Has Vk.BytesPart.invariants]
+variable [Bytes.Def] [Bytes has% Signature']
+variable [ExecTrace has% Broken]
+variable [Bytes.Invariants.Def] [Bytes.Invariants has% Vk]
 
 @[simp]
 public
@@ -385,7 +385,7 @@ theorem SignPred.Lawful.pred_later_fast
 
 grind_pattern [grind_later] SignPred.Lawful.pred_later_fast => tr1 ≤ tr2, SignPred.pred skUsg vk msg tr1
 
-variable [Bytes.Has Signature'.BytesPart.Functor]
+variable [Bytes has% Signature']
 
 public
 def Sign.BytesPart.invariants [SignPred]: Bytes.Invariants.Part Sign.BytesPart.Functor where
@@ -433,10 +433,10 @@ def Sign.BytesPart.invariants [SignPred]: Bytes.Invariants.Part Sign.BytesPart.F
         )
       )
 
-variable [ExecTrace.Has Broken.TracePart.Exec]
+variable [ExecTrace has% Broken]
 
 public
-theorem Sign.BytesPart.invariantsLawful [Bytes.Invariants.Def] [Bytes.Invariants.Has Vk.BytesPart.invariants] [SignPred] [SignPred.Lawful]: Bytes.Invariants.Part.Lawful Sign.BytesPart.invariants where
+theorem Sign.BytesPart.invariantsLawful [Bytes.Invariants.Def] [Bytes.Invariants has% Vk] [SignPred] [SignPred.Lawful]: Bytes.Invariants.Part.Lawful Sign.BytesPart.invariants where
   invariant_later := by
     intro _ _ _ _ x rec tr1 tr2
     cases x
@@ -446,9 +446,9 @@ theorem Sign.BytesPart.invariantsLawful [Bytes.Invariants.Def] [Bytes.Invariants
 
 end Definition
 
-#combine [Bytes.Has BytesPart.Functor] [SignPred] [ExecTrace.Has Broken.TracePart.Exec] into
+#combine [Bytes has% Signature'] [SignPred] [ExecTrace has% Broken] into
   Bytes.Invariants,
-  Bytes.Invariants.Lawful [Bytes.Invariants.Has Vk.BytesPart.invariants] [SignPred.Lawful]
+  Bytes.Invariants.Lawful [Bytes.Invariants has% Vk] [SignPred.Lawful]
 from
   Vk,
   Sign
@@ -460,7 +460,7 @@ end Signature'
 
 section ExtractSignKey
 
-variable [Bytes.Def] [Bytes.Has Signature'.BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% Signature']
 
 noncomputable
 def Signature'.extractSignkey (vk: Bytes): Option Bytes :=
@@ -480,7 +480,7 @@ theorem Signature'.vk_extractSignkey (b: Bytes):
 variable [ExecTrace.Def] [ProofTrace.Def]
 
 theorem Signature'.extractSignkey.preserves_WellFormed
-  [ExecTrace.Has Signature'.Broken.TracePart.Exec] [Bytes.Invariants.Def] [Signature'.SignPred] [Bytes.Invariants.Has Signature'.BytesPart.invariants]
+  [ExecTrace has% Signature'.Broken] [Bytes.Invariants.Def] [Signature'.SignPred] [Bytes.Invariants has% Signature']
 : ExtractPreservesWellFormed extractSignkey
 := by
   simp [ExtractPreservesWellFormed]
@@ -507,8 +507,8 @@ grind_pattern Bytes.SignkeyHasUsage'_vk => (Signature'.vk sk).SignkeyHasUsage' s
 public
 theorem Bytes.SignkeyHasUsage'_later
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [ExecTrace.Has Signature'.Broken.TracePart.Exec]
-  [Signature'.SignPred] [Bytes.Invariants.Has Signature'.BytesPart.invariants]
+  [ExecTrace has% Signature'.Broken]
+  [Signature'.SignPred] [Bytes.Invariants has% Signature']
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
   : b.WellFormed tr1 →
     tr1 ≤ tr2 →
@@ -523,8 +523,8 @@ grind_pattern Bytes.SignkeyHasUsage'_later => tr1 ≤ tr2, b.SignkeyHasUsage' us
 public
 theorem Bytes.SignkeyHasUsage'_later_fast
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [ExecTrace.Has Signature'.Broken.TracePart.Exec]
-  [Signature'.SignPred] [Bytes.Invariants.Has Signature'.BytesPart.invariants]
+  [ExecTrace has% Signature'.Broken]
+  [Signature'.SignPred] [Bytes.Invariants has% Signature']
   (b: Bytes) (usg: Usage) (tr1 tr2: ProofTrace)
   : b.Invariant tr1 →
     tr1 ≤ tr2 →
@@ -545,8 +545,8 @@ def Bytes.signkeyLabel'
 public
 theorem Bytes.signkeyLabel'_vk
   [Bytes.Invariants.Def]
-  [ExecTrace.Has Signature'.Broken.TracePart.Exec]
-  [Signature'.SignPred] [Bytes.Invariants.Has Signature'.BytesPart.invariants]
+  [ExecTrace has% Signature'.Broken]
+  [Signature'.SignPred] [Bytes.Invariants has% Signature']
   (sk: Bytes) (tr: ProofTrace)
   : (Signature'.vk sk).signkeyLabel' tr = sk.label tr
 := by
@@ -558,8 +558,8 @@ grind_pattern Bytes.signkeyLabel'_vk => (Signature'.vk sk).signkeyLabel' tr
 public
 theorem Bytes.signkeyLabel'_later
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [ExecTrace.Has Signature'.Broken.TracePart.Exec]
-  [Signature'.SignPred] [Bytes.Invariants.Has Signature'.BytesPart.invariants]
+  [ExecTrace has% Signature'.Broken]
+  [Signature'.SignPred] [Bytes.Invariants has% Signature']
   (b: Bytes) (tr1 tr2: ProofTrace)
   : b.WellFormed tr1 →
     tr1 ≤ tr2 →
@@ -573,8 +573,8 @@ grind_pattern Bytes.signkeyLabel'_later => tr1 ≤ tr2, b.signkeyLabel' tr1
 public
 theorem Bytes.signkeyLabel'_later_fast
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [ExecTrace.Has Signature'.Broken.TracePart.Exec]
-  [Signature'.SignPred] [Bytes.Invariants.Has Signature'.BytesPart.invariants]
+  [ExecTrace has% Signature'.Broken]
+  [Signature'.SignPred] [Bytes.Invariants has% Signature']
   (b: Bytes) (tr1 tr2: ProofTrace)
   : b.Invariant tr1 →
     tr1 ≤ tr2 →
@@ -590,11 +590,11 @@ namespace Signature'
 section Invariants
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
-variable [ExecTrace.Has Broken.TracePart.Exec]
+variable [Bytes.Def] [Bytes has% Signature']
+variable [ExecTrace has% Broken]
 variable [SignPred]
 variable [Bytes.Invariants.Def]
-variable [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes.Invariants has% Signature']
 
 @[simp]
 public
@@ -675,14 +675,14 @@ end Invariants
 
 section HoareTriples
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% Signature']
 
 public
 instance
   [ExecTrace.Def] [ProofTrace.Def]
-  [ExecTrace.Has Broken.TracePart.Exec]
+  [ExecTrace has% Broken]
   [SignPred]
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% Signature']
   (sk: Bytes)
   : HoareTriplePure
     (vk sk)
@@ -709,9 +709,9 @@ where
 public
 instance
   [ExecTrace.Def] [ProofTrace.Def]
-  [ExecTrace.Has Broken.TracePart.Exec]
+  [ExecTrace has% Broken]
   [SignPred]
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% Signature']
   (sk nonce msg: Bytes) (skUsg: Usage)
   : HoareTriplePureGhost
     (sign sk nonce msg)
@@ -750,9 +750,9 @@ where
 public
 instance
   [ExecTrace.Def] [ProofTrace.Def]
-  [ExecTrace.Has Broken.TracePart.Exec]
+  [ExecTrace has% Broken]
   [SignPred]
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% Signature']
   (vkey msg sig: Bytes) (skUsg: Usage)
   : HoareTriplePureGhost
     (verify vkey msg sig)
@@ -783,10 +783,10 @@ section AttackerKnowledgeTheorem
 
 variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
 variable [Bytes.Def] [Bytes.Invariants.Def]
-variable [Bytes.Has BytesPart.Functor]
-variable [ExecTrace.Has Broken.TracePart.Exec]
+variable [Bytes has% Signature']
+variable [ExecTrace has% Broken]
 variable [SignPred]
-variable [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes.Invariants has% Signature']
 
 -- Preserve publishability
 
@@ -812,7 +812,7 @@ instance: Bytes.AttackerKnows_implies_Publishable.Part sign.attackerKnows where
 end AttackerKnowledgeTheorem
 section AttackerKnowledgeTheorem
 
-#combine [Bytes.Has BytesPart.Functor] [ExecTrace.Has Broken.TracePart.Exec] [SignPred] [Bytes.Invariants.Has BytesPart.invariants] into Bytes.AttackerKnows_implies_Publishable.merge from
+#combine [Bytes has% Signature'] [ExecTrace has% Broken] [SignPred] [Bytes.Invariants has% Signature'] into Bytes.AttackerKnows_implies_Publishable.merge from
   vk,
   sign
 
@@ -821,10 +821,10 @@ end AttackerKnowledgeTheorem
 namespace Broken
 
 variable [Bytes.Def] [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def] [Bytes.Invariants.Def]
-variable [Bytes.Has Signature'.BytesPart.Functor]
-variable [ExecTrace.Has Broken.TracePart.Exec]
+variable [Bytes has% Signature']
+variable [ExecTrace has% Broken]
 variable [SignPred]
-variable [Bytes.Invariants.Has Signature'.BytesPart.invariants]
+variable [Bytes.Invariants has% Signature']
 
 @[instance]
 theorem vkInvert.proof (pk: Bytes)
@@ -858,10 +858,10 @@ instance: ProtocolEvent.EventInv (BrokenDhEvent) where
 from ProtocolEvent Broken.BrokenDhEvent
 
 variable [Bytes.Invariants.Lawful]
-variable [ExecTrace.Has Network.TracePart.Exec]
-variable [ProofTrace.Has Broken.TracePart.Proof] [ProofTrace.Has Network.TracePart.Proof]
-variable [Trace.Invariant.Has Network.TracePart.Proof]
-variable [Trace.Invariant.Has Broken.TracePart.Proof]
+variable [ExecTrace has% Network]
+variable [ProofTrace has% Broken] [ProofTrace has% Network]
+variable [Trace.Invariant has% Network]
+variable [Trace.Invariant has% Broken]
 
 @[instance]
 theorem breakVk.proof (msgHandle: Nat)

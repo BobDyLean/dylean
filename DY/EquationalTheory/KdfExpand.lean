@@ -62,10 +62,10 @@ end KdfExpand
 #combine into Bytes, Bytes.length from
   KdfExpand,
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
-
 public
-abbrev KdfExpand.BytesPart.Functor.pack (x: KdfExpand.BytesPart.Functor Bytes) := BytesView.pack x
+abbrev KdfExpand.BytesPart.Functor.pack [Bytes.Def] [Bytes has% KdfExpand] (x: KdfExpand.BytesPart.Functor Bytes) := BytesView.pack x
+
+variable [Bytes.Def] [Bytes has% DY.KdfExpand]
 
 public
 instance: CanKdfExpand Bytes where
@@ -76,19 +76,19 @@ end Constructors
 section AttackerKnowledge
 
 public
-def kdfExpand.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def kdfExpand.attackerKnows [Bytes.Def] [Bytes has% DY.KdfExpand]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ prk info len,
       out = kdfExpand prk info len ∧
       p prk ∧
       p info
 
-#combine [Bytes.Has BytesPart.Functor] into Bytes.AttackerKnows.merge from
+#combine [Bytes has% DY.KdfExpand] into Bytes.AttackerKnows.merge from
   kdfExpand,
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% DY.KdfExpand]
 variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
-variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows has% DY.KdfExpand]
 
 public
 theorem attacker_knows_kdfExpand
@@ -144,13 +144,13 @@ from
   KdfExpand,
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% DY.KdfExpand]
 
 @[simp]
 public
 theorem kdfExpand.WellFormed
   [KdfExpandInvariant]
-  [Bytes.WellFormed.Def] [Bytes.WellFormed.Has KdfExpand.BytesPart.invariants.well_formed]
+  [Bytes.WellFormed.Def] [Bytes.WellFormed has% KdfExpand]
   (prk info: Bytes) (len: Nat) (tr: ProofTrace)
   : (kdfExpand prk info len).WellFormed tr = (prk.WellFormed tr ∧ info.WellFormed tr)
 := by
@@ -160,7 +160,7 @@ theorem kdfExpand.WellFormed
 public
 theorem kdfExpand.HasUsage
   [KdfExpandInvariant]
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% DY.KdfExpand]
   (prk info: Bytes) (len: Nat) (prkUsage: Usage) (tr: ProofTrace)
   : prk.HasUsage prkUsage tr →
     (kdfExpand prk info len).HasUsage (KdfExpandInvariant.usage prkUsage info) tr
@@ -173,7 +173,7 @@ theorem kdfExpand.HasUsage
 public
 theorem kdfExpand.label
   [KdfExpandInvariant]
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% DY.KdfExpand]
   (prk info: Bytes) (len: Nat) (prkUsage: Usage) (tr: ProofTrace)
   : prk.HasUsage prkUsage tr →
     ((kdfExpand prk info len).label tr).equivalent (KdfExpandInvariant.label prkUsage (prk.label tr) info) tr.erase
@@ -187,7 +187,7 @@ theorem kdfExpand.label
 public
 theorem kdfExpand.Invariant
   [KdfExpandInvariant]
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% DY.KdfExpand]
   (prk info: Bytes) (len: Nat) (tr: ProofTrace)
   : (kdfExpand prk info len).Invariant tr = (prk.Invariant tr ∧ info.Invariant tr)
 := by
@@ -197,10 +197,10 @@ end Invariants
 
 section HoareTriples
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% DY.KdfExpand]
 variable [ExecTrace.Def] [ProofTrace.Def]
 variable [KdfExpandInvariant]
-variable [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes.Invariants.Def] [Bytes.Invariants has% DY.KdfExpand]
 
 public
 instance
@@ -235,9 +235,9 @@ section AttackerKnowledgeTheorem
 
 variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
 variable [Bytes.Def] [Bytes.Invariants.Def]
-variable [Bytes.Has BytesPart.Functor]
+variable [Bytes has% DY.KdfExpand]
 variable [KdfExpandInvariant]
-variable [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes.Invariants has% DY.KdfExpand]
 
 public
 instance: Bytes.AttackerKnows_implies_Publishable.Part kdfExpand.attackerKnows where
@@ -254,7 +254,7 @@ instance: Bytes.AttackerKnows_implies_Publishable.Part kdfExpand.attackerKnows w
 end AttackerKnowledgeTheorem
 section AttackerKnowledgeTheorem
 
-#combine [KdfExpandInvariant] [Bytes.Has BytesPart.Functor] [Bytes.Invariants.Has BytesPart.invariants] into Bytes.AttackerKnows_implies_Publishable.merge from
+#combine [KdfExpandInvariant] [Bytes has% DY.KdfExpand] [Bytes.Invariants has% DY.KdfExpand] into Bytes.AttackerKnows_implies_Publishable.merge from
   kdfExpand,
 
 end AttackerKnowledgeTheorem

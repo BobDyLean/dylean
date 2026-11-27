@@ -62,11 +62,11 @@ end Concat
 #combine into Bytes, Bytes.length from
   Concat,
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
-variable [Bytes.length.Def]
-
 public
-abbrev Concat.BytesPart.Functor.pack (x: Concat.BytesPart.Functor Bytes) := BytesView.pack x
+abbrev Concat.BytesPart.Functor.pack [Bytes.Def] [Bytes has% Concat] (x: Concat.BytesPart.Functor Bytes) := BytesView.pack x
+
+variable [Bytes.Def] [Bytes has% DY.Concat]
+variable [Bytes.length.Def]
 
 public
 instance: CanConcat Bytes where
@@ -100,7 +100,7 @@ theorem concat_split
 @[simp]
 public
 theorem length_concat
-  [Bytes.length.Has BytesPart.length]
+  [Bytes.length has% DY.Concat]
   (lhs rhs: Bytes)
   : Bytes.length (concat lhs rhs) = Bytes.length lhs + Bytes.length rhs
 := by
@@ -110,7 +110,7 @@ theorem length_concat
 @[simp]
 public
 theorem length_split
-  [Bytes.length.Has BytesPart.length]
+  [Bytes.length has% DY.Concat]
   (buf: Bytes) (i: Nat) (lhs rhs: Bytes)
   : split buf i = some (lhs, rhs) →
     (Bytes.length lhs = i ∧ i+Bytes.length rhs = Bytes.length buf)
@@ -123,7 +123,7 @@ end Constructors
 section AttackerKnowledge
 
 public
-def concat.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor] [Bytes.length.Def]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def concat.attackerKnows [Bytes.Def] [Bytes has% DY.Concat] [Bytes.length.Def]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ lhs rhs,
       out = concat lhs rhs ∧
@@ -131,28 +131,28 @@ def concat.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor] [Bytes.length
       p rhs
 
 public
-def splitLeft.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor] [Bytes.length.Def]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def splitLeft.attackerKnows [Bytes.Def] [Bytes has% DY.Concat] [Bytes.length.Def]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ inp rhs i,
       some (out, rhs) = split inp i ∧
       p inp
 
 public
-def splitRight.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor] [Bytes.length.Def]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def splitRight.attackerKnows [Bytes.Def] [Bytes has% DY.Concat] [Bytes.length.Def]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ inp lhs i,
       some (lhs, out) = split inp i ∧
       p inp
 
-#combine [Bytes.Has BytesPart.Functor] [Bytes.length.Def] into Bytes.AttackerKnows.merge from
+#combine [Bytes has% DY.Concat] [Bytes.length.Def] into Bytes.AttackerKnows.merge from
   concat,
   splitLeft,
   splitRight
 
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor] [Bytes.length.Def]
+variable [Bytes.Def] [Bytes has% DY.Concat] [Bytes.length.Def]
 variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
-variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows has% DY.Concat]
 
 public
 theorem attacker_knows_concat
@@ -223,13 +223,13 @@ from
 
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% DY.Concat]
 variable [Bytes.length.Def]
 
 @[simp]
 public
 theorem concat.WellFormed
-  [Bytes.WellFormed.Def] [Bytes.WellFormed.Has Concat.BytesPart.invariants.well_formed]
+  [Bytes.WellFormed.Def] [Bytes.WellFormed has% Concat]
   (lhs rhs: Bytes) (tr: ProofTrace)
   : (concat lhs rhs).WellFormed tr = (lhs.WellFormed tr ∧ rhs.WellFormed tr)
 := by
@@ -238,7 +238,7 @@ theorem concat.WellFormed
 @[simp]
 public
 theorem concat.label
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% DY.Concat]
   (lhs rhs: Bytes) (tr: ProofTrace)
   : (concat lhs rhs).label tr = Label.meet (lhs.label tr) (rhs.label tr)
 := by
@@ -247,7 +247,7 @@ theorem concat.label
 @[simp]
 public
 theorem concat.Invariant
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% DY.Concat]
   (lhs rhs: Bytes) (tr: ProofTrace)
   : (concat lhs rhs).Invariant tr = (lhs.Invariant tr ∧ rhs.Invariant tr)
 := by
@@ -256,7 +256,7 @@ theorem concat.Invariant
 @[simp]
 public
 theorem split.WellFormed
-  [Bytes.WellFormed.Def] [Bytes.WellFormed.Has Concat.BytesPart.invariants.well_formed]
+  [Bytes.WellFormed.Def] [Bytes.WellFormed has% Concat]
   (buf: Bytes) (i: Nat) (tr: ProofTrace)
   : match split buf i with
     | none => True
@@ -272,7 +272,7 @@ theorem split.WellFormed
 @[simp]
 public
 theorem split.label
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% DY.Concat]
   (buf: Bytes) (i: Nat) (tr: ProofTrace)
   : match split buf i with
     | none => True
@@ -288,7 +288,7 @@ theorem split.label
 @[simp]
 public
 theorem split.Invariant
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% DY.Concat]
   (buf: Bytes) (i: Nat) (tr: ProofTrace)
   : buf.Invariant tr →
     match split buf i with
@@ -309,9 +309,9 @@ section AttackerKnowledgeTheorem
 
 variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
 variable [Bytes.Def] [Bytes.Invariants.Def]
-variable [Bytes.Has BytesPart.Functor]
+variable [Bytes has% DY.Concat]
 variable [Bytes.length.Def]
-variable [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes.Invariants has% DY.Concat]
 
 public
 instance: Bytes.AttackerKnows_implies_Publishable.Part concat.attackerKnows where
@@ -345,7 +345,7 @@ instance: Bytes.AttackerKnows_implies_Publishable.Part splitRight.attackerKnows 
 end AttackerKnowledgeTheorem
 section AttackerKnowledgeTheorem
 
-#combine [Bytes.length.Def] [Bytes.Has BytesPart.Functor] [Bytes.Invariants.Has BytesPart.invariants] into Bytes.AttackerKnows_implies_Publishable.merge from
+#combine [Bytes.length.Def] [Bytes has% DY.Concat] [Bytes.Invariants has% DY.Concat] into Bytes.AttackerKnows_implies_Publishable.merge from
   concat,
   splitLeft,
   splitRight,

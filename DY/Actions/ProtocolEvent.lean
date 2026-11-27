@@ -39,10 +39,10 @@ public
 instance
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def] [Bytes.Def] [Bytes.Invariants.Def]
   (EventT: Type)
-  [ExecTrace.Has (TracePart.Exec EventT)]
-  [ProofTrace.Has (TracePart.Proof EventT)]
+  [ExecTrace has% ProtocolEvent EventT]
+  [ProofTrace has% ProtocolEvent EventT]
   [EventInv EventT]
-  [Trace.Invariant.Has (TracePart.Proof EventT)]
+  [Trace.Invariant has% ProtocolEvent EventT]
   : Trace.BaseAttackerKnows_implies_Publishable.Part (TracePart.Proof EventT) (TracePart.baseAttackerKnows EventT)
 where
   pf trBefore entry b := by
@@ -52,7 +52,7 @@ public
 def _root_.DY.Trace.EventLoggedAt
   {EventT: Type}
   [ExecTrace.Def]
-  [ExecTrace.Has (TracePart.Exec EventT)]
+  [ExecTrace has% ProtocolEvent EventT]
   (ev: EventT) (time: Nat)
   (tr: ExecTrace)
   : Prop
@@ -63,7 +63,7 @@ public
 theorem _root_.DY.Trace.EventLoggedAt_implies_i_le_length
   {EventT: Type}
   [ExecTrace.Def]
-  [ExecTrace.Has (TracePart.Exec EventT)]
+  [ExecTrace has% ProtocolEvent EventT]
   (ev: EventT) (i: Nat)
   (tr: ExecTrace)
   : tr.EventLoggedAt ev i →
@@ -77,7 +77,7 @@ public
 def _root_.DY.Trace.getEventAt
   (EventT: Type)
   [ExecTrace.Def]
-  [ExecTrace.Has (TracePart.Exec EventT)]
+  [ExecTrace has% ProtocolEvent EventT]
   (i: Nat)
   (tr: ExecTrace)
   : Option EventT
@@ -90,7 +90,7 @@ public
 theorem _root_.DY.Trace.EventLoggedAt_eq_getEventAt
   {EventT: Type}
   [ExecTrace.Def]
-  [ExecTrace.Has (TracePart.Exec EventT)]
+  [ExecTrace has% ProtocolEvent EventT]
   (ev: EventT) (i: Nat) (tr: ExecTrace)
   : tr.EventLoggedAt ev i = (tr.getEventAt EventT i = some ev)
 := by
@@ -101,7 +101,7 @@ public
 theorem _root_.DY.Trace.EventLoggedAt_le
   {EventT: Type}
   [ExecTrace.Def]
-  [ExecTrace.Has (TracePart.Exec EventT)]
+  [ExecTrace has% ProtocolEvent EventT]
   (ev: EventT) (time: Nat)
   (tr1 tr2: ExecTrace)
   : tr1 ≤ tr2 →
@@ -117,7 +117,7 @@ public
 theorem _root_.DY.Trace.EventLoggedAt_le'
   {EventT: Type}
   [ExecTrace.Def]
-  [ExecTrace.Has (TracePart.Exec EventT)]
+  [ExecTrace has% ProtocolEvent EventT]
   (ev: EventT) (time: Nat)
   (tr1 tr2: ExecTrace)
   : time < tr1.length →
@@ -135,7 +135,7 @@ public
 def _root_.DY.Trace.EventLogged
   {EventT: Type}
   [ExecTrace.Def]
-  [ExecTrace.Has (TracePart.Exec EventT)]
+  [ExecTrace has% ProtocolEvent EventT]
   (ev: EventT)
   (tr: ExecTrace)
   : Prop
@@ -146,7 +146,7 @@ public
 theorem _root_.DY.Trace.EventLogged_le
   {EventT: Type}
   [ExecTrace.Def]
-  [ExecTrace.Has (TracePart.Exec EventT)]
+  [ExecTrace has% ProtocolEvent EventT]
   (ev: EventT)
   (tr1 tr2: ExecTrace)
   : tr1 ≤ tr2 →
@@ -163,7 +163,7 @@ theorem _root_.DY.Trace.EventLoggedAt_imp_EventInv
   {EventT: Type}
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [EventInv EventT]
-  [ExecTrace.Has (TracePart.Exec EventT)] [ProofTrace.Has (TracePart.Proof EventT)] [Trace.Invariant.Has (TracePart.Proof EventT)]
+  [ExecTrace has% ProtocolEvent EventT] [ProofTrace has% ProtocolEvent EventT] [Trace.Invariant has% ProtocolEvent EventT]
   (ev: EventT)
   (i: Nat)
   (tr: ProofTrace)
@@ -184,7 +184,7 @@ theorem _root_.DY.Trace.EventLogged_imp_EventInv
   {EventT: Type}
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [EventInv EventT]
-  [ExecTrace.Has (TracePart.Exec EventT)] [ProofTrace.Has (TracePart.Proof EventT)] [Trace.Invariant.Has (TracePart.Proof EventT)]
+  [ExecTrace has% ProtocolEvent EventT] [ProofTrace has% ProtocolEvent EventT] [Trace.Invariant has% ProtocolEvent EventT]
   (ev: EventT)
   (tr: ProofTrace)
   : tr.Invariant →
@@ -198,7 +198,7 @@ public
 def logEvent
   {EventT: Type}
   [ExecTrace.Def]
-  [ExecTrace.Has (TracePart.Exec EventT)]
+  [ExecTrace has% ProtocolEvent EventT]
   (ev: EventT): Traceful Unit
 := do
   let entry: TracePart.Exec EventT := { ev }
@@ -211,7 +211,7 @@ theorem logEvent.proof
   {EventT: Type}
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [EventInv EventT]
-  [ExecTrace.Has (TracePart.Exec EventT)] [ProofTrace.Has (TracePart.Proof EventT)] [Trace.Invariant.Has (TracePart.Proof EventT)]
+  [ExecTrace has% ProtocolEvent EventT] [ProofTrace has% ProtocolEvent EventT] [Trace.Invariant has% ProtocolEvent EventT]
   (ev: EventT)
   : HoareTriple
     (logEvent ev)
@@ -234,7 +234,7 @@ theorem logEvent.proof
 public
 def label
   {EventT: Type}
-  [ExecTrace.Def] [ExecTrace.Has (TracePart.Exec EventT)]
+  [ExecTrace.Def] [ExecTrace has% ProtocolEvent EventT]
   (ev: EventT)
   : Label
 where
@@ -243,7 +243,7 @@ where
 public
 theorem label_isCorrupt
   {EventT: Type}
-  [ExecTrace.Def] [ExecTrace.Has (TracePart.Exec EventT)]
+  [ExecTrace.Def] [ExecTrace has% ProtocolEvent EventT]
   (ev: EventT) (tr: ExecTrace)
   : (label ev).isCorrupt tr = tr.EventLogged ev
 := by
