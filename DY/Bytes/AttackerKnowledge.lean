@@ -13,11 +13,11 @@ public meta import DY.Meta.CombineMacro
 
 namespace DY
 
-variable [BytesFunctor]
+variable [Bytes.Def]
 
 /--
   The attacker knowledge is ultimately defined as a fixpoint,
-  and `SubAttackerKnowledge` is a component of this fixpoint computation.
+  and `Bytes.AttackerKnows.Part` is a component of this fixpoint computation.
 
   For example, to say that the attacker is allowed to concatenate bytes,
   we can write:
@@ -32,97 +32,97 @@ variable [BytesFunctor]
 
   The `SubF` parameter is not useful in this definition.
   It is only for hygiene, to make sure we don't miss equational theories
-  by using `SubAttackerKnowledge.combine`
+  by using `Bytes.AttackerKnows.combine`
 -/
 
 public
-structure SubAttackerKnowledge (SubF: Type → Type) where
+structure Bytes.AttackerKnows.Part (SubF: Type → Type) where
   pred: (Bytes → Prop) → Bytes → Prop
   pred_isMonotonic: DY.Fixpoint.IsMonotonic pred := by
     try simp [Fixpoint.IsMonotonic]
     try grind
 
 public
-class AttackerKnowledge where
-  attackerKnowledge: SubAttackerKnowledge BytesF
+class Bytes.AttackerKnows.Def where
+  whole: Bytes.AttackerKnows.Part Bytes.Functor
 
 public
-class AttackerKnowledge.HasStep
+class Bytes.AttackerKnows.HasStep
   {SubF1: Type → Type}
   {SubF2: semiOutParam (Type → Type)}
-  (att1: SubAttackerKnowledge SubF1)
-  (att2: semiOutParam (SubAttackerKnowledge SubF2))
+  (att1: Bytes.AttackerKnows.Part SubF1)
+  (att2: semiOutParam (Bytes.AttackerKnows.Part SubF2))
 where
   pf: ∀ p b, att1.pred p b → att2.pred p b
 
 public
-class AttackerKnowledge.Has
-  [AttackerKnowledge]
+class Bytes.AttackerKnows.Has
+  [Bytes.AttackerKnows.Def]
   {SubF: Type → Type}
-  (att: SubAttackerKnowledge SubF)
+  (att: Bytes.AttackerKnows.Part SubF)
 where
-  pf: ∀ p b, att.pred p b → AttackerKnowledge.attackerKnowledge.pred p b
+  pf: ∀ p b, att.pred p b → Bytes.AttackerKnows.Def.whole.pred p b
 
-namespace AttackerKnowledge
+namespace Bytes.AttackerKnows.Def
 
 public
 instance
-  [AttackerKnowledge]
-  : AttackerKnowledge.Has AttackerKnowledge.attackerKnowledge
+  [Bytes.AttackerKnows.Def]
+  : Bytes.AttackerKnows.Has Bytes.AttackerKnows.Def.whole
 where
   pf p b := by simp
 
 public
 instance
-  [AttackerKnowledge]
+  [Bytes.AttackerKnows.Def]
   {SubF1 SubF2: Type → Type}
-  (att1: SubAttackerKnowledge SubF1)
-  (att2: SubAttackerKnowledge SubF2)
-  [inst1: AttackerKnowledge.HasStep att1 att2]
-  [inst2: AttackerKnowledge.Has att2]
-  : AttackerKnowledge.Has att1
+  (att1: Bytes.AttackerKnows.Part SubF1)
+  (att2: Bytes.AttackerKnows.Part SubF2)
+  [inst1: Bytes.AttackerKnows.HasStep att1 att2]
+  [inst2: Bytes.AttackerKnows.Has att2]
+  : Bytes.AttackerKnows.Has att1
 where
   pf p b := by simp_all [inst1.pf, inst2.pf]
 
-end AttackerKnowledge
+end Bytes.AttackerKnows.Def
 
 public
-def SubAttackerKnowledge.combine
+def Bytes.AttackerKnows.combine
   {n: Nat}
   {SubFs: Fin n → Type → Type}
-  (atts: ∀ id, SubAttackerKnowledge (SubFs id))
-  : SubAttackerKnowledge (BytesFunctor.combine SubFs)
+  (atts: ∀ id, Bytes.AttackerKnows.Part (SubFs id))
+  : Bytes.AttackerKnows.Part (Bytes.combine SubFs)
 where
   pred := DY.Fixpoint.combine (fun id => (atts id).pred)
   pred_isMonotonic := DY.Fixpoint.combine_isMonotonic (fun id => (atts id).pred) (fun id => (atts id).pred_isMonotonic)
 
 public
-def SubAttackerKnowledge.combine'
+def Bytes.AttackerKnows.merge
   {n: Nat}
   {SubF: Type → Type}
-  (atts: Fin n → SubAttackerKnowledge SubF)
-  : SubAttackerKnowledge SubF
+  (atts: Fin n → Bytes.AttackerKnows.Part SubF)
+  : Bytes.AttackerKnows.Part SubF
 where
   pred := DY.Fixpoint.combine (fun id => (atts id).pred)
   pred_isMonotonic := DY.Fixpoint.combine_isMonotonic (fun id => (atts id).pred) (fun id => (atts id).pred_isMonotonic)
 
 @[expose]
 public
-def SubAttackerKnowledge.fromPred {SubF: Type → Type} (pred: Bytes → Prop): SubAttackerKnowledge SubF where
+def Bytes.AttackerKnows.Part.fromPred {SubF: Type → Type} (pred: Bytes → Prop): Bytes.AttackerKnows.Part SubF where
   pred p buf := pred buf
 
-namespace AttackerKnowledge
+namespace Bytes.AttackerKnows.Def
 
 public
 instance
   {n: Nat}
   {SubFs: Fin n → Type → Type}
-  (atts: (id: Fin n) → SubAttackerKnowledge (SubFs id))
+  (atts: (id: Fin n) → Bytes.AttackerKnows.Part (SubFs id))
   (id: Fin n)
-  : AttackerKnowledge.HasStep (atts id) (SubAttackerKnowledge.combine atts)
+  : Bytes.AttackerKnows.HasStep (atts id) (Bytes.AttackerKnows.combine atts)
 where
   pf p b := by
-    simp [SubAttackerKnowledge.combine, Fixpoint.combine]
+    simp [Bytes.AttackerKnows.combine, Fixpoint.combine]
     intro
     exists id
 
@@ -130,63 +130,63 @@ public
 instance
   {n: Nat}
   {SubF: Type → Type}
-  (atts: Fin n → SubAttackerKnowledge SubF)
+  (atts: Fin n → Bytes.AttackerKnows.Part SubF)
   (id: Fin n)
-  : AttackerKnowledge.HasStep (atts id) (SubAttackerKnowledge.combine' atts)
+  : Bytes.AttackerKnows.HasStep (atts id) (Bytes.AttackerKnows.merge atts)
 where
   pf p b := by
-    simp [SubAttackerKnowledge.combine', Fixpoint.combine]
+    simp [Bytes.AttackerKnows.merge, Fixpoint.combine]
     intro
     exists id
 
-end AttackerKnowledge
+end Bytes.AttackerKnows.Def
 
-def Bytes.AttackerKnows.baseKnowledge [ExecTraceTypes] [BaseAttackerKnowledge] (tr: ExecTrace): SubAttackerKnowledge BytesF :=
-  SubAttackerKnowledge.fromPred tr.BaseAttackerKnows
+def Bytes.AttackerKnows.baseKnowledge [ExecTrace.Def] [Trace.BaseAttackerKnows.Def] (tr: ExecTrace): Bytes.AttackerKnows.Part Bytes.Functor :=
+  Bytes.AttackerKnows.Part.fromPred tr.BaseAttackerKnows
 
-def Bytes.AttackerKnows.attackerKnowledge [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge] (tr: ExecTrace): SubAttackerKnowledge BytesF :=
-  SubAttackerKnowledge.combine' (fun (id: Fin 2) =>
+def Bytes.AttackerKnows.attackerKnowledge [ExecTrace.Def] [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def] (tr: ExecTrace): Bytes.AttackerKnows.Part Bytes.Functor :=
+  Bytes.AttackerKnows.merge (fun (id: Fin 2) =>
     match id with
-    | 0 => AttackerKnowledge.attackerKnowledge
+    | 0 => Bytes.AttackerKnows.Def.whole
     | 1 => baseKnowledge tr
   )
 
 public
-def Bytes.AttackerKnows [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge] (b: Bytes) (tr: ExecTrace): Prop :=
+def Bytes.AttackerKnows [ExecTrace.Def] [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def] (b: Bytes) (tr: ExecTrace): Prop :=
   Fixpoint.mkLeastFixpoint ((Bytes.AttackerKnows.attackerKnowledge tr).pred) b
 
 theorem Bytes.AttackerKnows.attackerKnow.prove
-  [ExecTraceTypes]
-  [BaseAttackerKnowledge] [AttackerKnowledge]
+  [ExecTrace.Def]
+  [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
   {SubF: Type → Type}
-  (att: SubAttackerKnowledge SubF)
-  [inst: AttackerKnowledge.Has att]
+  (att: Bytes.AttackerKnows.Part SubF)
+  [inst: Bytes.AttackerKnows.Has att]
   (p: Bytes → Prop)
   (b: Bytes) (tr: ExecTrace)
   : att.pred p b → (Bytes.AttackerKnows.attackerKnowledge tr).pred p b
 := by
-  unfold Bytes.AttackerKnows.attackerKnowledge SubAttackerKnowledge.combine' Fixpoint.combine
+  unfold Bytes.AttackerKnows.attackerKnowledge Bytes.AttackerKnows.merge Fixpoint.combine
   have := inst.pf p b
   simp
   grind
 
 theorem Bytes.AttackerKnows.attackerKnow.prove_from_base
-  [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge]
+  [ExecTrace.Def] [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
   (p: Bytes → Prop)
   (b: Bytes) (tr: ExecTrace)
   : tr.BaseAttackerKnows b →
     (Bytes.AttackerKnows.attackerKnowledge tr).pred p b
 := by
-  unfold Bytes.AttackerKnows.attackerKnowledge SubAttackerKnowledge.combine' Fixpoint.combine
+  unfold Bytes.AttackerKnows.attackerKnowledge Bytes.AttackerKnows.merge Fixpoint.combine
   intro h
   dsimp only
   refine ⟨ 1, ?_ ⟩
-  dsimp only [baseKnowledge, SubAttackerKnowledge.fromPred]
+  dsimp only [baseKnowledge, Bytes.AttackerKnows.Part.fromPred]
   exact h
 
 public
 theorem Bytes.AttackerKnows_le
-  [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge]
+  [ExecTrace.Def] [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
   (b: Bytes) (tr1 tr2: ExecTrace)
   : tr1 ≤ tr2 →
     b.AttackerKnows tr1 →
@@ -194,15 +194,15 @@ theorem Bytes.AttackerKnows_le
 := by
   intro h_le
   apply Fixpoint.mkLeastFixpoint_is_least ((Bytes.AttackerKnows.attackerKnowledge tr1).pred) ((Bytes.AttackerKnows.attackerKnowledge tr1).pred_isMonotonic)
-  simp only [AttackerKnows.attackerKnowledge, SubAttackerKnowledge.combine', Fixpoint.combine, Fin.exists_fin_two]
+  simp only [AttackerKnows.attackerKnowledge, Bytes.AttackerKnows.merge, Fixpoint.combine, Fin.exists_fin_two]
   intro b
   intro h; cases h
   · have h2 := Fixpoint.mkLeastFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr2).pred (Bytes.AttackerKnows.attackerKnowledge tr2).pred_isMonotonic
     unfold Bytes.AttackerKnows at *
     rewrite [← h2]
-    simp_all [AttackerKnows.attackerKnowledge, SubAttackerKnowledge.combine', Fixpoint.combine]
+    simp_all [AttackerKnows.attackerKnowledge, Bytes.AttackerKnows.merge, Fixpoint.combine]
   · have h0: Trace.BaseAttackerKnows tr2 b := by
-      grind [AttackerKnows.baseKnowledge, SubAttackerKnowledge.fromPred, AttackerKnows.baseKnowledge]
+      grind [AttackerKnows.baseKnowledge, Bytes.AttackerKnows.Part.fromPred, AttackerKnows.baseKnowledge]
     have h1 := Bytes.AttackerKnows.attackerKnow.prove_from_base (Bytes.AttackerKnows · tr2) b tr2 h0
     have h2 := Fixpoint.mkLeastFixpoint_is_fixpoint (Bytes.AttackerKnows.attackerKnowledge tr2).pred (Bytes.AttackerKnows.attackerKnowledge tr2).pred_isMonotonic
     unfold Bytes.AttackerKnows at *
@@ -215,11 +215,11 @@ grind_pattern Bytes.AttackerKnows_le => tr1 ≤ tr2, b.AttackerKnows tr1
 -/
 public
 theorem Bytes.AttackerKnows.prove
-  [ExecTraceTypes]
-  [BaseAttackerKnowledge] [AttackerKnowledge]
+  [ExecTrace.Def]
+  [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
   {SubF: Type → Type}
-  (att: SubAttackerKnowledge SubF)
-  [AttackerKnowledge.Has att]
+  (att: Bytes.AttackerKnows.Part SubF)
+  [Bytes.AttackerKnows.Has att]
   (b: Bytes) (tr: ExecTrace)
   : att.pred (Bytes.AttackerKnows · tr) b →
     Bytes.AttackerKnows b tr
@@ -232,7 +232,7 @@ theorem Bytes.AttackerKnows.prove
 
 public
 theorem Bytes.AttackerKnows.prove_from_base
-  [ExecTraceTypes] [BaseAttackerKnowledge] [AttackerKnowledge]
+  [ExecTrace.Def] [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
   (b: Bytes) (tr: ExecTrace)
   : tr.BaseAttackerKnows b →
     Bytes.AttackerKnows b tr
@@ -253,54 +253,54 @@ theorem Bytes.AttackerKnows.prove_from_base
   The attacker knowledge is the weakest predicate: this is the theorem `Bytes.AttackerKnows.is_least_fixpoint`.
   In other words, if a predicate `P` has this property, then `Bytes.AttackerKnows b => P b`
 
-  We can use `SubAttackerKnowledge.Implies` to modularly prove that a predicate `P` satisfy this property.
+  We can use `Bytes.AttackerKnows.Part.Implies` to modularly prove that a predicate `P` satisfy this property.
 -/
 @[expose]
 public
-def SubAttackerKnowledge.Implies {SubF: Type → Type} (att: SubAttackerKnowledge SubF) (p: Bytes → Prop): Prop :=
+def Bytes.AttackerKnows.Part.Implies {SubF: Type → Type} (att: Bytes.AttackerKnows.Part SubF) (p: Bytes → Prop): Prop :=
   ∀ b, att.pred p b → p b
 
 public
-theorem SubAttackerKnowledge.combine'.implies
+theorem Bytes.AttackerKnows.merge.implies
   {n: Nat}
   {SubF: Type → Type}
-  (atts: Fin n → SubAttackerKnowledge SubF)
+  (atts: Fin n → Bytes.AttackerKnows.Part SubF)
   (p: Bytes → Prop)
-  (pfs: ∀ id, SubAttackerKnowledge.Implies (atts id) p)
-  : SubAttackerKnowledge.Implies (SubAttackerKnowledge.combine' atts) p
+  (pfs: ∀ id, Bytes.AttackerKnows.Part.Implies (atts id) p)
+  : Bytes.AttackerKnows.Part.Implies (Bytes.AttackerKnows.merge atts) p
 := by
   intro b
-  simp only [SubAttackerKnowledge.combine', Fixpoint.combine, forall_exists_index]
+  simp only [Bytes.AttackerKnows.merge, Fixpoint.combine, forall_exists_index]
   intro id
   exact pfs id b
 
 public
-theorem SubAttackerKnowledge.combine.implies
+theorem Bytes.AttackerKnows.combine.implies
   {n: Nat}
   {SubFs: Fin n → Type → Type}
-  (atts: ∀ id, SubAttackerKnowledge (SubFs id))
+  (atts: ∀ id, Bytes.AttackerKnows.Part (SubFs id))
   (p: Bytes → Prop)
-  (pfs: ∀ id, SubAttackerKnowledge.Implies (atts id) p)
-  : SubAttackerKnowledge.Implies (SubAttackerKnowledge.combine atts) p
+  (pfs: ∀ id, Bytes.AttackerKnows.Part.Implies (atts id) p)
+  : Bytes.AttackerKnows.Part.Implies (Bytes.AttackerKnows.combine atts) p
 := by
   intro b
-  simp only [SubAttackerKnowledge.combine, Fixpoint.combine, forall_exists_index]
+  simp only [Bytes.AttackerKnows.combine, Fixpoint.combine, forall_exists_index]
   intro id
   exact pfs id b
 
 public
 theorem Bytes.AttackerKnows.is_least_fixpoint
-  [ExecTraceTypes]
-  [BaseAttackerKnowledge] [AttackerKnowledge]
+  [ExecTrace.Def]
+  [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
   (pred: Bytes → Prop)
   (b: Bytes) (tr: ExecTrace)
-  (pf1: SubAttackerKnowledge.Implies AttackerKnowledge.attackerKnowledge pred)
+  (pf1: Bytes.AttackerKnows.Part.Implies Bytes.AttackerKnows.Def.whole pred)
   (pf2: ∀ b, tr.BaseAttackerKnows b → pred b)
   : Bytes.AttackerKnows b tr →
     pred b
 :=
   Fixpoint.mkLeastFixpoint_is_least ((Bytes.AttackerKnows.attackerKnowledge tr).pred) ((Bytes.AttackerKnows.attackerKnowledge tr).pred_isMonotonic) pred (by
-    simp only [attackerKnowledge, baseKnowledge, SubAttackerKnowledge.fromPred, SubAttackerKnowledge.combine', Fixpoint.combine]
+    simp only [attackerKnowledge, baseKnowledge, Bytes.AttackerKnows.Part.fromPred, Bytes.AttackerKnows.merge, Fixpoint.combine]
     intro b
     have := pf1 b
     have := pf2 b
@@ -310,52 +310,52 @@ theorem Bytes.AttackerKnows.is_least_fixpoint
 namespace Meta.CombineMacro
 
 macro_rules
-  | `(command| #combine_one $options* attackerKnowledge $params* from $sources,*) => do
+  | `(command| #combine_one $options* Bytes.AttackerKnows $params* from $sources,*) => do
     let options := parseOptions options
-    let baseParams := #[(← `(bracketedBinder| [DY.BytesFunctor]))]
+    let baseParams := #[(← `(bracketedBinder| [DY.Bytes.Def]))]
     let params := if options.toplevel then params else baseParams ++ params
     let sources := sources.getElems
 
     let combined ← combineExplicit params sources <| .makeSimple {
-      name := `attackerKnowledge
-      refereeName := `SubF
-      combineName := ``DY.SubAttackerKnowledge.combine
-      outTypeName := ``DY.SubAttackerKnowledge
+      name := `attackerKnows
+      refereeName := `BytesPart.Functor
+      combineName := ``DY.Bytes.AttackerKnows.combine
+      outTypeName := ``DY.Bytes.AttackerKnows.Part
       isTheorem := false
     }
 
     let hasStep ← mkHasStep params sources <| .makeSimple {
-      name := `attackerKnowledge
-      combineName := ``DY.SubAttackerKnowledge.combine
-      hasStepName := ``DY.AttackerKnowledge.HasStep
+      name := `attackerKnows
+      combineName := ``DY.Bytes.AttackerKnows.combine
+      hasStepName := ``DY.Bytes.AttackerKnows.HasStep
     }
 
-    let attStx := Lean.mkIdent `attackerKnowledge
-    let topLevelInst ← `(command| public instance: DY.AttackerKnowledge where attackerKnowledge := $attStx)
-    let topLevelHas ← `(command| public instance: DY.AttackerKnowledge.Has $attStx := inferInstanceAs (DY.AttackerKnowledge.Has DY.AttackerKnowledge.attackerKnowledge))
+    let attStx := Lean.mkIdent `attackerKnows
+    let topLevelInst ← `(command| public instance: DY.Bytes.AttackerKnows.Def where whole := $attStx)
+    let topLevelHas ← `(command| public instance: DY.Bytes.AttackerKnows.Has $attStx := inferInstanceAs (DY.Bytes.AttackerKnows.Has DY.Bytes.AttackerKnows.Def.whole))
     let topLevel := if options.toplevel then #[topLevelInst, topLevelHas] else #[]
 
     return Lean.mkNullNode (combined ++ hasStep ++ topLevel)
 
 macro_rules
-  | `(command| #combine_one $_options* attackerKnowledge' $params* from $sources,*) => do
+  | `(command| #combine_one $_options* Bytes.AttackerKnows.merge $params* from $sources,*) => do
     -- options.toplevel does not make sense in this case, hence we ignore it
-    let params := #[(← `(bracketedBinder| [DY.BytesFunctor]))] ++ params
+    let params := #[(← `(bracketedBinder| [DY.Bytes.Def]))] ++ params
     let sources := sources.getElems
 
-    let subfStx := Lean.mkIdent `SubF
+    let subfStx := Lean.mkIdent `BytesPart.Functor
     let combined ← combineExplicit params sources {
-      name := `attackerKnowledge
-      combineName := ``DY.SubAttackerKnowledge.combine'
-      internalOutTypeStx := fun args _ => `(term| DY.SubAttackerKnowledge ($subfStx $args*))
-      outTypeStx := fun args => `(term| DY.SubAttackerKnowledge ($subfStx $args*))
+      name := `attackerKnows
+      combineName := ``DY.Bytes.AttackerKnows.merge
+      internalOutTypeStx := fun args _ => `(term| DY.Bytes.AttackerKnows.Part ($subfStx $args*))
+      outTypeStx := fun args => `(term| DY.Bytes.AttackerKnows.Part ($subfStx $args*))
       isTheorem := false
     }
 
     let hasStep ← mkHasStep params sources <| .makeSimple {
-      name := `attackerKnowledge
-      combineName := ``DY.SubAttackerKnowledge.combine'
-      hasStepName := ``DY.AttackerKnowledge.HasStep
+      name := `attackerKnows
+      combineName := ``DY.Bytes.AttackerKnows.merge
+      hasStepName := ``DY.Bytes.AttackerKnows.HasStep
     }
 
     return Lean.mkNullNode (combined ++ hasStep)

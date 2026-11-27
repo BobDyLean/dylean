@@ -6,7 +6,7 @@ public import DY.Trace.Invariant
 
 namespace DY
 
-variable [ExecTraceTypes]
+variable [ExecTrace.Def]
 
 public
 def Label.pub : Label := {

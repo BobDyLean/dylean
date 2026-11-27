@@ -12,18 +12,18 @@ open DY.Comparse
 public section ProofTraceConfig
 
 class HasProofTrace extends HasExecTrace where
-  [traceProof: ProofTraceTypes]
-  [traceProof0: ProofTraceTypes.Has Network.ProofEntryT]
-  [traceProof1: ProofTraceTypes.Has Random.ProofEntryT]
-  [traceProof2: ProofTraceTypes.Has (ProtocolEvent.ProofEntryT SignedDHKEMEvent)]
-  [traceProof3: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT ClientInitiateDHState)]
-  [traceProof4: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT ClientInitiateKEMState)]
-  [traceProof5: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT ClientFinishState)]
-  [traceProof6: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT ServerFinishState)]
-  [traceProof7: ProofTraceTypes.Has (LongTermKeys.ProofEntryT "SignedDHKEM PKI")]
-  [traceProof8: ProofTraceTypes.Has (KEM.Broken.ProofEntryT)]
-  [traceProof9: ProofTraceTypes.Has (DiffieHellman'.Broken.ProofEntryT)]
-  [traceProof10: ProofTraceTypes.Has (Signature'.Broken.ProofEntryT)]
+  [traceProof: ProofTrace.Def]
+  [traceProof0: ProofTrace.Has Network.TracePart.Proof]
+  [traceProof1: ProofTrace.Has Random.TracePart.Proof]
+  [traceProof2: ProofTrace.Has (ProtocolEvent.TracePart.Proof SignedDHKEMEvent)]
+  [traceProof3: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof ClientInitiateDHState)]
+  [traceProof4: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof ClientInitiateKEMState)]
+  [traceProof5: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof ClientFinishState)]
+  [traceProof6: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof ServerFinishState)]
+  [traceProof7: ProofTrace.Has (LongTermKeys.TracePart.Proof "SignedDHKEM PKI")]
+  [traceProof8: ProofTrace.Has (KEM.Broken.TracePart.Proof)]
+  [traceProof9: ProofTrace.Has (DiffieHellman'.Broken.TracePart.Proof)]
+  [traceProof10: ProofTrace.Has (Signature'.Broken.TracePart.Proof)]
 
 attribute [reducible, scoped instance] HasProofTrace.traceProof
 attribute [reducible, scoped instance] HasProofTrace.traceProof0
@@ -108,12 +108,12 @@ where
     )
 
 instance
-  [BytesInvariants]
-  [BytesInvariants.Has DiffieHellman'.DhPk.invariants]
-  [BytesInvariants.Has Literal.invariants]
-  [BytesInvariants.Has Concat.invariants]
-  [BytesInvariants.Has KEM.invariants]
-  : Signature'.SignPredProof
+  [Bytes.Invariants.Def]
+  [Bytes.Invariants.Has DiffieHellman'.DhPk.BytesPart.invariants]
+  [Bytes.Invariants.Has Literal.BytesPart.invariants]
+  [Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [Bytes.Invariants.Has KEM.BytesPart.invariants]
+  : Signature'.SignPred.Lawful
 where
   pred_later := by
     intro _ _ _ _ _ _ _ _ _ _ _
@@ -127,15 +127,15 @@ end BytesInvariants
 public section BytesInvariantsConfig
 
 class HasBytesInvariants extends HasProofTrace where
-  [bytesInv: BytesInvariants]
-  [bytesInvProof: BytesInvariantsProofs]
-  [bytesInv0: BytesInvariants.Has Random.invariants]
-  [bytesInv1: BytesInvariants.Has Literal.invariants]
-  [bytesInv2: BytesInvariants.Has Concat.invariants]
-  [bytesInv3: BytesInvariants.Has Hash.invariants]
-  [bytesInv4: BytesInvariants.Has Signature'.invariants]
-  [bytesInv5: BytesInvariants.Has DiffieHellman'.invariants]
-  [bytesInv6: BytesInvariants.Has KEM.invariants]
+  [bytesInv: Bytes.Invariants.Def]
+  [bytesInvProof: Bytes.Invariants.Lawful]
+  [bytesInv0: Bytes.Invariants.Has Random.BytesPart.invariants]
+  [bytesInv1: Bytes.Invariants.Has Literal.BytesPart.invariants]
+  [bytesInv2: Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [bytesInv3: Bytes.Invariants.Has Hash.BytesPart.invariants]
+  [bytesInv4: Bytes.Invariants.Has Signature'.BytesPart.invariants]
+  [bytesInv5: Bytes.Invariants.Has DiffieHellman'.BytesPart.invariants]
+  [bytesInv6: Bytes.Invariants.Has KEM.BytesPart.invariants]
 
 attribute [reducible, scoped instance] HasBytesInvariants.bytesInv
 attribute [           scoped instance] HasBytesInvariants.bytesInvProof
@@ -289,20 +289,20 @@ end TraceInvariant
 public section TraceInvariantConfig
 
 class HasTraceInvariant extends HasBytesInvariants where
-  [traceInv: TraceInvariant]
-  [traceInv0: TraceInvariant.Has Network.ProofEntryT]
-  [traceInv1: TraceInvariant.Has Random.ProofEntryT]
-  [traceInv2: TraceInvariant.Has (ProtocolEvent.ProofEntryT SignedDHKEMEvent)]
-  [traceInv3: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT ClientInitiateDHState)]
-  [traceInv4: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT ClientInitiateKEMState)]
-  [traceInv5: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT ClientFinishState)]
-  [traceInv6: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT ServerFinishState)]
-  [traceInv7: TraceInvariant.Has (LongTermKeys.ProofEntryT "SignedDHKEM PKI")]
-  [traceInv8: TraceInvariant.Has KEM.Broken.ProofEntryT]
-  [traceInv9: TraceInvariant.Has DiffieHellman'.Broken.ProofEntryT]
-  [traceInv10: TraceInvariant.Has Signature'.Broken.ProofEntryT]
-  [attBaseThm: BaseAttackerKnowledgeTheorem]
-  [attThm: AttackerKnowledgeTheorem]
+  [traceInv: Trace.Invariant.Def]
+  [traceInv0: Trace.Invariant.Has Network.TracePart.Proof]
+  [traceInv1: Trace.Invariant.Has Random.TracePart.Proof]
+  [traceInv2: Trace.Invariant.Has (ProtocolEvent.TracePart.Proof SignedDHKEMEvent)]
+  [traceInv3: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof ClientInitiateDHState)]
+  [traceInv4: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof ClientInitiateKEMState)]
+  [traceInv5: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof ClientFinishState)]
+  [traceInv6: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof ServerFinishState)]
+  [traceInv7: Trace.Invariant.Has (LongTermKeys.TracePart.Proof "SignedDHKEM PKI")]
+  [traceInv8: Trace.Invariant.Has KEM.Broken.TracePart.Proof]
+  [traceInv9: Trace.Invariant.Has DiffieHellman'.Broken.TracePart.Proof]
+  [traceInv10: Trace.Invariant.Has Signature'.Broken.TracePart.Proof]
+  [attBaseThm: Trace.BaseAttackerKnows_implies_Publishable.Proof]
+  [attThm: Bytes.AttackerKnows_implies_Publishable.Proof]
 
 attribute [reducible, scoped instance] HasTraceInvariant.traceInv
 attribute [           scoped instance] HasTraceInvariant.traceInv0
@@ -485,16 +485,16 @@ variable [HasTraceInvariant]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 section
-public instance: ReachableImpliesInvariant Client.initiate.reachability := .mk (fun me => Client.initiate.proof me)
-public instance: ReachableImpliesInvariant Server.receive.reachability := .mk (fun (me, skHandle, msgHandle) => Server.receive.proof me skHandle msgHandle)
-public instance: ReachableImpliesInvariant Client.finish.reachability := .mk (fun (me, server, pkHandle, msgHandle, dhStHandle, kemStHandle) => Client.finish.proof me server pkHandle msgHandle dhStHandle kemStHandle)
-public instance: ReachableImpliesInvariant ClientInitiateDHState.compromise.reachability := .mk (fun (stHandle) => ClientInitiateDHState.compromise.proof stHandle)
-public instance: ReachableImpliesInvariant ClientInitiateKEMState.compromise.reachability := .mk (fun (stHandle) => ClientInitiateKEMState.compromise.proof stHandle)
-public instance: ReachableImpliesInvariant ClientFinishState.compromise.reachability := .mk (fun (stHandle) => ClientFinishState.compromise.proof stHandle)
-public instance: ReachableImpliesInvariant ServerFinishState.compromise.reachability := .mk (fun (stHandle) => ServerFinishState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part Client.initiate.transitionSystem := .mk (fun me => Client.initiate.proof me)
+public instance: Trace.Reachable_implies_Invariant.Part Server.receive.transitionSystem := .mk (fun (me, skHandle, msgHandle) => Server.receive.proof me skHandle msgHandle)
+public instance: Trace.Reachable_implies_Invariant.Part Client.finish.transitionSystem := .mk (fun (me, server, pkHandle, msgHandle, dhStHandle, kemStHandle) => Client.finish.proof me server pkHandle msgHandle dhStHandle kemStHandle)
+public instance: Trace.Reachable_implies_Invariant.Part ClientInitiateDHState.compromise.transitionSystem := .mk (fun (stHandle) => ClientInitiateDHState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part ClientInitiateKEMState.compromise.transitionSystem := .mk (fun (stHandle) => ClientInitiateKEMState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part ClientFinishState.compromise.transitionSystem := .mk (fun (stHandle) => ClientFinishState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part ServerFinishState.compromise.transitionSystem := .mk (fun (stHandle) => ServerFinishState.compromise.proof stHandle)
 end
 
-#combine into ReachabilityTheorem from
+#combine into Trace.Reachable_implies_Invariant from
   Network,
   Random,
   LongTermKeys "SignedDHKEM PKI",

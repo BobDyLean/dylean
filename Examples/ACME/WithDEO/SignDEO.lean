@@ -9,16 +9,16 @@ section Constructors
 namespace DEO
 
 public
-structure SubF (Bytes: Type) where
+structure BytesPart.Functor (Bytes: Type) where
   msg: Bytes
   sig: Bytes
 
 public
-instance: ALaCarte.FunctorSizeOf SubF where
+instance: ALaCarte.FunctorSizeOf BytesPart.Functor where
   sizeOf | {msg, sig} => sizeOf msg + sizeOf sig
 
 public
-instance: ALaCarte.Representable SubF where
+instance: ALaCarte.Representable BytesPart.Functor where
   CtorId := Unit
   ctors | () => { Data := Unit, nRec := 2 }
 
@@ -38,42 +38,42 @@ instance: ALaCarte.Representable SubF where
     simp_all <;> grind
   sizeOf_eq | {msg, sig} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-public instance: ALaCarte.RepresentableDecidableEq SubF where
-public instance: ALaCarte.RepresentableOrd SubF where
-public instance: SubBytesFunctor SubF where
+public instance: ALaCarte.RepresentableDecidableEq BytesPart.Functor where
+public instance: ALaCarte.RepresentableOrd BytesPart.Functor where
+public instance: Bytes.Part BytesPart.Functor where
 
 public
-def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
+def BytesPart.length [Bytes.Def]: Bytes.length.Part BytesPart.Functor :=
   fun _ _ =>
     32
 
 end DEO
 
-#combine into BytesFunctor, BytesLength from
+#combine into Bytes, Bytes.length from
   Signature.Vk,
   Signature.Sign,
   DEO
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
 
-public abbrev __root__.DY.Signature.Vk.SubF.pack (x: Signature.Vk.SubF Bytes) := BytesView.pack x
-public abbrev __root__.DY.Signature.Vk.SubF.Sign.SubF.pack (x: Signature.Sign.SubF Bytes) := BytesView.pack x
-public abbrev DEO.SubF.pack (x: DEO.SubF Bytes) := BytesView.pack x
+public abbrev __root__.DY.Signature.Vk.BytesPart.Functor.pack (x: Signature.Vk.BytesPart.Functor Bytes) := BytesView.pack x
+public abbrev __root__.DY.Signature.Vk.BytesPart.Functor.Sign.BytesPart.Functor.pack (x: Signature.Sign.BytesPart.Functor Bytes) := BytesView.pack x
+public abbrev DEO.BytesPart.Functor.pack (x: DEO.BytesPart.Functor Bytes) := BytesView.pack x
 
 public
 instance: Signature.CanSign Bytes where
   vk sk :=
-    ({sk}: Signature.Vk.SubF Bytes).pack
+    ({sk}: Signature.Vk.BytesPart.Functor Bytes).pack
 
   sign sk nonce msg :=
-    ({sk, nonce, msg}: Signature.Sign.SubF Bytes).pack
+    ({sk, nonce, msg}: Signature.Sign.BytesPart.Functor Bytes).pack
 
   verify vk msg sig :=
-    match sig.view? Signature.Sign.SubF, vk.view? Signature.Vk.SubF with
+    match sig.view? Signature.Sign.BytesPart.Functor, vk.view? Signature.Vk.BytesPart.Functor with
     | some { sk := skSig, nonce := _, msg := msgSig }, some { sk := skVk } =>
       (
         skSig = skVk && msg = msgSig
       ) || (
-        match skVk.view? DEO.SubF with
+        match skVk.view? DEO.BytesPart.Functor with
         | some { msg := msgDeo, sig := sigDeo } =>
           sig = sigDeo && msg = msgDeo
         | none => false
@@ -82,7 +82,7 @@ instance: Signature.CanSign Bytes where
 
 public
 def deogen (msg sig: Bytes): Bytes :=
-  ({msg, sig}: DEO.SubF Bytes).pack
+  ({msg, sig}: DEO.BytesPart.Functor Bytes).pack
 
 public
 theorem verify_sign
@@ -105,14 +105,14 @@ end Constructors
 section AttackerKnowledge
 
 public
-def vk.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
+def vk.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ sk,
       out = Signature.vk sk ∧
       p sk
 
 public
-def sign.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
+def sign.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ sk nonce msg,
       out = Signature.sign sk nonce msg ∧
@@ -121,21 +121,21 @@ def sign.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKn
       p msg
 
 public
-def deogen.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
+def deogen.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ msg sig,
       out = deogen msg sig ∧
       p msg ∧
       p sig
 
-#combine [BytesFunctor.Has SubF] into attackerKnowledge' from
+#combine [Bytes.Has BytesPart.Functor] into Bytes.AttackerKnows.merge from
   vk,
   sign,
   deogen
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
-variable [ExecTraceTypes] [BaseAttackerKnowledge]
-variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
 
 public
 theorem attacker_knows_vk
@@ -144,8 +144,8 @@ theorem attacker_knows_vk
     (Signature.vk sk).AttackerKnows tr
 := by
   intro h_inp
-  apply Bytes.AttackerKnows.prove vk.attackerKnowledge
-  simp only [vk.attackerKnowledge]
+  apply Bytes.AttackerKnows.prove vk.attackerKnows
+  simp only [vk.attackerKnows]
   grind
 
 public
@@ -157,8 +157,8 @@ theorem attacker_knows_sign
     (Signature.sign sk nonce msg).AttackerKnows tr
 := by
   intro h_inp h_nonce h_msg
-  apply Bytes.AttackerKnows.prove sign.attackerKnowledge
-  simp only [sign.attackerKnowledge]
+  apply Bytes.AttackerKnows.prove sign.attackerKnows
+  simp only [sign.attackerKnows]
   grind
 
 public
@@ -169,8 +169,8 @@ theorem attacker_knows_deogen
     (deogen msg sig).AttackerKnows tr
 := by
   intro h_msg h_sig
-  apply Bytes.AttackerKnows.prove deogen.attackerKnowledge
-  simp only [deogen.attackerKnowledge]
+  apply Bytes.AttackerKnows.prove deogen.attackerKnows
+  simp only [deogen.attackerKnows]
   grind
 
 end AttackerKnowledge

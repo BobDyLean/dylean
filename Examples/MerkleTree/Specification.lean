@@ -274,24 +274,24 @@ end MerkleTreeDefs
 public section ExecBytesConfig
 
 class HasExecBytes where
-  [bytesFunc: BytesFunctor]
-  [bytesFunc0: BytesFunctor.Has Literal.SubF]
-  [bytesFunc1: BytesFunctor.Has Concat.SubF]
-  [bytesFunc2: BytesFunctor.Has Hash.SubF]
-  [bytesFunc3: BytesFunctor.Has Signature.SubF]
-  [bytesFunc4: BytesFunctor.Has Random.SubF]
-  [bytesLen: BytesLength]
-  [bytesLen0: BytesLength.Has Literal.SubF.length]
-  [bytesLen1: BytesLength.Has Concat.SubF.length]
-  [bytesLen2: BytesLength.Has Hash.SubF.length]
-  [bytesLen3: BytesLength.Has Signature.SubF.length]
-  [bytesLen4: BytesLength.Has Random.SubF.length]
-  [att: AttackerKnowledge]
-  [att0: AttackerKnowledge.Has Literal.attackerKnowledge]
-  [att1: AttackerKnowledge.Has Concat.attackerKnowledge]
-  [att2: AttackerKnowledge.Has Hash.attackerKnowledge]
-  [att3: AttackerKnowledge.Has Signature.attackerKnowledge]
-  [att4: AttackerKnowledge.Has Random.attackerKnowledge]
+  [bytesFunc: Bytes.Def]
+  [bytesFunc0: Bytes.Has Literal.BytesPart.Functor]
+  [bytesFunc1: Bytes.Has Concat.BytesPart.Functor]
+  [bytesFunc2: Bytes.Has Hash.BytesPart.Functor]
+  [bytesFunc3: Bytes.Has Signature.BytesPart.Functor]
+  [bytesFunc4: Bytes.Has Random.BytesPart.Functor]
+  [bytesLen: Bytes.length.Def]
+  [bytesLen0: Bytes.length.Has Literal.BytesPart.length]
+  [bytesLen1: Bytes.length.Has Concat.BytesPart.length]
+  [bytesLen2: Bytes.length.Has Hash.BytesPart.length]
+  [bytesLen3: Bytes.length.Has Signature.BytesPart.length]
+  [bytesLen4: Bytes.length.Has Random.BytesPart.length]
+  [att: Bytes.AttackerKnows.Def]
+  [att0: Bytes.AttackerKnows.Has Literal.attackerKnows]
+  [att1: Bytes.AttackerKnows.Has Concat.attackerKnows]
+  [att2: Bytes.AttackerKnows.Has Hash.attackerKnows]
+  [att3: Bytes.AttackerKnows.Has Signature.attackerKnows]
+  [att4: Bytes.AttackerKnows.Has Random.attackerKnows]
 
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc0
@@ -422,13 +422,13 @@ end Formats
 public section ExecTraceConfig
 
 class HasExecTrace extends HasExecBytes where
-  [traceExec: ExecTraceTypes]
-  [traceExec0: ExecTraceTypes.Has Network.ExecEntryT]
-  [traceExec1: ExecTraceTypes.Has Random.ExecEntryT]
-  [traceExec2: ExecTraceTypes.Has (ProtocolEvent.ExecEntryT TheEvent)]
-  [traceExec3: ExecTraceTypes.Has (LongTermKeys.ExecEntryT "MerkleTree PKI")]
-  [traceExec4: ExecTraceTypes.Has (PersistentLocalState.CompromisableState.ExecEntryT ServerState)]
-  [attBase: BaseAttackerKnowledge]
+  [traceExec: ExecTrace.Def]
+  [traceExec0: ExecTrace.Has Network.TracePart.Exec]
+  [traceExec1: ExecTrace.Has Random.TracePart.Exec]
+  [traceExec2: ExecTrace.Has (ProtocolEvent.TracePart.Exec TheEvent)]
+  [traceExec3: ExecTrace.Has (LongTermKeys.TracePart.Exec "MerkleTree PKI")]
+  [traceExec4: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec ServerState)]
+  [attBase: Trace.BaseAttackerKnows.Def]
 
 attribute [reducible, scoped instance] HasExecTrace.traceExec
 attribute [reducible, scoped instance] HasExecTrace.traceExec0
@@ -501,13 +501,13 @@ variable [HasExecTrace]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 @[expose] public section
-def Server.authenticate.reachability: ReachabilityConfig := .make (fun (server, msgHandles, skHandle) => Server.authenticate server msgHandles skHandle)
-def Server.proveInclusion.reachability: ReachabilityConfig := .make (fun (server, i, stHandle) => Server.proveInclusion server i stHandle)
-def Client.checkInclusion.reachability: ReachabilityConfig := .make (fun (server, msgSigHandle, msgInclHandle, pkHandle) => Client.checkInclusion server msgSigHandle msgInclHandle pkHandle)
-def ServerState.compromise.reachability: ReachabilityConfig := .make (fun stHandle => ServerState.compromise stHandle)
+def Server.authenticate.transitionSystem: TransitionSystem := .make (fun (server, msgHandles, skHandle) => Server.authenticate server msgHandles skHandle)
+def Server.proveInclusion.transitionSystem: TransitionSystem := .make (fun (server, i, stHandle) => Server.proveInclusion server i stHandle)
+def Client.checkInclusion.transitionSystem: TransitionSystem := .make (fun (server, msgSigHandle, msgInclHandle, pkHandle) => Client.checkInclusion server msgSigHandle msgInclHandle pkHandle)
+def ServerState.compromise.transitionSystem: TransitionSystem := .make (fun stHandle => ServerState.compromise stHandle)
 end
 
-#combine into ReachabilityConfig from
+#combine into TransitionSystem from
   Network,
   Random,
   LongTermKeys "MerkleTree PKI",

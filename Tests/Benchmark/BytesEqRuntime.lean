@@ -14,7 +14,7 @@ public meta import DY.Actions.Network
 
 namespace DY.Benchmark.BytesRuntime
 
-#combine +toplevel into BytesFunctor, BytesLength from
+#combine +toplevel into Bytes, Bytes.length from
   Literal,
   Concat,
   Hash

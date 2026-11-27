@@ -234,7 +234,7 @@ elab "hoist" : tactic => do
 namespace Test
   set_option warn.sorry false
 
-  variable [BytesFunctor] [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  variable [Bytes.Def] [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   def g (foo: Bytes) (_bar: Bytes) := foo
   def send_message (b: Bytes): Traceful Nat := sorry
 

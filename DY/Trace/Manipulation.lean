@@ -12,25 +12,25 @@ public import DY.Label
 namespace DY
 
 public
-class WP [ExecTraceTypes] [ProofTraceTypes] (m: Type u → Type v) where
+class WP [ExecTrace.Def] [ProofTrace.Def] (m: Type u → Type v) where
   wp: m a → (a → ProofTrace → Prop) → (ProofTrace → Prop)
 
 export WP (wp)
 
 public
-instance [ExecTraceTypes] [ProofTraceTypes]: WP Id where
+instance [ExecTrace.Def] [ProofTrace.Def]: WP Id where
   wp f post tr_proof :=
     post f.run tr_proof
 
 public
-instance [ExecTraceTypes] [ProofTraceTypes]: WP Err where
+instance [ExecTrace.Def] [ProofTrace.Def]: WP Err where
   wp f post tr_proof :=
     match f.run with
     | .none => True
     | .some x => post x tr_proof
 
 public
-instance [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]: WP Traceful where
+instance [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]: WP Traceful where
   wp f post tr_proof :=
     let (opt_x, tr_exec') := f.run tr_proof.erase
     ∃ tr_proof',
@@ -45,7 +45,7 @@ instance [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]: WP Traceful where
 
 @[expose]
 public
-def hoareTriple [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [WP m] (f: m a) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop): Prop :=
+def hoareTriple [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def] [WP m] (f: m a) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop): Prop :=
   ∀ tr,
     pre tr →
     Trace.Invariant tr →
@@ -107,16 +107,16 @@ where
   dummy := ()
 
 public
-class HoareTripleGhost [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [WP m] (f: m a) [HasGhostArgumentType f g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+class HoareTripleGhost [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def] [WP m] (f: m a) [HasGhostArgumentType f g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: hoareTriple f pre post
 
 public
-class HoareTriple [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [WP m] (f: m a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+class HoareTriple [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def] [WP m] (f: m a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: hoareTriple f pre post
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   {m :Type u → Type v} [WP m]
   {a: Type u}
   (f: m a)
@@ -128,7 +128,7 @@ where
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   {m :Type u → Type v} [WP m]
   {a: Type u}
   (f: m a)
@@ -140,7 +140,7 @@ where
 
 public
 class WPLift
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   (m: Type u → Type v) (n : Type u → Type w)
   [MonadLift m n] [WP m] [WP n]
 where
@@ -172,7 +172,7 @@ where
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   {m: Type u → Type v} {n: Type u → Type w} [MonadLift m n] [WP m] [WP n] [wplift: WPLift m n]
   {a: Type u} {g: Type u_g}
   (x: m a) (ghost: g) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop)
@@ -186,14 +186,14 @@ where
     grind [hoareTriple]
 
 public
-instance [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]: WPLift Err Traceful where
+instance [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]: WPLift Err Traceful where
   pf := by
     simp only [wp, liftM, monadLift, MonadLift.monadLift, Traceful.run_mk, OptionT.run]
     grind
 
 public
 theorem Traceful.bind_wp
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   {a b g}
   (ghost: g)
   (x: Traceful a) (f: a -> Traceful b)
@@ -219,7 +219,7 @@ theorem Traceful.bind_wp
 
 public
 theorem Traceful.finish_wp
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   {a g}
   (ghost: g)
   (x: Traceful a)
@@ -244,16 +244,16 @@ theorem Traceful.finish_wp
     grind
 
 public
-class HoareTriplePureGhost [ExecTraceTypes] [ProofTraceTypes] (x: a) [HasGhostArgumentType x g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+class HoareTriplePureGhost [ExecTrace.Def] [ProofTrace.Def] (x: a) [HasGhostArgumentType x g] (ghost: g) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: ∀ tr, pre tr → post x tr
 
 public
-class HoareTriplePure [ExecTraceTypes] [ProofTraceTypes] (x: a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
+class HoareTriplePure [ExecTrace.Def] [ProofTrace.Def] (x: a) (pre: outParam (ProofTrace → Prop)) (post: outParam (a → ProofTrace → Prop)) where
   pf: ∀ tr, pre tr → post x tr
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes]
+  [ExecTrace.Def] [ProofTrace.Def]
   (x: a)
   (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop)
   [HoareTriplePure x pre post]
@@ -262,12 +262,12 @@ where
   dummy := ()
 
 public
-instance [ExecTraceTypes] [ProofTraceTypes] (x: a) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop) [HoareTriplePure x pre post]: HoareTriplePureGhost x () pre post where
+instance [ExecTrace.Def] [ProofTrace.Def] (x: a) (pre: ProofTrace → Prop) (post: a → ProofTrace → Prop) [HoareTriplePure x pre post]: HoareTriplePureGhost x () pre post where
   pf := HoareTriplePure.pf
 
 public
 theorem apply_hoare_triple_pure
-  [ExecTraceTypes] [ProofTraceTypes]
+  [ExecTrace.Def] [ProofTrace.Def]
   {a g}
   (ghost: g) (x: a)
   {pre: ProofTrace → Prop} {post: a → ProofTrace → Prop}
@@ -280,7 +280,7 @@ theorem apply_hoare_triple_pure
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes]
+  [ExecTrace.Def] [ProofTrace.Def]
   (b: Bool)
   [HasGhostArgumentType b g]
   : HasGhostArgumentType (guard b: Traceful Unit) g
@@ -289,7 +289,7 @@ where
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes]
+  [ExecTrace.Def] [ProofTrace.Def]
   (b: Bool)
   [HasIndirectGhostMetaprogram b metaprog y]
   : HasIndirectGhostMetaprogram (guard b: Traceful Unit) metaprog y
@@ -297,7 +297,7 @@ where
   dummy := ()
 
 public
-instance [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] (b: Bool) (pre: ProofTrace → Prop) (post: Bool → ProofTrace → Prop) [HasGhostArgumentType b g] [ht: HoareTriplePureGhost b ghost pre post]:
+instance [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def] (b: Bool) (pre: ProofTrace → Prop) (post: Bool → ProofTrace → Prop) [HasGhostArgumentType b g] [ht: HoareTriplePureGhost b ghost pre post]:
   HoareTripleGhost
     (guard (b = true): Traceful Unit)
     (ghost)
@@ -316,7 +316,7 @@ where
       grind
 
 public
-instance (priority := low) [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] (b: Prop) [Decidable b]:
+instance (priority := low) [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def] (b: Prop) [Decidable b]:
   HoareTriple
     (guard b: Traceful Unit)
     (fun _ => True)
@@ -334,7 +334,7 @@ where
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   : HoareTriple
     (pure x: Traceful a)
     (fun _ => True)
@@ -348,7 +348,7 @@ where
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   : HoareTriple
     (failure: Traceful a)
     (fun _ => True)
@@ -362,7 +362,7 @@ where
 
 public
 def appendEntry
-  [ExecTraceTypes] {EntryT: Type} [ExecTraceTypes.Has EntryT]
+  [ExecTrace.Def] {EntryT: Type} [ExecTrace.Has EntryT]
   (entry: EntryT)
   : Traceful Nat
 :=
@@ -372,12 +372,12 @@ def appendEntry
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes]
+  [ExecTrace.Def] [ProofTrace.Def]
   {ExecEntryT ProofEntryT: Type}
   [ExecEntryAssociatedWithProofEntry ExecEntryT ProofEntryT]
-  [ErasableProofEntry ExecEntryT ProofEntryT]
-  [ExecTraceTypes.Has ExecEntryT]
-  [ProofTraceTypes.Has ProofEntryT]
+  [ProofTrace.Part ExecEntryT ProofEntryT]
+  [ExecTrace.Has ExecEntryT]
+  [ProofTrace.Has ProofEntryT]
   (entry: ExecEntryT)
   : HasGhostArgumentType (appendEntry entry) (Nat → ProofEntryT)
 where
@@ -386,22 +386,22 @@ where
 @[instance]
 public
 theorem appendEntry.proof
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   {ExecEntryT ProofEntryT: Type}
   [ExecEntryAssociatedWithProofEntry ExecEntryT ProofEntryT]
-  [ErasableProofEntry ExecEntryT ProofEntryT]
-  [SubTraceInvariant ProofEntryT]
-  [ExecTraceTypes.Has ExecEntryT]
-  [ProofTraceTypes.Has ProofEntryT]
-  [TraceInvariant.Has ProofEntryT]
+  [ProofTrace.Part ExecEntryT ProofEntryT]
+  [Trace.Invariant.Part ProofEntryT]
+  [ExecTrace.Has ExecEntryT]
+  [ProofTrace.Has ProofEntryT]
+  [Trace.Invariant.Has ProofEntryT]
   (execEntry: ExecEntryT) (mkProofEntry: Nat → ProofEntryT)
   : HoareTripleGhost
     (appendEntry execEntry)
     (mkProofEntry)
     (fun tr =>
       ∀ time,
-      ErasableProofEntry.erase (mkProofEntry time) = execEntry ∧
-      SubTraceInvariant.invariant tr (mkProofEntry time)
+      ProofTrace.Part.erase (mkProofEntry time) = execEntry ∧
+      Trace.Invariant.Part.invariant tr (mkProofEntry time)
     )
     (fun time tr =>
       tr.at? time = some (mkProofEntry time)
@@ -415,7 +415,7 @@ theorem appendEntry.proof
 
 public
 def getEntry
-  [ExecTraceTypes] {EntryT: Type} [ExecTraceTypes.Has EntryT]
+  [ExecTrace.Def] {EntryT: Type} [ExecTrace.Has EntryT]
   (timestamp: Nat)
   : Traceful EntryT
 :=
@@ -427,22 +427,22 @@ def getEntry
 @[instance]
 public
 theorem getEntry.proof
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   {ExecEntryT ProofEntryT: Type}
   [ExecEntryAssociatedWithProofEntry ExecEntryT ProofEntryT]
-  [ErasableProofEntry ExecEntryT ProofEntryT]
-  [SubTraceInvariant ProofEntryT]
-  [ExecTraceTypes.Has ExecEntryT]
-  [ProofTraceTypes.Has ProofEntryT]
-  [TraceInvariant.Has ProofEntryT]
+  [ProofTrace.Part ExecEntryT ProofEntryT]
+  [Trace.Invariant.Part ProofEntryT]
+  [ExecTrace.Has ExecEntryT]
+  [ProofTrace.Has ProofEntryT]
+  [Trace.Invariant.Has ProofEntryT]
   (timestamp: Nat)
   : HoareTriple
     (getEntry timestamp: Traceful ExecEntryT)
     (fun _ => True)
     (fun entry tr =>
       ∃ proofEntry: ProofEntryT,
-      entry = ErasableProofEntry.erase proofEntry ∧
-      SubTraceInvariant.invariant (tr.prefix timestamp) proofEntry
+      entry = ProofTrace.Part.erase proofEntry ∧
+      Trace.Invariant.Part.invariant (tr.prefix timestamp) proofEntry
     )
 := by
   apply HoareTriple.mk
@@ -460,15 +460,15 @@ theorem getEntry.proof
   have := ProofTrace.Entry.at?_eq_some_erase tr_proof' timestamp proofEntry h
   constructor
   · grind
-  rewrite [← TraceInvariant.Has.inv_commutes]
+  rewrite [← Trace.Invariant.Has.inv_commutes]
   grind [Trace.at?_eq_some, Trace.invariant_at]
 
 public
 theorem getEntry.preservesReachability
-  [ExecTraceTypes]
+  [ExecTrace.Def]
   {ExecEntryT: Type}
-  [ExecTraceTypes.Has ExecEntryT]
-  (config: ReachabilityConfig)
+  [ExecTrace.Has ExecEntryT]
+  (config: TransitionSystem)
   (timestamp: Nat)
   : Traceful.PreservesReachability config
     (getEntry timestamp: Traceful ExecEntryT)
@@ -479,7 +479,7 @@ theorem getEntry.preservesReachability
   grind
 
 public
-def getTimestamp [ExecTraceTypes]: Traceful Nat
+def getTimestamp [ExecTrace.Def]: Traceful Nat
 :=
   Traceful.mk (fun tr =>
     (some tr.length, ⟨ tr, by grind ⟩)
@@ -487,7 +487,7 @@ def getTimestamp [ExecTraceTypes]: Traceful Nat
 
 @[instance]
 public
-theorem getTimestamp.proof [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]:
+theorem getTimestamp.proof [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]:
   HoareTriple
     (getTimestamp)
     (fun _ => True)
@@ -500,7 +500,7 @@ theorem getTimestamp.proof [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]:
 
 public
 structure LoopInvariantAndProof'
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   {α : Type} {xs : List α} {β : Type}
   (f: (a: α) → a ∈ xs → β → Traceful (ForInStep β))
 where
@@ -517,7 +517,7 @@ where
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   {α β: Type}
   (xs: List α) (init: β) (f : (a: α) → a ∈ xs → β → Traceful (ForInStep β))
   : HasGhostArgumentType
@@ -529,7 +529,7 @@ where
 @[instance]
 public
 theorem forIn'.proof
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   {α β: Type}
   (xs: List α) (init: β) {f : (a: α) → a ∈ xs → β → Traceful (ForInStep β)}
   (invAndProof : LoopInvariantAndProof' f)
@@ -568,7 +568,7 @@ theorem forIn'.proof
 
 public
 structure LoopInvariantAndProof
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   {α : Type} (xs : List α) {β : Type}
   (f: (a: α) → β → Traceful (ForInStep β))
 where
@@ -585,7 +585,7 @@ where
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   {α β: Type}
   (xs: List α) (init: β) (f : (a: α) → β → Traceful (ForInStep β))
   : HasGhostArgumentType
@@ -597,7 +597,7 @@ where
 @[instance]
 public
 theorem forIn.proof
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   {α β: Type}
   (xs: List α) (init: β) {f : (a: α) → β → Traceful (ForInStep β)}
   (invAndProof: LoopInvariantAndProof xs f)

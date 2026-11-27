@@ -14,7 +14,7 @@ theorem client_authentication
   (element: Bytes)
   (time: Nat)
   : ∀ tr: ExecTrace,
-    tr.Reachable reachability →
+    tr.Reachable transitionSystem →
     tr.EventLoggedAt (TheEvent.ClientAccept server element) time →
     (
       let tr_before := tr.prefix time

@@ -185,7 +185,7 @@ def combineTypeclass (params: TSyntaxArray `Lean.Parser.Term.bracketedBinder) (s
       if config.useInferInstanceAs then
         `(term| inferInstanceAs ($internalStx))
       else
-        -- option to work around issue in SubBaseAttackerKnowledgeTheorem
+        -- option to work around issue in Trace.BaseAttackerKnows_implies_Publishable.Part
         `(term| (inferInstance: ($internalStx)))
     let arm ← `(Parser.Term.matchAltExpr| | $(quote i) => $armStxAux)
     arms := arms.push arm
@@ -208,7 +208,7 @@ def combineTypeclass (params: TSyntaxArray `Lean.Parser.Term.bracketedBinder) (s
     if config.useInferInstanceAs then
       `(term| inferInstanceAs ($combineTypeStx))
     else
-      -- option to work around issue in SubBaseAttackerKnowledgeTheorem
+      -- option to work around issue in Trace.BaseAttackerKnows_implies_Publishable.Part
       `(term| (inferInstance: ($combineTypeStx)))
   let wfStx ← `(command|
     public

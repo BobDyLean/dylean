@@ -6,41 +6,41 @@ import DY.Meta.Step
 
 namespace DY.Network
 
-variable [BytesFunctor]
+variable [Bytes.Def]
 
 section Execution
 
 public
-structure ExecEntryT where
+structure TracePart.Exec where
   msg: Bytes
 
 public
-def baseAttackerKnowledge [ExecTraceTypes]: SubBaseAttackerKnowledge ExecEntryT where
+def TracePart.baseAttackerKnows [ExecTrace.Def]: Trace.BaseAttackerKnows.Part TracePart.Exec where
   attackerKnows _ entry msg := msg = entry.msg
 
 public
-def sendMessage [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] (msg: Bytes): Traceful Nat :=
+def sendMessage [ExecTrace.Def] [ExecTrace.Has TracePart.Exec] (msg: Bytes): Traceful Nat :=
   do
-  let entry: ExecEntryT := ExecEntryT.mk msg
+  let entry: TracePart.Exec := TracePart.Exec.mk msg
   appendEntry entry
 
 public
-def receiveMessage [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT] (handle: Nat): Traceful Bytes :=
+def receiveMessage [ExecTrace.Def] [ExecTrace.Has TracePart.Exec] (handle: Nat): Traceful Bytes :=
   do
-  let msg: ExecEntryT ← getEntry handle
+  let msg: TracePart.Exec ← getEntry handle
   return msg.msg
 
 public
 def _root_.DY.Trace.MessageSentAt
-  [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT]
+  [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
   (tr: ExecTrace) (b: Bytes) (i: Nat)
   : Prop
 :=
-  tr.at? i = some (ExecEntryT.mk b)
+  tr.at? i = some (TracePart.Exec.mk b)
 
 public
 def _root_.DY.Trace.MessageSent
-  [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT]
+  [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
   (tr: ExecTrace) (b: Bytes)
   : Prop
 :=
@@ -48,30 +48,30 @@ def _root_.DY.Trace.MessageSent
 
 public
 def _root_.DY.Trace.getMessageSentAt
-  [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT]
+  [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
   (i: Nat)
   (tr: ExecTrace)
   : Option Bytes
 :=
-  match (tr.at? i: Option ExecEntryT) with
+  match (tr.at? i: Option TracePart.Exec) with
   | none => none
   | some entry => entry.msg
 
 public
 theorem _root_.DY.Trace.MessageSentAt_eq_getMessageSentAt
-  [ExecTraceTypes]
-  [ExecTraceTypes.Has ExecEntryT]
+  [ExecTrace.Def]
+  [ExecTrace.Has TracePart.Exec]
   (msg: Bytes) (i: Nat) (tr: ExecTrace)
   : tr.MessageSentAt msg i = (tr.getMessageSentAt i = some msg)
 := by
   dsimp only [Trace.MessageSentAt, Trace.getMessageSentAt]
-  grind [cases ExecEntryT]
+  grind [cases TracePart.Exec]
 
 public
 theorem _root_.DY.Trace.MessageSentAt_implies_AttackerKnows
-  [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT]
-  [BaseAttackerKnowledge] [AttackerKnowledge]
-  [BaseAttackerKnowledge.Has baseAttackerKnowledge]
+  [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
+  [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
+  [Trace.BaseAttackerKnows.Has TracePart.baseAttackerKnows]
   (tr: ExecTrace) (b: Bytes) (i: Nat)
   : tr.MessageSentAt b i →
     b.AttackerKnows tr
@@ -79,51 +79,51 @@ theorem _root_.DY.Trace.MessageSentAt_implies_AttackerKnows
   dsimp only [Trace.MessageSentAt]
   intro h
   apply Bytes.AttackerKnows.prove_from_base
-  apply Trace.prove_BaseAttackerKnows baseAttackerKnowledge tr { msg := b } b i
+  apply Trace.prove_BaseAttackerKnows TracePart.baseAttackerKnows tr { msg := b } b i
   · grind
-  simp [baseAttackerKnowledge]
+  simp [TracePart.baseAttackerKnows]
 
 end Execution
 
 section Proof
 
 public
-abbrev ProofEntryT := ExecEntryT
+abbrev TracePart.Proof := TracePart.Exec
 
 public
-instance: ErasableProofEntry ExecEntryT ProofEntryT := ErasableProofEntry.default ExecEntryT
+instance: ProofTrace.Part TracePart.Exec TracePart.Proof := ProofTrace.Part.default TracePart.Exec
 
 public
-instance: ExecEntryAssociatedWithProofEntry ExecEntryT ProofEntryT where
+instance: ExecEntryAssociatedWithProofEntry TracePart.Exec TracePart.Proof where
 
 public
-instance
-  [ExecTraceTypes] [ProofTraceTypes] [BytesInvariants]
-  : SubTraceInvariant ProofEntryT
+instance TracePart.invariant
+  [ExecTrace.Def] [ProofTrace.Def] [Bytes.Invariants.Def]
+  : Trace.Invariant.Part TracePart.Proof
 where
   invariant tr entry :=
     entry.msg.Publishable tr
 
 public
-instance baseAttackerKnowledgeTheorem
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant] [BytesInvariants]
-  [ExecTraceTypes.Has ExecEntryT]
-  [ProofTraceTypes.Has ProofEntryT]
-  [TraceInvariant.Has ProofEntryT]:
-  SubBaseAttackerKnowledgeTheorem ProofEntryT baseAttackerKnowledge
+instance
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def] [Bytes.Invariants.Def]
+  [ExecTrace.Has TracePart.Exec]
+  [ProofTrace.Has TracePart.Proof]
+  [Trace.Invariant.Has TracePart.Proof]:
+  Trace.BaseAttackerKnows_implies_Publishable.Part TracePart.Proof TracePart.baseAttackerKnows
 where
   pf trBefore entry b := by
-    simp [SubTraceInvariant.invariant, baseAttackerKnowledge, ErasableProofEntry.erase]
+    simp [Trace.Invariant.Part.invariant, TracePart.baseAttackerKnows, ProofTrace.Part.erase]
     grind
 
 @[instance]
 public
 theorem sendMessage.proof
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-  [BytesInvariants] [BytesInvariantsProofs]
-  [ExecTraceTypes.Has ExecEntryT]
-  [ProofTraceTypes.Has ProofEntryT]
-  [TraceInvariant.Has ProofEntryT]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
+  [ExecTrace.Has TracePart.Exec]
+  [ProofTrace.Has TracePart.Proof]
+  [Trace.Invariant.Has TracePart.Proof]
   (msg: Bytes)
   : HoareTriple
     (sendMessage msg)
@@ -132,17 +132,17 @@ theorem sendMessage.proof
 := by
   unfold sendMessage
   dsimp only
-  step with ⟨ fun _ => ExecEntryT.mk msg ⟩ by simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]
+  step with ⟨ fun _ => TracePart.Exec.mk msg ⟩ by simp_all [ProofTrace.Part.erase, Trace.Invariant.Part.invariant]
   grind
 
 @[instance]
 public
 theorem receiveMessage.proof
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-  [BytesInvariants] [BytesInvariantsProofs]
-  [ExecTraceTypes.Has ExecEntryT]
-  [ProofTraceTypes.Has ProofEntryT]
-  [TraceInvariant.Has ProofEntryT]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
+  [ExecTrace.Has TracePart.Exec]
+  [ProofTrace.Has TracePart.Proof]
+  [Trace.Invariant.Has TracePart.Proof]
   (handle: Nat)
   : HoareTriple
     (receiveMessage handle)
@@ -151,7 +151,7 @@ theorem receiveMessage.proof
 := by
   unfold receiveMessage
   step
-  have: msg.msg.Publishable tr := by simp_all [ErasableProofEntry.erase, SubTraceInvariant.invariant]; grind
+  have: msg.msg.Publishable tr := by simp_all [ProofTrace.Part.erase, Trace.Invariant.Part.invariant]; grind
   rename_i h_msg; clear h_msg
   step
   grind
@@ -160,19 +160,19 @@ end Proof
 
 section Reachability
 
-variable [ExecTraceTypes] [ExecTraceTypes.Has ExecEntryT]
-variable [BaseAttackerKnowledge] [AttackerKnowledge]
+variable [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
+variable [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
 
 public
-abbrev reachability : ReachabilityConfig where
+abbrev transitionSystem : TransitionSystem where
   Input := Bytes
   PreCond b tr := b.AttackerKnows tr
   step b := ⟨ _, sendMessage b ⟩
 
 public
 theorem receiveMessage.preservesReachability
-  [BaseAttackerKnowledge.Has baseAttackerKnowledge]
-  (config: ReachabilityConfig)
+  [Trace.BaseAttackerKnows.Has TracePart.baseAttackerKnows]
+  (config: TransitionSystem)
   (msgHandle: Nat)
   : (receiveMessage msgHandle).PreservesReachability config (fun _ => True) (fun msg tr => msg.AttackerKnows tr)
 := by
@@ -188,17 +188,17 @@ theorem receiveMessage.preservesReachability
   · grind
 
   apply Bytes.AttackerKnows.prove_from_base
-  apply Trace.prove_BaseAttackerKnows baseAttackerKnowledge tr entry entry.msg msgHandle
+  apply Trace.prove_BaseAttackerKnows TracePart.baseAttackerKnows tr entry entry.msg msgHandle
   · grind
-  simp [baseAttackerKnowledge]
+  simp [TracePart.baseAttackerKnows]
 
-variable [ProofTraceTypes] [TraceInvariant]
-variable [BytesInvariants] [BytesInvariantsProofs]
-variable [ProofTraceTypes.Has ProofEntryT] [TraceInvariant.Has ProofEntryT]
-variable [BaseAttackerKnowledgeTheorem] [AttackerKnowledgeTheorem]
+variable [ProofTrace.Def] [Trace.Invariant.Def]
+variable [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
+variable [ProofTrace.Has TracePart.Proof] [Trace.Invariant.Has TracePart.Proof]
+variable [Trace.BaseAttackerKnows_implies_Publishable.Proof] [Bytes.AttackerKnows_implies_Publishable.Proof]
 
 public
-instance: ReachableImpliesInvariant reachability
+instance: Trace.Reachable_implies_Invariant.Part transitionSystem
 where
   pf b := by
     apply HoareTriple.mk

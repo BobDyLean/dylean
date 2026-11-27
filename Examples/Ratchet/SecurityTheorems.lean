@@ -15,7 +15,7 @@ theorem authentication
   (transcript: Transcript) (k: Bytes)
   (time: Nat)
   : ∀ tr: ExecTrace,
-    tr.Reachable reachability →
+    tr.Reachable transitionSystem →
     tr.EventLoggedAt (RatchetEvent.ReceiveUpdate me recipient transcript k) time →
     (
       let trBefore := tr.prefix time
@@ -148,7 +148,7 @@ theorem secrecy_receiveUpdate_recursive
   (me recipient: Participant)
   (transcript: Transcript) (k: Bytes)
   : ∀ tr: ExecTrace,
-    tr.Reachable reachability →
+    tr.Reachable transitionSystem →
     k.AttackerKnows tr →
     tr.EventLogged (RatchetEvent.ReceiveUpdate me recipient transcript k)  →
     ReceiveUpdateKeyCompromiseScenario me recipient transcript tr
@@ -175,7 +175,7 @@ theorem secrecy_sendUpdate_recursive
   (me recipient: Participant)
   (transcript: Transcript) (k: Bytes)
   : ∀ tr: ExecTrace,
-    tr.Reachable reachability →
+    tr.Reachable transitionSystem →
     k.AttackerKnows tr →
     tr.EventLogged (RatchetEvent.SendUpdate me recipient transcript k)  →
     SendUpdateKeyCompromiseScenario me recipient transcript tr
@@ -203,7 +203,7 @@ theorem secrecy_receiveUpdate_unfolded
   (me recipient: Participant)
   (transcript: Transcript) (k: Bytes)
   : ∀ tr: ExecTrace,
-    tr.Reachable reachability →
+    tr.Reachable transitionSystem →
     k.AttackerKnows tr →
     tr.EventLogged (RatchetEvent.ReceiveUpdate me recipient transcript k)  →
     (
@@ -254,7 +254,7 @@ theorem secrecy_sendUpdate_unfolded
   (me recipient: Participant)
   (transcript: Transcript) (k: Bytes)
   : ∀ tr: ExecTrace,
-    tr.Reachable reachability →
+    tr.Reachable transitionSystem →
     k.AttackerKnows tr →
     tr.EventLogged (RatchetEvent.SendUpdate me recipient transcript k)  →
     (

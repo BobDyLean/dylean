@@ -8,98 +8,98 @@ public meta import DY.Meta.CombineMacro
 namespace DY
 
 public
-structure SubBaseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] (ExecEntryT: Type) where
+structure Trace.BaseAttackerKnows.Part [Bytes.Def] [ExecTrace.Def] (ExecEntryT: Type) where
   attackerKnows: ExecTrace → ExecEntryT → Bytes → Prop
 
 public
-class BaseAttackerKnowledge [BytesFunctor] [ExecTraceTypes] where
-  attackerKnows: SubBaseAttackerKnowledge ExecTrace.Entry
+class Trace.BaseAttackerKnows.Def [Bytes.Def] [ExecTrace.Def] where
+  whole: Trace.BaseAttackerKnows.Part ExecTrace.Entry
 
 public
-class BaseAttackerKnowledge.Has
-  [BytesFunctor] [ExecTraceTypes]
-  [BaseAttackerKnowledge]
+class Trace.BaseAttackerKnows.Has
+  [Bytes.Def] [ExecTrace.Def]
+  [Trace.BaseAttackerKnows.Def]
   {ExecEntryT: Type}
-  [ExecTraceTypes.Has ExecEntryT]
-  (sub: SubBaseAttackerKnowledge ExecEntryT)
+  [ExecTrace.Has ExecEntryT]
+  (sub: Trace.BaseAttackerKnows.Part ExecEntryT)
 where
   pf: ∀ tr entry b,
     sub.attackerKnows tr entry b →
-    BaseAttackerKnowledge.attackerKnows.attackerKnows tr (TraceEntryHas.inj entry) b
+    Trace.BaseAttackerKnows.Def.whole.attackerKnows tr (TraceEntryHas.inj entry) b
 
 public
-class BaseAttackerKnowledge.HasStep
-  [BytesFunctor] [ExecTraceTypes]
+class Trace.BaseAttackerKnows.HasStep
+  [Bytes.Def] [ExecTrace.Def]
   {ExecEntryT1: Type} {ExecEntryT2: semiOutParam Type}
-  [ExecTraceTypes.HasStep ExecEntryT1 ExecEntryT2]
-  (sub1: SubBaseAttackerKnowledge ExecEntryT1)
-  (sub2: semiOutParam (SubBaseAttackerKnowledge ExecEntryT2))
+  [ExecTrace.HasStep ExecEntryT1 ExecEntryT2]
+  (sub1: Trace.BaseAttackerKnows.Part ExecEntryT1)
+  (sub2: semiOutParam (Trace.BaseAttackerKnows.Part ExecEntryT2))
 where
   pf: ∀ tr entry b,
     sub1.attackerKnows tr entry b →
-    sub2.attackerKnows tr (ExecTraceTypes.HasStep.inj entry) b
+    sub2.attackerKnows tr (ExecTrace.HasStep.inj entry) b
 
 public
-instance instBaseAttackerKnowledgeHasItself
-  [BytesFunctor] [ExecTraceTypes]
-  [BaseAttackerKnowledge]
-  : BaseAttackerKnowledge.Has (BaseAttackerKnowledge.attackerKnows)
+instance instTraceBaseAttackerKnowsHasItself
+  [Bytes.Def] [ExecTrace.Def]
+  [Trace.BaseAttackerKnows.Def]
+  : Trace.BaseAttackerKnows.Has (Trace.BaseAttackerKnows.Def.whole)
 where
   pf := by simp [TraceEntryHas.inj]
 
 public
-instance instBaseAttackerKnowledgeHasStep
-  [BytesFunctor] [ExecTraceTypes]
-  [BaseAttackerKnowledge]
+instance instTraceBaseAttackerKnowsHasStep
+  [Bytes.Def] [ExecTrace.Def]
+  [Trace.BaseAttackerKnows.Def]
   {ExecEntryT1 ExecEntryT2: Type}
-  [ExecTraceTypes.HasStep ExecEntryT1 ExecEntryT2]
-  [ExecTraceTypes.Has ExecEntryT2]
-  (sub1: SubBaseAttackerKnowledge ExecEntryT1)
-  (sub2: SubBaseAttackerKnowledge ExecEntryT2)
-  [BaseAttackerKnowledge.HasStep sub1 sub2]
-  [BaseAttackerKnowledge.Has sub2]
-  : BaseAttackerKnowledge.Has sub1
+  [ExecTrace.HasStep ExecEntryT1 ExecEntryT2]
+  [ExecTrace.Has ExecEntryT2]
+  (sub1: Trace.BaseAttackerKnows.Part ExecEntryT1)
+  (sub2: Trace.BaseAttackerKnows.Part ExecEntryT2)
+  [Trace.BaseAttackerKnows.HasStep sub1 sub2]
+  [Trace.BaseAttackerKnows.Has sub2]
+  : Trace.BaseAttackerKnows.Has sub1
 where
   pf := by
-    have := BaseAttackerKnowledge.HasStep.pf (sub1 := sub1) (sub2 := sub2)
-    have := BaseAttackerKnowledge.Has.pf (sub := sub2)
+    have := Trace.BaseAttackerKnows.HasStep.pf (sub1 := sub1) (sub2 := sub2)
+    have := Trace.BaseAttackerKnows.Has.pf (sub := sub2)
     simp [TraceEntryHas.inj]
     grind
 
 public
-def SubBaseAttackerKnowledge.combine
-  [BytesFunctor] [ExecTraceTypes]
+def Trace.BaseAttackerKnows.combine
+  [Bytes.Def] [ExecTrace.Def]
   {n: Nat}
   {Types: Fin n → Type}
-  (subs: (id: Fin n) → SubBaseAttackerKnowledge (Types id))
-  : SubBaseAttackerKnowledge (ExecTraceTypes.combine Types)
+  (subs: (id: Fin n) → Trace.BaseAttackerKnows.Part (Types id))
+  : Trace.BaseAttackerKnows.Part (ExecTrace.combine Types)
 where
   attackerKnows := fun tr {id, entry} b =>
     (subs id).attackerKnows tr entry b
 
 public
-instance instBaseAttackerKnowledgeCombineHasStep
-  [BytesFunctor] [ExecTraceTypes]
+instance instTraceBaseAttackerKnowsCombineHasStep
+  [Bytes.Def] [ExecTrace.Def]
   {n: Nat}
   {Types: Fin n → Type}
-  (subs: (id: Fin n) → SubBaseAttackerKnowledge (Types id))
+  (subs: (id: Fin n) → Trace.BaseAttackerKnows.Part (Types id))
   (id: Fin n)
-  : BaseAttackerKnowledge.HasStep (subs id) (SubBaseAttackerKnowledge.combine subs)
+  : Trace.BaseAttackerKnows.HasStep (subs id) (Trace.BaseAttackerKnows.combine subs)
 where
   pf := by
-    simp [ExecTraceTypes.HasStep.inj, SubBaseAttackerKnowledge.combine]
+    simp [ExecTrace.HasStep.inj, Trace.BaseAttackerKnows.combine]
 
 public
 def Trace.BaseAttackerKnows
-  [BytesFunctor] [ExecTraceTypes] [BaseAttackerKnowledge]
+  [Bytes.Def] [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
   (tr: ExecTrace) (b: Bytes)
   : Prop
 :=
-  ∃ i h_i, BaseAttackerKnowledge.attackerKnows.attackerKnows (tr.prefix i) (tr.at i h_i) b
+  ∃ i h_i, Trace.BaseAttackerKnows.Def.whole.attackerKnows (tr.prefix i) (tr.at i h_i) b
 
 public
 theorem Trace.BaseAttackerKnows_le
-  [BytesFunctor] [ExecTraceTypes] [BaseAttackerKnowledge]
+  [Bytes.Def] [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
   (b: Bytes) (tr1 tr2: ExecTrace)
   : tr1 ≤ tr2 →
     Trace.BaseAttackerKnows tr1 b →
@@ -111,11 +111,11 @@ grind_pattern Trace.BaseAttackerKnows_le => tr1 ≤ tr2, Trace.BaseAttackerKnows
 
 public
 theorem Trace.prove_BaseAttackerKnows
-  [BytesFunctor] [ExecTraceTypes] [BaseAttackerKnowledge]
+  [Bytes.Def] [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
   {ExecEntryT: Type}
-  [ExecTraceTypes.Has ExecEntryT]
-  (sub: SubBaseAttackerKnowledge ExecEntryT)
-  [BaseAttackerKnowledge.Has sub]
+  [ExecTrace.Has ExecEntryT]
+  (sub: Trace.BaseAttackerKnows.Part ExecEntryT)
+  [Trace.BaseAttackerKnows.Has sub]
   (tr: ExecTrace) (entry: ExecEntryT) (b: Bytes)
   (time: Nat)
   : tr.at? time = some entry →
@@ -124,36 +124,36 @@ theorem Trace.prove_BaseAttackerKnows
 := by
   dsimp only [Trace.BaseAttackerKnows]
   simp only [Trace.at?_eq_some]
-  have := BaseAttackerKnowledge.Has.pf (sub := sub) (tr.prefix time) entry b
+  have := Trace.BaseAttackerKnows.Has.pf (sub := sub) (tr.prefix time) entry b
   grind
 
 namespace Meta.CombineMacro
 
 macro_rules
-  | `(command| #combine_one $options* baseAttackerKnowledge $params* from $sources,*) => do
+  | `(command| #combine_one $options* Trace.BaseAttackerKnows $params* from $sources,*) => do
     let options := parseOptions options
-    let baseParams := #[(← `(bracketedBinder| [DY.BytesFunctor])), (← `(bracketedBinder| [DY.ExecTraceTypes]))]
+    let baseParams := #[(← `(bracketedBinder| [DY.Bytes.Def])), (← `(bracketedBinder| [DY.ExecTrace.Def]))]
     let params := if options.toplevel then params else baseParams ++ params
     let sources := sources.getElems
 
     let combined ← combineExplicit params sources <| .makeSimple {
-      name := `baseAttackerKnowledge
-      refereeName := `ExecEntryT
-      combineName := ``DY.SubBaseAttackerKnowledge.combine
-      outTypeName := ``DY.SubBaseAttackerKnowledge
+      name := `TracePart.baseAttackerKnows
+      refereeName := `TracePart.Exec
+      combineName := ``DY.Trace.BaseAttackerKnows.combine
+      outTypeName := ``DY.Trace.BaseAttackerKnows.Part
       isTheorem := false
     }
 
 
     let hasStep ← mkHasStep params sources <| .makeSimple {
-      name := `baseAttackerKnowledge
-      combineName := ``DY.SubBaseAttackerKnowledge.combine
-      hasStepName := ``DY.BaseAttackerKnowledge.HasStep
+      name := `TracePart.baseAttackerKnows
+      combineName := ``DY.Trace.BaseAttackerKnows.combine
+      hasStepName := ``DY.Trace.BaseAttackerKnows.HasStep
     }
 
-    let baseAttStx := Lean.mkIdent `baseAttackerKnowledge
-    let topLevelInst ← `(command| public instance: DY.BaseAttackerKnowledge where attackerKnows := $baseAttStx)
-    let topLevelHas ← `(command| public instance: DY.BaseAttackerKnowledge.Has $baseAttStx := inferInstanceAs (DY.BaseAttackerKnowledge.Has DY.BaseAttackerKnowledge.attackerKnows))
+    let baseAttStx := Lean.mkIdent `TracePart.baseAttackerKnows
+    let topLevelInst ← `(command| public instance: DY.Trace.BaseAttackerKnows.Def where whole := $baseAttStx)
+    let topLevelHas ← `(command| public instance: DY.Trace.BaseAttackerKnows.Has $baseAttStx := inferInstanceAs (DY.Trace.BaseAttackerKnows.Has DY.Trace.BaseAttackerKnows.Def.whole))
     let topLevel := if options.toplevel then #[topLevelInst, topLevelHas] else #[]
 
     return Lean.mkNullNode (combined ++ hasStep ++ topLevel)

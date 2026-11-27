@@ -17,17 +17,17 @@ section Constructors
 namespace KdfExpand
 
 public
-structure SubF (Bytes: Type) where
+structure BytesPart.Functor (Bytes: Type) where
   prk: Bytes
   info: Bytes
   len: Nat
 
 public
-instance: ALaCarte.FunctorSizeOf SubF where
+instance: ALaCarte.FunctorSizeOf BytesPart.Functor where
   sizeOf | {prk, info, ..} => sizeOf prk + sizeOf info
 
 public
-instance: ALaCarte.Representable SubF where
+instance: ALaCarte.Representable BytesPart.Functor where
   CtorId := Unit
   ctors | () => { Data := Nat, nRec := 2 }
 
@@ -48,47 +48,47 @@ instance: ALaCarte.Representable SubF where
     simp_all <;> grind
   sizeOf_eq | {prk, info, len} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-public instance: ALaCarte.RepresentableDecidableEq SubF where
-public instance: ALaCarte.RepresentableOrd SubF where
-public instance: SubBytesFunctor SubF where
+public instance: ALaCarte.RepresentableDecidableEq BytesPart.Functor where
+public instance: ALaCarte.RepresentableOrd BytesPart.Functor where
+public instance: Bytes.Part BytesPart.Functor where
 
 public
-def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
+def BytesPart.length [Bytes.Def]: Bytes.length.Part BytesPart.Functor :=
   fun { len, .. } _ =>
     len
 
 end KdfExpand
 
-#combine into BytesFunctor, BytesLength from
+#combine into Bytes, Bytes.length from
   KdfExpand,
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
 
 public
-abbrev KdfExpand.SubF.pack (x: KdfExpand.SubF Bytes) := BytesView.pack x
+abbrev KdfExpand.BytesPart.Functor.pack (x: KdfExpand.BytesPart.Functor Bytes) := BytesView.pack x
 
 public
 instance: CanKdfExpand Bytes where
-  kdfExpand prk info len := ({prk, info, len}: KdfExpand.SubF Bytes).pack
+  kdfExpand prk info len := ({prk, info, len}: KdfExpand.BytesPart.Functor Bytes).pack
 
 end Constructors
 
 section AttackerKnowledge
 
 public
-def kdfExpand.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
+def kdfExpand.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ prk info len,
       out = kdfExpand prk info len ∧
       p prk ∧
       p info
 
-#combine [BytesFunctor.Has SubF] into attackerKnowledge' from
+#combine [Bytes.Has BytesPart.Functor] into Bytes.AttackerKnows.merge from
   kdfExpand,
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
-variable [ExecTraceTypes] [BaseAttackerKnowledge]
-variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
 
 public
 theorem attacker_knows_kdfExpand
@@ -98,8 +98,8 @@ theorem attacker_knows_kdfExpand
     (kdfExpand prk info len).AttackerKnows tr
 := by
   intro h_prk h_info
-  apply Bytes.AttackerKnows.prove kdfExpand.attackerKnowledge
-  simp only [kdfExpand.attackerKnowledge]
+  apply Bytes.AttackerKnows.prove kdfExpand.attackerKnows
+  simp only [kdfExpand.attackerKnows]
   grind
 
 end AttackerKnowledge
@@ -108,18 +108,18 @@ section Invariants
 
 section Definition
 public
-class KdfExpandInvariant [ExecTraceTypes] [BytesFunctor] where
+class KdfExpandInvariant [ExecTrace.Def] [Bytes.Def] where
   usage (prkUsage: Usage) (info: Bytes): Usage
   label (prkUsage: Usage) (prkLabel: Label) (info: Bytes): Label
   label_sound (prkUsage: Usage) (prkLabel: Label) (info: Bytes)
     : ∀ tr, (label prkUsage prkLabel info).canFlow prkLabel tr
     := by grind
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def]
 
 public
-def KdfExpand.invariants [KdfExpandInvariant] : Bytes.PartialInvariants KdfExpand.SubF where
+def KdfExpand.BytesPart.invariants [KdfExpandInvariant] : Bytes.Invariants.Part KdfExpand.BytesPart.Functor where
   well_formed := fun {prk, info, len} rec tr =>
     (rec prk) tr ∧ (rec info) tr
 
@@ -133,74 +133,74 @@ def KdfExpand.invariants [KdfExpandInvariant] : Bytes.PartialInvariants KdfExpan
     (rec prk) tr ∧ (rec info) tr
 
 public
-theorem KdfExpand.invariantsProofs [BytesInvariants] [KdfExpandInvariant]: Bytes.PartialInvariantsProofs KdfExpand.invariants where
+theorem KdfExpand.BytesPart.invariantsLawful [Bytes.Invariants.Def] [KdfExpandInvariant]: Bytes.Invariants.Part.Lawful KdfExpand.BytesPart.invariants where
 
 end Definition
 
 #combine [KdfExpandInvariant] into
-  BytesInvariants,
-  BytesInvariantsProofs
+  Bytes.Invariants,
+  Bytes.Invariants.Lawful
 from
   KdfExpand,
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
 
 @[simp]
 public
 theorem kdfExpand.WellFormed
   [KdfExpandInvariant]
-  [BytesWellFormed] [BytesWellFormed.Has KdfExpand.invariants.well_formed]
+  [Bytes.WellFormed.Def] [Bytes.WellFormed.Has KdfExpand.BytesPart.invariants.well_formed]
   (prk info: Bytes) (len: Nat) (tr: ProofTrace)
   : (kdfExpand prk info len).WellFormed tr = (prk.WellFormed tr ∧ info.WellFormed tr)
 := by
-  simp [kdfExpand, Bytes.WellFormed.eq, KdfExpand.invariants]
+  simp [kdfExpand, Bytes.WellFormed.eq, KdfExpand.BytesPart.invariants]
 
 @[simp]
 public
 theorem kdfExpand.HasUsage
   [KdfExpandInvariant]
-  [BytesInvariants] [BytesInvariants.Has invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
   (prk info: Bytes) (len: Nat) (prkUsage: Usage) (tr: ProofTrace)
   : prk.HasUsage prkUsage tr →
     (kdfExpand prk info len).HasUsage (KdfExpandInvariant.usage prkUsage info) tr
 := by
   have := KdfExpandInvariant.label_sound (prk.usage tr) (prk.label tr) info tr.erase
-  simp [kdfExpand, Bytes.HasUsage, Bytes.usage.eq, KdfExpand.invariants]
+  simp [kdfExpand, Bytes.HasUsage, Bytes.usage.eq, KdfExpand.BytesPart.invariants]
   grind [canFlowTrans]
 
 @[simp]
 public
 theorem kdfExpand.label
   [KdfExpandInvariant]
-  [BytesInvariants] [BytesInvariants.Has invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
   (prk info: Bytes) (len: Nat) (prkUsage: Usage) (tr: ProofTrace)
   : prk.HasUsage prkUsage tr →
     ((kdfExpand prk info len).label tr).equivalent (KdfExpandInvariant.label prkUsage (prk.label tr) info) tr.erase
 := by
   have := KdfExpandInvariant.label_sound (prk.usage tr) (prk.label tr) info tr.erase
   have := KdfExpandInvariant.label_sound prkUsage (prk.label tr) info tr.erase
-  simp [kdfExpand, Bytes.label.eq, KdfExpand.invariants, Bytes.HasUsage]
+  simp [kdfExpand, Bytes.label.eq, KdfExpand.BytesPart.invariants, Bytes.HasUsage]
   grind [canFlowTrans]
 
 @[simp]
 public
 theorem kdfExpand.Invariant
   [KdfExpandInvariant]
-  [BytesInvariants] [BytesInvariants.Has invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
   (prk info: Bytes) (len: Nat) (tr: ProofTrace)
   : (kdfExpand prk info len).Invariant tr = (prk.Invariant tr ∧ info.Invariant tr)
 := by
-  simp [kdfExpand, Bytes.Invariant.eq, KdfExpand.invariants]
+  simp [kdfExpand, Bytes.Invariant.eq, KdfExpand.BytesPart.invariants]
 
 end Invariants
 
 section HoareTriples
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
-variable [ExecTraceTypes] [ProofTraceTypes]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [ExecTrace.Def] [ProofTrace.Def]
 variable [KdfExpandInvariant]
-variable [BytesInvariants] [BytesInvariants.Has invariants]
+variable [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
 
 public
 instance
@@ -233,16 +233,16 @@ end HoareTriples
 
 section AttackerKnowledgeTheorem
 
-variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-variable [BytesFunctor] [BytesInvariants]
-variable [BytesFunctor.Has SubF]
+variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+variable [Bytes.Def] [Bytes.Invariants.Def]
+variable [Bytes.Has BytesPart.Functor]
 variable [KdfExpandInvariant]
-variable [BytesInvariants.Has invariants]
+variable [Bytes.Invariants.Has BytesPart.invariants]
 
 public
-instance: SubAttackerKnowledgeTheorem kdfExpand.attackerKnowledge where
+instance: Bytes.AttackerKnows_implies_Publishable.Part kdfExpand.attackerKnows where
   pf := by
-    simp only [kdfExpand.attackerKnowledge]
+    simp only [kdfExpand.attackerKnows]
     intro out tr h_tr ⟨prk, info, len, ⟨ h_out, h_inputs ⟩⟩
     subst h_out
     simp [Bytes.Publishable]
@@ -254,7 +254,7 @@ instance: SubAttackerKnowledgeTheorem kdfExpand.attackerKnowledge where
 end AttackerKnowledgeTheorem
 section AttackerKnowledgeTheorem
 
-#combine [KdfExpandInvariant] [BytesFunctor.Has SubF] [BytesInvariants.Has invariants] into SubAttackerKnowledgeTheorem' from
+#combine [KdfExpandInvariant] [Bytes.Has BytesPart.Functor] [Bytes.Invariants.Has BytesPart.invariants] into Bytes.AttackerKnows_implies_Publishable.merge from
   kdfExpand,
 
 end AttackerKnowledgeTheorem

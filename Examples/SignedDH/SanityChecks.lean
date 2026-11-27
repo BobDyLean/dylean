@@ -11,7 +11,7 @@ namespace DY.Example.SignedDH
 -- TODO: move, but where?
 theorem liftM_parse_preserves_reachability
   {a: Type} [Comparse.ParseableSerializeable a]
-  (config: ReachabilityConfig)
+  (config: TransitionSystem)
   (buf: Bytes)
   : (liftM (Comparse.parse buf): Traceful a).PreservesReachability config (fun _ => True) (fun res _ => Comparse.FormatRel buf res)
 := by
@@ -29,34 +29,34 @@ def honestAttacker: Traceful Unit := do
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem honestAttacker_PreservesReachability
-  : honestAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
+  : honestAttacker.PreservesReachability transitionSystem (fun _ => True) (fun _ _ => True)
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
   unfold honestAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "SignedDH PKI")
+  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.transitionSystem "SignedDH PKI")
   · assumption
-  · simp [LongTermKeys.generateKeyPair.reachability]
+  · simp [LongTermKeys.generateKeyPair.transitionSystem]
   intro ⟨ _, tsPk, tsSk ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Client.initiate.reachability)
+  · apply Traceful.PreservesReachability_base (Client.initiate.transitionSystem)
   · assumption
-  · simp [Client.initiate.reachability]
+  · simp [Client.initiate.transitionSystem]
   intro ⟨ tsClientSt, tsMsgClient ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Server.receive.reachability) _ ("Bob", tsSk, tsMsgClient)
+  · apply Traceful.PreservesReachability_base (Server.receive.transitionSystem) _ ("Bob", tsSk, tsMsgClient)
   · assumption
-  · simp [Server.receive.reachability]
+  · simp [Server.receive.transitionSystem]
   intro ⟨ _, tsMsgServer ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Client.finish.reachability) _ ("Alice", "Bob", tsPk, tsMsgServer, tsClientSt)
+  · apply Traceful.PreservesReachability_base (Client.finish.transitionSystem) _ ("Alice", "Bob", tsPk, tsMsgServer, tsClientSt)
   · assumption
-  · simp [Client.finish.reachability]
+  · simp [Client.finish.transitionSystem]
   intro _ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_pure
@@ -66,7 +66,7 @@ theorem honestAttacker_PreservesReachability
 public
 theorem honestAttacker_properties:
   let tr := (honestAttacker.run (Trace.empty)).snd.val
-  tr.Reachable reachability ∧
+  tr.Reachable transitionSystem ∧
   ∃ t1 t2 xPk yPk k,
     t1 < t2 ∧
     tr.EventLoggedAt (SignedDHEvent.ServerFinishEvent "Bob" xPk yPk k) t1 ∧
@@ -115,7 +115,7 @@ def compromiseClientEphAttacker: Traceful Unit := do
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseClientEphAttacker_PreservesReachability
-  : compromiseClientEphAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
+  : compromiseClientEphAttacker.PreservesReachability transitionSystem (fun _ => True) (fun _ _ => True)
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
@@ -128,9 +128,9 @@ theorem compromiseClientEphAttacker_PreservesReachability
   intro _ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (ClientInitiateState.compromise.reachability)
+  · apply Traceful.PreservesReachability_base (ClientInitiateState.compromise.transitionSystem)
   · assumption
-  · simp [ClientInitiateState.compromise.reachability]
+  · simp [ClientInitiateState.compromise.transitionSystem]
   intro compromiseHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
@@ -158,7 +158,7 @@ theorem compromiseClientEphAttacker_PreservesReachability
   intro msgServer tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.reachability)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · apply Hash.attacker_knows_hash
     apply DiffieHellman.attacker_knows_dh
@@ -173,7 +173,7 @@ theorem compromiseClientEphAttacker_PreservesReachability
 public
 theorem compromiseClientEphAttacker_properties:
   let tr := (compromiseClientEphAttacker.run (Trace.empty)).snd.val
-  tr.Reachable reachability ∧
+  tr.Reachable transitionSystem ∧
   ∃ t1 xPk yPk k,
     tr.EventLoggedAt (SignedDHEvent.ClientFinishEvent "Alice" "Bob" xPk yPk k) t1 ∧
     k.AttackerKnows tr
@@ -235,22 +235,22 @@ def compromiseSigKeyAttacker: Traceful Unit := do
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseSigKeyAttacker_PreservesReachability
-  : compromiseSigKeyAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
+  : compromiseSigKeyAttacker.PreservesReachability transitionSystem (fun _ => True) (fun _ _ => True)
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
   unfold compromiseSigKeyAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "SignedDH PKI")
+  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.transitionSystem "SignedDH PKI")
   · assumption
-  · simp [LongTermKeys.generateKeyPair.reachability]
+  · simp [LongTermKeys.generateKeyPair.transitionSystem]
   intro ⟨ _, pkHandle, skHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (LongTermKeys.compromisePrivateKey.reachability "SignedDH PKI")
+  · apply Traceful.PreservesReachability_base (LongTermKeys.compromisePrivateKey.transitionSystem "SignedDH PKI")
   · assumption
-  · simp [LongTermKeys.compromisePrivateKey.reachability]
+  · simp [LongTermKeys.compromisePrivateKey.transitionSystem]
   intro compromiseHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
@@ -266,9 +266,9 @@ theorem compromiseSigKeyAttacker_PreservesReachability
   intro globalStSigkey tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Client.initiate.reachability)
+  · apply Traceful.PreservesReachability_base (Client.initiate.transitionSystem)
   · assumption
-  · simp [Client.initiate.reachability]
+  · simp [Client.initiate.transitionSystem]
   intro ⟨ stClientHandle, msgClientHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
@@ -296,7 +296,7 @@ theorem compromiseSigKeyAttacker_PreservesReachability
   intro sigNonce tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.reachability)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · simp only [Comparse.AttackerKnows_serialize, ServerMessage.IsWellFormed_eq]
     apply And.intro
@@ -313,13 +313,13 @@ theorem compromiseSigKeyAttacker_PreservesReachability
   intro msgServerHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Client.finish.reachability) _ ("Alice", "Bob", pkHandle, msgServerHandle, stClientHandle)
+  · apply Traceful.PreservesReachability_base (Client.finish.transitionSystem) _ ("Alice", "Bob", pkHandle, msgServerHandle, stClientHandle)
   · assumption
-  · simp [Client.finish.reachability]
+  · simp [Client.finish.transitionSystem]
   intro _ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.reachability)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · apply Hash.attacker_knows_hash
     apply DiffieHellman.attacker_knows_dh
@@ -334,7 +334,7 @@ theorem compromiseSigKeyAttacker_PreservesReachability
 public
 theorem compromiseSigKeyAttacker_properties:
   let tr := (compromiseSigKeyAttacker.run (Trace.empty)).snd.val
-  tr.Reachable reachability ∧
+  tr.Reachable transitionSystem ∧
   ∃ t1 xPk yPk k,
     tr.EventLoggedAt (SignedDHEvent.ClientFinishEvent "Alice" "Bob" xPk yPk k) t1 ∧
     k.AttackerKnows tr

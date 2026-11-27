@@ -288,52 +288,52 @@ grind_pattern Trace.at?_eq_some_implies_length_le => (tr.at? i: Option EntryT)
 -- Execution trace
 
 public
-class ExecTraceTypes where
-  ExecT: Type
+class ExecTrace.Def where
+  whole: Type
 
 @[expose]
 public
-def ExecTrace.Entry [ExecTraceTypes] := ExecTraceTypes.ExecT
+def ExecTrace.Entry [ExecTrace.Def] := ExecTrace.Def.whole
 
 public
-abbrev ExecTrace [ExecTraceTypes] := Trace ExecTrace.Entry
+abbrev ExecTrace [ExecTrace.Def] := Trace ExecTrace.Entry
 
 public
-class ExecTraceTypes.Has [ExecTraceTypes] (ExecEntryT: Type)
+class ExecTrace.Has [ExecTrace.Def] (ExecEntryT: Type)
   extends TraceEntryHas ExecEntryT ExecTrace.Entry
 
 public
-class ExecTraceTypes.HasStep (ExecEntryT1: Type) (ExecEntryT2: semiOutParam Type) where
+class ExecTrace.HasStep (ExecEntryT1: Type) (ExecEntryT2: semiOutParam Type) where
   inj: ExecEntryT1 → ExecEntryT2
   proj: ExecEntryT2 → Option ExecEntryT1
   inj_proj_eq: ∀ x y, (proj x = some y) = (x = inj y)
 
 public
-instance instExecTraceTypesHasItself [ExecTraceTypes]: ExecTraceTypes.Has ExecTrace.Entry where
+instance instExecTraceHasItself [ExecTrace.Def]: ExecTrace.Has ExecTrace.Entry where
   inj x := x
   proj x := some x
   inj_proj_eq := by grind
 
 public
-instance instExecTraceTypesHasStep
-  [ExecTraceTypes]
+instance instExecTraceHasStep
+  [ExecTrace.Def]
   (ExecEntryT1 ExecEntryT2: Type)
-  [ExecTraceTypes.HasStep ExecEntryT1 ExecEntryT2]
-  [ExecTraceTypes.Has ExecEntryT2]
-  : ExecTraceTypes.Has ExecEntryT1
+  [ExecTrace.HasStep ExecEntryT1 ExecEntryT2]
+  [ExecTrace.Has ExecEntryT2]
+  : ExecTrace.Has ExecEntryT1
 where
-  inj x := TraceEntryHas.inj (ExecTraceTypes.HasStep.inj (ExecEntryT2 := ExecEntryT2) x)
+  inj x := TraceEntryHas.inj (ExecTrace.HasStep.inj (ExecEntryT2 := ExecEntryT2) x)
   proj x :=
     match TraceEntryHas.proj (EntryT := ExecEntryT2) x with
     | none => none
-    | some y => ExecTraceTypes.HasStep.proj y
+    | some y => ExecTrace.HasStep.proj y
   inj_proj_eq x y := by
     have := TraceEntryHas.inj_proj_eq (EntryT := ExecEntryT2) x
-    have := ExecTraceTypes.HasStep.inj_proj_eq (ExecEntryT1 := ExecEntryT1) (ExecEntryT2 := ExecEntryT2)
+    have := ExecTrace.HasStep.inj_proj_eq (ExecEntryT1 := ExecEntryT1) (ExecEntryT2 := ExecEntryT2)
     grind
 
 public
-instance [ExecTraceTypes] (ExecEntryT: Type) [inst: ExecTraceTypes.Has ExecEntryT]: TraceEntryHas ExecEntryT ExecTrace.Entry where
+instance [ExecTrace.Def] (ExecEntryT: Type) [inst: ExecTrace.Has ExecEntryT]: TraceEntryHas ExecEntryT ExecTrace.Entry where
   inj := inst.inj
   proj := inst.proj
   inj_proj_eq := inst.inj_proj_eq
@@ -351,16 +351,16 @@ theorem TraceEntryHas.inj_injective
   grind
 
 public
-structure ExecTraceTypes.combine {n: Nat} (ExecTypes: Fin n → Type): Type where
+structure ExecTrace.combine {n: Nat} (ExecTypes: Fin n → Type): Type where
   id: Fin n
   entry: ExecTypes id
 
 public
-instance instExecTraceTypesCombineHasStep
+instance instExecTraceCombineHasStep
   {n: Nat}
   (Types: Fin n → Type)
   (id: Fin n)
-  : ExecTraceTypes.HasStep (Types id) (ExecTraceTypes.combine Types) where
+  : ExecTrace.HasStep (Types id) (ExecTrace.combine Types) where
   inj entry := { id, entry }
   proj entry :=
     if h: entry.id = id then
@@ -374,33 +374,33 @@ instance instExecTraceTypesCombineHasStep
 namespace Meta.CombineMacro
 
 macro_rules
-  | `(command| #combine_one $options* ExecEntryT $params* from $sources,*) => do
+  | `(command| #combine_one $options* ExecTrace $params* from $sources,*) => do
     let options := parseOptions options
     let sources := sources.getElems
 
     let combined ← combineExplicit params sources {
-      name := `ExecEntryT
-      combineName := ``DY.ExecTraceTypes.combine
+      name := `TracePart.Exec
+      combineName := ``DY.ExecTrace.combine
       internalOutTypeStx := fun _ _ => `(term| Type)
       outTypeStx := fun _ => `(term| Type)
       isTheorem := false
     }
 
     let hasStep ← mkHasStep params sources <| .makeSimple {
-      name := `ExecEntryT
-      combineName := ``DY.ExecTraceTypes.combine
-      hasStepName := ``DY.ExecTraceTypes.HasStep
+      name := `TracePart.Exec
+      combineName := ``DY.ExecTrace.combine
+      hasStepName := ``DY.ExecTrace.HasStep
     }
 
-    let execInternalStx := Lean.mkIdent `ExecEntryT.internal
-    let execStx := Lean.mkIdent `ExecEntryT
-    let topLevelInst ← `(command| public instance: DY.ExecTraceTypes where ExecT := $execStx)
-    let topLevelHas ← `(command| public instance: DY.ExecTraceTypes.Has $execStx := inferInstanceAs (DY.ExecTraceTypes.Has DY.ExecTrace.Entry))
+    let execInternalStx := Lean.mkIdent `TracePart.Exec.internal
+    let execStx := Lean.mkIdent `TracePart.Exec
+    let topLevelInst ← `(command| public instance: DY.ExecTrace.Def where whole := $execStx)
+    let topLevelHas ← `(command| public instance: DY.ExecTrace.Has $execStx := inferInstanceAs (DY.ExecTrace.Has DY.ExecTrace.Entry))
     let topLevel := if options.toplevel then #[topLevelInst, topLevelHas] else #[]
 
     let hasCombine ← mkHasCombine params {
-      hasCombineStx args := `(term| DY.ExecTraceTypes.Has (DY.ExecTraceTypes.combine ($execInternalStx $args*)))
-      hasStx args := `(term| DY.ExecTraceTypes.Has ($execStx $args*))
+      hasCombineStx args := `(term| DY.ExecTrace.Has (DY.ExecTrace.combine ($execInternalStx $args*)))
+      hasStx args := `(term| DY.ExecTrace.Has ($execStx $args*))
     }
     let hasCombine := if options.toplevel then hasCombine else #[]
 

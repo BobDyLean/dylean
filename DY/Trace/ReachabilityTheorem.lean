@@ -9,10 +9,10 @@ public meta import DY.Meta.CombineMacro
 
 namespace DY
 
-variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
 
 public
-class ReachableImpliesInvariant (config: ReachabilityConfig) where
+class Trace.Reachable_implies_Invariant.Part (config: TransitionSystem) where
   pf:
     ∀ input,
       HoareTriple
@@ -23,17 +23,17 @@ class ReachableImpliesInvariant (config: ReachabilityConfig) where
 public
 instance
   {α: Type}
-  (configs: α → ReachabilityConfig)
-  [insts: ∀ id, ReachableImpliesInvariant (configs id)]
-  : ReachableImpliesInvariant (.combine configs)
+  (configs: α → TransitionSystem)
+  [insts: ∀ id, Trace.Reachable_implies_Invariant.Part (configs id)]
+  : Trace.Reachable_implies_Invariant.Part (.combine configs)
 where
   pf := fun ⟨ id, x ⟩ =>
     (insts id).pf x
 
 public
 theorem Trace.Reachable_implies_Invariant
-  (config: ReachabilityConfig)
-  [inst: ReachableImpliesInvariant config]
+  (config: TransitionSystem)
+  [inst: Trace.Reachable_implies_Invariant.Part config]
   (trExec: ExecTrace)
   : trExec.Reachable config →
     ∃ trProof: ProofTrace,
@@ -54,8 +54,8 @@ theorem Trace.Reachable_implies_Invariant
 
 public
 theorem Trace.apply_Reachable_implies_Invariant
-  {config: ReachabilityConfig}
-  [inst: ReachableImpliesInvariant config]
+  {config: TransitionSystem}
+  [inst: Trace.Reachable_implies_Invariant.Part config]
   {p: ExecTrace → Prop}
   : (
       ∀ trProof: ProofTrace,
@@ -73,13 +73,13 @@ theorem Trace.apply_Reachable_implies_Invariant
 namespace Meta.CombineMacro
 
 macro_rules
-  | `(command| #combine_one $_options* ReachabilityTheorem $params* from $sources,*) => do
+  | `(command| #combine_one $_options* Trace.Reachable_implies_Invariant $params* from $sources,*) => do
     let sources := sources.getElems
 
     let combined ← combineTypeclass params sources  <| .makeSimple {
-      refereeName := `reachability
-      combineName := ``DY.ReachabilityConfig.combine
-      outTypeName := ``DY.ReachableImpliesInvariant
+      refereeName := `transitionSystem
+      combineName := ``DY.TransitionSystem.combine
+      outTypeName := ``DY.Trace.Reachable_implies_Invariant.Part
     }
 
     return Lean.mkNullNode (combined)

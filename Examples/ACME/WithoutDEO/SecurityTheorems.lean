@@ -15,7 +15,7 @@ theorem owner_authentication
   (address: String) (oPk: Bytes)
   (time: Nat)
   : ∀ tr: ExecTrace,
-    tr.Reachable reachability →
+    tr.Reachable transitionSystem →
     tr.EventLoggedAt (ACMEEvent.LetsEncryptAcceptAddress address oPk) time →
     (
       let tr_before := tr.prefix time

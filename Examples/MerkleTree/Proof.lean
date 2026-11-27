@@ -133,12 +133,12 @@ end MerkleTreeProof
 public section ProofTraceConfig
 
 class HasProofTrace extends HasExecTrace where
-  [traceProof: ProofTraceTypes]
-  [traceProof0: ProofTraceTypes.Has Network.ProofEntryT]
-  [traceProof1: ProofTraceTypes.Has Random.ProofEntryT]
-  [traceProof2: ProofTraceTypes.Has (ProtocolEvent.ProofEntryT TheEvent)]
-  [traceProof3: ProofTraceTypes.Has (LongTermKeys.ProofEntryT "MerkleTree PKI")]
-  [traceProof4: ProofTraceTypes.Has (PersistentLocalState.CompromisableState.ProofEntryT ServerState)]
+  [traceProof: ProofTrace.Def]
+  [traceProof0: ProofTrace.Has Network.TracePart.Proof]
+  [traceProof1: ProofTrace.Has Random.TracePart.Proof]
+  [traceProof2: ProofTrace.Has (ProtocolEvent.TracePart.Proof TheEvent)]
+  [traceProof3: ProofTrace.Has (LongTermKeys.TracePart.Proof "MerkleTree PKI")]
+  [traceProof4: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof ServerState)]
 
 attribute [reducible, scoped instance] HasProofTrace.traceProof
 attribute [reducible, scoped instance] HasProofTrace.traceProof0
@@ -186,8 +186,8 @@ where
 
 instance
   [HasProofTrace]
-  [BytesInvariants]
-  : Signature.SignPredProof
+  [Bytes.Invariants.Def]
+  : Signature.SignPred.Lawful
 where
   pred_later := by
     simp [Signature.SignPred.pred]
@@ -199,13 +199,13 @@ end BytesInvariants
 public section BytesInvariantsConfig
 
 class HasBytesInvariants extends HasProofTrace where
-  [bytesInv: BytesInvariants]
-  [bytesInv0: BytesInvariantsProofs]
-  [bytesInv1: BytesInvariants.Has Literal.invariants]
-  [bytesInv2: BytesInvariants.Has Concat.invariants]
-  [bytesInv3: BytesInvariants.Has Hash.invariants]
-  [bytesInv4: BytesInvariants.Has Signature.invariants]
-  [bytesInv5: BytesInvariants.Has Random.invariants]
+  [bytesInv: Bytes.Invariants.Def]
+  [bytesInv0: Bytes.Invariants.Lawful]
+  [bytesInv1: Bytes.Invariants.Has Literal.BytesPart.invariants]
+  [bytesInv2: Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [bytesInv3: Bytes.Invariants.Has Hash.BytesPart.invariants]
+  [bytesInv4: Bytes.Invariants.Has Signature.BytesPart.invariants]
+  [bytesInv5: Bytes.Invariants.Has Random.BytesPart.invariants]
 
 attribute [reducible, scoped instance] HasBytesInvariants.bytesInv
 attribute [           scoped instance] HasBytesInvariants.bytesInv0
@@ -256,14 +256,14 @@ end TraceInvariant
 public section TraceInvariantConfig
 
 class HasTraceInvariant extends HasBytesInvariants where
-  [traceInv: TraceInvariant]
-  [traceInv0: TraceInvariant.Has Network.ProofEntryT]
-  [traceInv1: TraceInvariant.Has Random.ProofEntryT]
-  [traceInv2: TraceInvariant.Has (ProtocolEvent.ProofEntryT TheEvent)]
-  [traceInv3: TraceInvariant.Has (LongTermKeys.ProofEntryT "MerkleTree PKI")]
-  [traceInv4: TraceInvariant.Has (PersistentLocalState.CompromisableState.ProofEntryT ServerState)]
-  [attBaseThm: BaseAttackerKnowledgeTheorem]
-  [attThm: AttackerKnowledgeTheorem]
+  [traceInv: Trace.Invariant.Def]
+  [traceInv0: Trace.Invariant.Has Network.TracePart.Proof]
+  [traceInv1: Trace.Invariant.Has Random.TracePart.Proof]
+  [traceInv2: Trace.Invariant.Has (ProtocolEvent.TracePart.Proof TheEvent)]
+  [traceInv3: Trace.Invariant.Has (LongTermKeys.TracePart.Proof "MerkleTree PKI")]
+  [traceInv4: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof ServerState)]
+  [attBaseThm: Trace.BaseAttackerKnows_implies_Publishable.Proof]
+  [attThm: Bytes.AttackerKnows_implies_Publishable.Proof]
 
 attribute [reducible, scoped instance] HasTraceInvariant.traceInv
 attribute [           scoped instance] HasTraceInvariant.traceInv0
@@ -458,13 +458,13 @@ variable [HasTraceInvariant]
 
 -- Future work: the following section is boilerplate that could be meta-programmed
 section
-public instance: ReachableImpliesInvariant Server.authenticate.reachability := .mk (fun (server, msgHandles, skHandle) => Server.authenticate.proof server msgHandles skHandle)
-public instance: ReachableImpliesInvariant Server.proveInclusion.reachability := .mk (fun (server, i, stHandle) => Server.proveInclusion.proof server i stHandle)
-public instance: ReachableImpliesInvariant Client.checkInclusion.reachability := .mk (fun (server, msgSigHandle, msgInclHandle, pkHandle) => Client.checkInclusion.proof server msgSigHandle msgInclHandle pkHandle)
-public instance: ReachableImpliesInvariant ServerState.compromise.reachability := .mk (fun (stHandle) => ServerState.compromise.proof stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part Server.authenticate.transitionSystem := .mk (fun (server, msgHandles, skHandle) => Server.authenticate.proof server msgHandles skHandle)
+public instance: Trace.Reachable_implies_Invariant.Part Server.proveInclusion.transitionSystem := .mk (fun (server, i, stHandle) => Server.proveInclusion.proof server i stHandle)
+public instance: Trace.Reachable_implies_Invariant.Part Client.checkInclusion.transitionSystem := .mk (fun (server, msgSigHandle, msgInclHandle, pkHandle) => Client.checkInclusion.proof server msgSigHandle msgInclHandle pkHandle)
+public instance: Trace.Reachable_implies_Invariant.Part ServerState.compromise.transitionSystem := .mk (fun (stHandle) => ServerState.compromise.proof stHandle)
 end
 
-#combine into ReachabilityTheorem from
+#combine into Trace.Reachable_implies_Invariant from
   Network,
   Random,
   LongTermKeys "MerkleTree PKI",

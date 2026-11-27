@@ -21,15 +21,15 @@ section Constructors
 namespace Literal
 
 public
-structure SubF (Bytes: Type) where
+structure BytesPart.Functor (Bytes: Type) where
   lit: ByteArray
 
 public
-instance: ALaCarte.FunctorSizeOf SubF where
+instance: ALaCarte.FunctorSizeOf BytesPart.Functor where
   sizeOf | {lit := _} => 0
 
 public
-instance: ALaCarte.Representable SubF where
+instance: ALaCarte.Representable BytesPart.Functor where
   CtorId := Unit
   ctors | () => { Data := ByteArray, nRec := 0 }
 
@@ -47,39 +47,39 @@ instance: ALaCarte.Representable SubF where
     simp_all <;> grind
   sizeOf_eq | {lit := _} => by simp +arith [ALaCarte.FunctorSizeOf.sizeOf]
 
-public instance: ALaCarte.RepresentableDecidableEq SubF where
-public instance: ALaCarte.RepresentableOrd SubF where
+public instance: ALaCarte.RepresentableDecidableEq BytesPart.Functor where
+public instance: ALaCarte.RepresentableOrd BytesPart.Functor where
 
-public instance: SubBytesFunctor SubF where
+public instance: Bytes.Part BytesPart.Functor where
 
 public
-def SubF.length [BytesFunctor]: Bytes.PartialLength SubF :=
+def BytesPart.length [Bytes.Def]: Bytes.length.Part BytesPart.Functor :=
   fun { lit := lit } _ =>
     lit.size
 
 
 end Literal
 
-#combine into BytesFunctor, BytesLength from
+#combine into Bytes, Bytes.length from
   Literal,
 
 public
-abbrev Literal.SubF.pack [BytesFunctor] [BytesFunctor.Has SubF] (x: Literal.SubF Bytes) := BytesView.pack x
+abbrev Literal.BytesPart.Functor.pack [Bytes.Def] [Bytes.Has BytesPart.Functor] (x: Literal.BytesPart.Functor Bytes) := BytesView.pack x
 
 public
-instance [BytesFunctor] [BytesFunctor.Has SubF]: CanMkLiteral Bytes where
+instance [Bytes.Def] [Bytes.Has BytesPart.Functor]: CanMkLiteral Bytes where
   literalToBytes lit :=
-    ({ lit }: Literal.SubF Bytes).pack
+    ({ lit }: Literal.BytesPart.Functor Bytes).pack
 
   bytesToLiteral buf :=
-    match buf.view? Literal.SubF with
+    match buf.view? Literal.BytesPart.Functor with
     | some { lit } =>
       some lit
     | none => none
 
 public
 theorem bytesToLiteral_literalToBytes
-  [BytesFunctor] [BytesFunctor.Has SubF]
+  [Bytes.Def] [Bytes.Has BytesPart.Functor]
   (lit: ByteArray)
   : bytesToLiteral (literalToBytes lit: Bytes) = some lit
 := by
@@ -88,7 +88,7 @@ theorem bytesToLiteral_literalToBytes
 
 public
 theorem literalToBytes_bytesToLiteral
-  [BytesFunctor] [BytesFunctor.Has SubF]
+  [Bytes.Def] [Bytes.Has BytesPart.Functor]
   (buf: Bytes)
   : match bytesToLiteral buf with
     | none => True
@@ -101,38 +101,38 @@ theorem literalToBytes_bytesToLiteral
 @[simp]
 public
 theorem length_literalToBytes
-  [BytesFunctor] [BytesLength]
-  [BytesFunctor.Has SubF] [BytesLength.Has SubF.length]
+  [Bytes.Def] [Bytes.length.Def]
+  [Bytes.Has BytesPart.Functor] [Bytes.length.Has BytesPart.length]
   (buf: ByteArray)
   : Bytes.length (literalToBytes buf) = buf.size
 := by
   simp only [literalToBytes]
-  grind [Literal.SubF.length]
+  grind [Literal.BytesPart.length]
 
 end Constructors
 
 section AttackerKnowledge
 
 public
-def literalToBytes.attackerKnowledge [BytesFunctor] [BytesFunctor.Has SubF]: SubAttackerKnowledge SubF where
+def literalToBytes.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ lit,
       out = literalToBytes lit
 
-#combine [BytesFunctor.Has SubF] into attackerKnowledge' from
+#combine [Bytes.Has BytesPart.Functor] into Bytes.AttackerKnows.merge from
   literalToBytes,
 
-variable [BytesFunctor] [BytesFunctor.Has SubF]
-variable [ExecTraceTypes] [BaseAttackerKnowledge]
-variable [AttackerKnowledge] [AttackerKnowledge.Has attackerKnowledge]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
 
 public
 theorem attacker_knows_literalToBytes
   (lit: ByteArray) (tr: ExecTrace)
   : (literalToBytes lit: Bytes).AttackerKnows tr
 := by
-  apply Bytes.AttackerKnows.prove literalToBytes.attackerKnowledge
-  simp only [literalToBytes.attackerKnowledge]
+  apply Bytes.AttackerKnows.prove literalToBytes.attackerKnows
+  simp only [literalToBytes.attackerKnows]
   exists lit
 
 end AttackerKnowledge
@@ -141,11 +141,11 @@ section Invariants
 
 section Definition
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def]
 
 public
-def Literal.invariants: Bytes.PartialInvariants Literal.SubF where
+def Literal.BytesPart.invariants: Bytes.Invariants.Part Literal.BytesPart.Functor where
   well_formed := fun {lit := _} _rec _tr =>
     True
 
@@ -158,59 +158,59 @@ def Literal.invariants: Bytes.PartialInvariants Literal.SubF where
     True
 
 public
-theorem Literal.invariantsProofs [BytesInvariants]: Bytes.PartialInvariantsProofs Literal.invariants where
+theorem Literal.BytesPart.invariantsLawful [Bytes.Invariants.Def]: Bytes.Invariants.Part.Lawful Literal.BytesPart.invariants where
 
 end Definition
 
 #combine into
-  BytesInvariants,
-  BytesInvariantsProofs
+  Bytes.Invariants,
+  Bytes.Invariants.Lawful
 from
   Literal,
 
-variable [ExecTraceTypes] [ProofTraceTypes]
-variable [BytesFunctor] [BytesFunctor.Has SubF]
+variable [ExecTrace.Def] [ProofTrace.Def]
+variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
 
 @[simp]
 public
 theorem literalToBytes.WellFormed
-  [BytesWellFormed] [BytesWellFormed.Has Literal.invariants.well_formed]
+  [Bytes.WellFormed.Def] [Bytes.WellFormed.Has Literal.BytesPart.invariants.well_formed]
   (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).WellFormed tr
 := by
-  simp [literalToBytes, Bytes.WellFormed.eq, Literal.invariants]
+  simp [literalToBytes, Bytes.WellFormed.eq, Literal.BytesPart.invariants]
 
 @[simp]
 public
 theorem literalToBytes.label
-  [BytesInvariants] [BytesInvariants.Has invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
   (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).label tr = Label.pub
 := by
-  simp [literalToBytes, Bytes.label.eq, Literal.invariants]
+  simp [literalToBytes, Bytes.label.eq, Literal.BytesPart.invariants]
 
 @[simp]
 public
 theorem literalToBytes.Invariant
-  [BytesInvariants] [BytesInvariants.Has invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
   (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).Invariant tr
 := by
-  simp [literalToBytes, Bytes.Invariant.eq, Literal.invariants]
+  simp [literalToBytes, Bytes.Invariant.eq, Literal.BytesPart.invariants]
 
 end Invariants
 
 section AttackerKnowledgeTheorem
 
-variable [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-variable [BytesFunctor] [BytesInvariants]
-variable [BytesFunctor.Has SubF]
-variable [BytesInvariants.Has invariants]
+variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+variable [Bytes.Def] [Bytes.Invariants.Def]
+variable [Bytes.Has BytesPart.Functor]
+variable [Bytes.Invariants.Has BytesPart.invariants]
 
 public
-instance: SubAttackerKnowledgeTheorem literalToBytes.attackerKnowledge where
+instance: Bytes.AttackerKnows_implies_Publishable.Part literalToBytes.attackerKnows where
   pf := by
-    simp only [literalToBytes.attackerKnowledge]
+    simp only [literalToBytes.attackerKnows]
     intro out tr h_tr ⟨lit, h_out⟩
     subst h_out
     simp [Bytes.Publishable]
@@ -219,7 +219,7 @@ instance: SubAttackerKnowledgeTheorem literalToBytes.attackerKnowledge where
 end AttackerKnowledgeTheorem
 section AttackerKnowledgeTheorem
 
-#combine [BytesFunctor.Has SubF] [BytesInvariants.Has invariants] into SubAttackerKnowledgeTheorem' from
+#combine [Bytes.Has BytesPart.Functor] [Bytes.Invariants.Has BytesPart.invariants] into Bytes.AttackerKnows_implies_Publishable.merge from
   literalToBytes,
 
 end AttackerKnowledgeTheorem

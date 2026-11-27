@@ -13,7 +13,7 @@ namespace DY.Example.MerkleTree
 -- TODO: move, but where?
 theorem liftM_parse_preserves_reachability
   {a: Type} [Comparse.ParseableSerializeable a]
-  (config: ReachabilityConfig)
+  (config: TransitionSystem)
   (buf: Bytes)
   : (liftM (Comparse.parse buf): Traceful a).PreservesReachability config (fun _ => True) (fun res _ => Comparse.FormatRel buf res)
 := by
@@ -35,64 +35,64 @@ def honestAttacker: Traceful Unit := do
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem honestAttacker_PreservesReachability
-  : honestAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
+  : honestAttacker.PreservesReachability transitionSystem (fun _ => True) (fun _ _ => True)
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
   unfold honestAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "MerkleTree PKI")
+  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.transitionSystem "MerkleTree PKI")
   · assumption
-  · simp [LongTermKeys.generateKeyPair.reachability]
+  · simp [LongTermKeys.generateKeyPair.transitionSystem]
   intro ⟨ _, pkHandle, skHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.reachability)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · simp [Literal.attacker_knows_literalToBytes]
   intro msgHandle1 tr h_post h_tr tr_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.reachability)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · simp [Literal.attacker_knows_literalToBytes]
   intro msgHandle2 tr h_post h_tr tr_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.reachability)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · simp [Literal.attacker_knows_literalToBytes]
   intro msgHandle3 tr h_post h_tr tr_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.reachability)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · simp [Literal.attacker_knows_literalToBytes]
   intro msgHandle4 tr h_post h_tr tr_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.reachability)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · simp [Literal.attacker_knows_literalToBytes]
   intro msgHandle5 tr h_post h_tr tr_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Server.authenticate.reachability) _ ("Bob", [msgHandle1, msgHandle2, msgHandle3, msgHandle4, msgHandle5], skHandle)
+  · apply Traceful.PreservesReachability_base (Server.authenticate.transitionSystem) _ ("Bob", [msgHandle1, msgHandle2, msgHandle3, msgHandle4, msgHandle5], skHandle)
   · assumption
-  · simp [Server.authenticate.reachability]
+  · simp [Server.authenticate.transitionSystem]
   intro ⟨ msgSigHandle, stHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Server.proveInclusion.reachability) _ ("Bob", 3, stHandle)
+  · apply Traceful.PreservesReachability_base (Server.proveInclusion.transitionSystem) _ ("Bob", 3, stHandle)
   · assumption
-  · simp [Server.proveInclusion.reachability]
+  · simp [Server.proveInclusion.transitionSystem]
   intro msgInclHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Client.checkInclusion.reachability) _ ("Bob", msgSigHandle, msgInclHandle, pkHandle)
+  · apply Traceful.PreservesReachability_base (Client.checkInclusion.transitionSystem) _ ("Bob", msgSigHandle, msgInclHandle, pkHandle)
   · assumption
-  · simp [Client.checkInclusion.reachability]
+  · simp [Client.checkInclusion.transitionSystem]
   intro _ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_pure
@@ -102,7 +102,7 @@ theorem honestAttacker_PreservesReachability
 public
 theorem honestAttacker_properties:
   let tr := (honestAttacker.run (Trace.empty)).snd.val
-  tr.Reachable reachability ∧
+  tr.Reachable transitionSystem ∧
   ∃ (t1 t2: Nat) (msg: Bytes),
     t1 < t2 ∧
     tr.EventLoggedAt (TheEvent.ServerAuthenticated "Bob" msg) t1 ∧
@@ -165,22 +165,22 @@ def compromiseSigKeyAttacker: Traceful Unit := do
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem compromiseSigKeyAttacker_PreservesReachability
-  : compromiseSigKeyAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
+  : compromiseSigKeyAttacker.PreservesReachability transitionSystem (fun _ => True) (fun _ _ => True)
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
   unfold compromiseSigKeyAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "MerkleTree PKI")
+  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.transitionSystem "MerkleTree PKI")
   · assumption
-  · simp [LongTermKeys.generateKeyPair.reachability]
+  · simp [LongTermKeys.generateKeyPair.transitionSystem]
   intro ⟨ _, pkHandle, skHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (LongTermKeys.compromisePrivateKey.reachability "MerkleTree PKI")
+  · apply Traceful.PreservesReachability_base (LongTermKeys.compromisePrivateKey.transitionSystem "MerkleTree PKI")
   · assumption
-  · simp [LongTermKeys.compromisePrivateKey.reachability]
+  · simp [LongTermKeys.compromisePrivateKey.transitionSystem]
   intro compromiseHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
@@ -202,7 +202,7 @@ theorem compromiseSigKeyAttacker_PreservesReachability
   intro sigNonce tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.reachability)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · simp only [Comparse.AttackerKnows_serialize, SignedRootHash.IsWellFormed_eq]
     apply And.intro
@@ -224,7 +224,7 @@ theorem compromiseSigKeyAttacker_PreservesReachability
   intro msgSigHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Network.reachability)
+  · apply Traceful.PreservesReachability_base (Network.transitionSystem)
   · assumption
   · simp only [Comparse.AttackerKnows_serialize, ElementAndInclusionProof.IsWellFormed_eq]
     apply And.intro
@@ -237,9 +237,9 @@ theorem compromiseSigKeyAttacker_PreservesReachability
   intro msgInclHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Client.checkInclusion.reachability) _ ("Bob", msgSigHandle, msgInclHandle, pkHandle)
+  · apply Traceful.PreservesReachability_base (Client.checkInclusion.transitionSystem) _ ("Bob", msgSigHandle, msgInclHandle, pkHandle)
   · assumption
-  · simp [Client.checkInclusion.reachability]
+  · simp [Client.checkInclusion.transitionSystem]
   intro _ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_pure
@@ -258,7 +258,7 @@ theorem rewrite_forall_nat_into_forall_fin {P: Nat → Prop} (n: Nat) (h: ∀ i,
 public
 theorem compromiseSigKeyAttacker_properties:
   let tr := (compromiseSigKeyAttacker.run (Trace.empty)).snd.val
-  tr.Reachable reachability ∧
+  tr.Reachable transitionSystem ∧
   ∃ t1 element,
     tr.EventLoggedAt (TheEvent.ClientAccept "Bob" element) t1 ∧
     (∀ t2, ¬ (tr.EventLoggedAt (TheEvent.ServerAuthenticated "Bob" element) t2))

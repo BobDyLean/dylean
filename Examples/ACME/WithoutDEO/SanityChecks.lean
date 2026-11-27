@@ -22,46 +22,46 @@ def honestAttacker: Traceful Unit := do
 
 -- Future work: we could design a step-like tactic to automate this proof
 theorem honestAttacker_PreservesReachability
-  : honestAttacker.PreservesReachability reachability (fun _ => True) (fun _ _ => True)
+  : honestAttacker.PreservesReachability transitionSystem (fun _ => True) (fun _ _ => True)
 := by
   unfold Traceful.PreservesReachability
   intro tr h_tr h_pre
   unfold honestAttacker
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.reachability "ACME PKI")
+  · apply Traceful.PreservesReachability_base (LongTermKeys.generateKeyPair.transitionSystem "ACME PKI")
   · assumption
-  · simp [LongTermKeys.generateKeyPair.reachability]
+  · simp [LongTermKeys.generateKeyPair.transitionSystem]
   intro ⟨ _, pkHandle, skHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Owner.generateKeyPair.reachability)
+  · apply Traceful.PreservesReachability_base (Owner.generateKeyPair.transitionSystem)
   · assumption
-  · simp [Owner.generateKeyPair.reachability]
+  · simp [Owner.generateKeyPair.transitionSystem]
   intro ⟨ _, oSkHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Owner.claimAddress.reachability) _ ("Owner", "example.com", oSkHandle)
+  · apply Traceful.PreservesReachability_base (Owner.claimAddress.transitionSystem) _ ("Owner", "example.com", oSkHandle)
   · assumption
-  · simp [Owner.claimAddress.reachability]
+  · simp [Owner.claimAddress.transitionSystem]
   intro stHandle tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (LetsEncrypt.initiate.reachability) _ ("LetsEncrypt", "example.com", skHandle)
+  · apply Traceful.PreservesReachability_base (LetsEncrypt.initiate.transitionSystem) _ ("LetsEncrypt", "example.com", skHandle)
   · assumption
-  · simp [LetsEncrypt.initiate.reachability]
+  · simp [LetsEncrypt.initiate.transitionSystem]
   intro ⟨ msgHandle, pendingStHandle ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (Owner.respond.reachability) _ ("Owner", "LetsEncrypt", msgHandle, pkHandle, stHandle)
+  · apply Traceful.PreservesReachability_base (Owner.respond.transitionSystem) _ ("Owner", "LetsEncrypt", msgHandle, pkHandle, stHandle)
   · assumption
-  · simp [Owner.respond.reachability]
+  · simp [Owner.respond.transitionSystem]
   intro ⟨ dnsEntryHandle, msgHandle' ⟩ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_bind
-  · apply Traceful.PreservesReachability_base (LetsEncrypt.finish.reachability) _ ("LetsEncrypt", msgHandle', pendingStHandle, dnsEntryHandle)
+  · apply Traceful.PreservesReachability_base (LetsEncrypt.finish.transitionSystem) _ ("LetsEncrypt", msgHandle', pendingStHandle, dnsEntryHandle)
   · assumption
-  · simp [LetsEncrypt.finish.reachability]
+  · simp [LetsEncrypt.finish.transitionSystem]
   intro _ tr h_post h_tr h_le
 
   apply Traceful.PreservesReachabilityFrom_pure
@@ -71,7 +71,7 @@ theorem honestAttacker_PreservesReachability
 public
 theorem honestAttacker_properties:
   let tr := (honestAttacker.run (Trace.empty)).snd.val
-  tr.Reachable reachability ∧
+  tr.Reachable transitionSystem ∧
   ∃ t1 t2 oPk,
     t1 < t2 ∧
     tr.EventLoggedAt (ACMEEvent.OwnerRegisterAddress "example.com" oPk) t1 ∧

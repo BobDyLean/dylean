@@ -23,9 +23,9 @@ structure LocalState (StateT: Type) where
 
 public -- it is useful to implement attacker programs
 instance
-  [BytesFunctor] [BytesLength]
-  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
-  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+  [Bytes.Def] [Bytes.length.Def]
+  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
+  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
   (StateT: Type)
   [Comparse.ParseableSerializeable StateT]
   : Comparse.ParseableSerializeable (LocalState StateT)
@@ -37,9 +37,9 @@ instance
 
 public -- it is useful to implement attacker programs
 theorem LocalState.IsWellFormed_eq
-  [BytesFunctor] [BytesLength]
-  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
-  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+  [Bytes.Def] [Bytes.length.Def]
+  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
+  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
   {StateT: Type} [Comparse.ParseableSerializeable StateT]
   (pre: Bytes → τ → Prop) [Comparse.BytesCompatibleTracePred pre]
   (x: LocalState StateT) (tr: τ):
@@ -51,7 +51,7 @@ grind_pattern LocalState.IsWellFormed_eq => Comparse.IsWellFormed pre x tr
 
 namespace State
 
-#combine (StateT: Type) into ExecEntryT, baseAttackerKnowledge from
+#combine (StateT: Type) into ExecTrace, Trace.BaseAttackerKnows from
   PersistentGlobalState.State (LocalState StateT)
 
 end State
@@ -59,7 +59,7 @@ end State
 public
 def storeLocalState
   {StateT: Type}
-  [ExecTraceTypes] [ExecTraceTypes.Has (State.ExecEntryT StateT)]
+  [ExecTrace.Def] [ExecTrace.Has (State.TracePart.Exec StateT)]
   (participant: Participant) (state: StateT)
   : Traceful Nat
 := do
@@ -68,7 +68,7 @@ def storeLocalState
 public
 def getLocalState
   {StateT: Type}
-  [ExecTraceTypes] [ExecTraceTypes.Has (State.ExecEntryT StateT)]
+  [ExecTrace.Def] [ExecTrace.Has (State.TracePart.Exec StateT)]
   (participant: Participant) (handle: Nat)
   : Traceful StateT
 := do
@@ -81,7 +81,7 @@ end Execution
 section Proof
 
 public
-class LocalStateInv [ExecTraceTypes] [ProofTraceTypes] (StateT: Type) where
+class LocalStateInv [ExecTrace.Def] [ProofTrace.Def] (StateT: Type) where
   invariant: Participant → StateT → ProofTrace → Prop
   invariant_later: ∀ p st tr1 tr2,
     tr1 ≤ tr2 →
@@ -95,7 +95,7 @@ namespace State
 
 public
 instance
-  [ExecTraceTypes] [ProofTraceTypes]
+  [ExecTrace.Def] [ProofTrace.Def]
   (StateT: Type) [LocalStateInv StateT]
   : PersistentGlobalState.GlobalStateInv (LocalState StateT)
 where
@@ -103,9 +103,9 @@ where
   invariant_later st tr1 tr2 := LocalStateInv.invariant_later st.participant st.state tr1 tr2
 
 #combine (StateT: Type) into
-  ProofEntryT,
-  SubTraceInvariant [LocalStateInv StateT],
-  SubBaseAttackerKnowledgeTheorem [LocalStateInv StateT],
+  ProofTrace,
+  Trace.Invariant [LocalStateInv StateT],
+  Trace.BaseAttackerKnows_implies_Publishable [LocalStateInv StateT],
 from
   PersistentGlobalState.State (LocalState StateT)
 
@@ -115,9 +115,9 @@ end State
 public
 theorem storeLocalState.proof
   {StateT: Type}
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [LocalStateInv StateT]
-  [ExecTraceTypes.Has (State.ExecEntryT StateT)] [ProofTraceTypes.Has (State.ProofEntryT StateT)] [TraceInvariant.Has (State.ProofEntryT StateT)]
+  [ExecTrace.Has (State.TracePart.Exec StateT)] [ProofTrace.Has (State.TracePart.Proof StateT)] [Trace.Invariant.Has (State.TracePart.Proof StateT)]
   (participant: Participant) (state: StateT)
   : HoareTriple
     (storeLocalState participant state)
@@ -132,9 +132,9 @@ theorem storeLocalState.proof
 public
 theorem getLocalState.proof
   {StateT: Type}
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [LocalStateInv StateT]
-  [ExecTraceTypes.Has (State.ExecEntryT StateT)] [ProofTraceTypes.Has (State.ProofEntryT StateT)] [TraceInvariant.Has (State.ProofEntryT StateT)]
+  [ExecTrace.Has (State.TracePart.Exec StateT)] [ProofTrace.Has (State.TracePart.Proof StateT)] [Trace.Invariant.Has (State.TracePart.Proof StateT)]
   (participant: Participant) (handle: Nat)
   : HoareTriple
     (getLocalState participant handle: Traceful StateT)
@@ -157,7 +157,7 @@ section Execution
 
 namespace Compromise
 
-#combine (StateT: Type) into ExecEntryT, baseAttackerKnowledge from
+#combine (StateT: Type) into ExecTrace, Trace.BaseAttackerKnows from
   PersistentGlobalState.Compromise (LocalState StateT),
 
 end Compromise
@@ -165,14 +165,14 @@ end Compromise
 public
 def compromise
   (StateT: Type)
-  [BytesFunctor] [BytesLength]
-  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
-  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+  [Bytes.Def] [Bytes.length.Def]
+  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
+  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
   [Comparse.ParseableSerializeable StateT]
-  [ExecTraceTypes]
-  [ExecTraceTypes.Has Network.ExecEntryT]
-  [ExecTraceTypes.Has (State.ExecEntryT StateT)]
-  [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
+  [ExecTrace.Def]
+  [ExecTrace.Has Network.TracePart.Exec]
+  [ExecTrace.Has (State.TracePart.Exec StateT)]
+  [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
   (handle: Nat)
   : Traceful Nat
 := do
@@ -181,7 +181,7 @@ def compromise
 public
 def LocalStateCompromised
   {StateT: Type}
-  [ExecTraceTypes] [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
+  [ExecTrace.Def] [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
   (participant: Participant) (state: StateT)
   (tr: ExecTrace)
   : Prop
@@ -191,7 +191,7 @@ def LocalStateCompromised
 public
 theorem LocalStateCompromised_le
   {StateT: Type}
-  [ExecTraceTypes] [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
+  [ExecTrace.Def] [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
   (participant: Participant) (state: StateT)
   (tr1 tr2: ExecTrace)
   : tr1 ≤ tr2 →
@@ -211,9 +211,9 @@ section Proof
 namespace Compromise
 
 #combine (StateT: Type) into
-  ProofEntryT,
-  SubTraceInvariant,
-  SubBaseAttackerKnowledgeTheorem,
+  ProofTrace,
+  Trace.Invariant,
+  Trace.BaseAttackerKnows_implies_Publishable,
 from
   PersistentGlobalState.Compromise (LocalState StateT)
 
@@ -222,7 +222,7 @@ end Compromise
 public
 def label
   {StateT: Type}
-  [ExecTraceTypes] [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
+  [ExecTrace.Def] [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
   (participant: Participant) (state: StateT)
 :=
   PersistentGlobalState.label ({ participant, state }: LocalState StateT)
@@ -230,7 +230,7 @@ def label
 public
 theorem label_isCorrupt
   {StateT: Type}
-  [ExecTraceTypes] [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
+  [ExecTrace.Def] [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
   (participant: Participant) (state: StateT)
   (tr: ExecTrace)
   : (label participant state).isCorrupt tr = LocalStateCompromised participant state tr
@@ -242,13 +242,13 @@ grind_pattern label_isCorrupt => (label participant state).isCorrupt tr
 public
 class CompromisableLocalStateInv
   (StateT: Type)
-  [ExecTraceTypes] [ProofTraceTypes]
-  [BytesFunctor] [BytesInvariants]
-  [BytesLength]
-  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
-  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+  [ExecTrace.Def] [ProofTrace.Def]
+  [Bytes.Def] [Bytes.Invariants.Def]
+  [Bytes.length.Def]
+  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
+  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
   [Comparse.ParseableSerializeable StateT]
-  [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
+  [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
 extends
   LocalStateInv StateT
 where
@@ -258,13 +258,13 @@ where
       Comparse.IsWellFormed (Bytes.KnowableBy (label participant state)) state tr
 
 instance
-  [ExecTraceTypes] [ProofTraceTypes] [BytesFunctor] [BytesInvariants]
-  [BytesLength]
-  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesInvariants.Has Literal.invariants]
-  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length] [BytesInvariants.Has Concat.invariants]
+  [ExecTrace.Def] [ProofTrace.Def] [Bytes.Def] [Bytes.Invariants.Def]
+  [Bytes.length.Def]
+  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length] [Bytes.Invariants.Has Literal.BytesPart.invariants]
+  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length] [Bytes.Invariants.Has Concat.BytesPart.invariants]
   (StateT: Type)
   [Comparse.ParseableSerializeable StateT]
-  [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
+  [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
   [CompromisableLocalStateInv StateT]
   : PersistentGlobalState.CompromisableGlobalStateInv (LocalState StateT)
 where
@@ -279,25 +279,25 @@ where
 public
 theorem compromise.proof
   {StateT: Type}
-  [BytesFunctor] [BytesLength]
-  [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length]
-  [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
+  [Bytes.Def] [Bytes.length.Def]
+  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
+  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
   [Comparse.ParseableSerializeable StateT]
-  [ExecTraceTypes] [ProofTraceTypes] [TraceInvariant]
-  [ExecTraceTypes.Has Network.ExecEntryT]
-  [ProofTraceTypes.Has Network.ProofEntryT]
-  [ExecTraceTypes.Has (State.ExecEntryT StateT)]
-  [ProofTraceTypes.Has (State.ProofEntryT StateT)]
-  [ExecTraceTypes.Has (Compromise.ExecEntryT StateT)]
-  [ProofTraceTypes.Has (Compromise.ProofEntryT StateT)]
-  [BytesInvariants] [BytesInvariantsProofs]
-  [BytesInvariants.Has Literal.invariants]
-  [BytesInvariants.Has Concat.invariants]
+  [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
+  [ExecTrace.Has Network.TracePart.Exec]
+  [ProofTrace.Has Network.TracePart.Proof]
+  [ExecTrace.Has (State.TracePart.Exec StateT)]
+  [ProofTrace.Has (State.TracePart.Proof StateT)]
+  [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
+  [ProofTrace.Has (Compromise.TracePart.Proof StateT)]
+  [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
+  [Bytes.Invariants.Has Literal.BytesPart.invariants]
+  [Bytes.Invariants.Has Concat.BytesPart.invariants]
   [Comparse.ParseableSerializeable StateT]
   [CompromisableLocalStateInv StateT]
-  [TraceInvariant.Has Network.ProofEntryT]
-  [TraceInvariant.Has (State.ProofEntryT StateT)]
-  [TraceInvariant.Has (Compromise.ProofEntryT StateT)]
+  [Trace.Invariant.Has Network.TracePart.Proof]
+  [Trace.Invariant.Has (State.TracePart.Proof StateT)]
+  [Trace.Invariant.Has (Compromise.TracePart.Proof StateT)]
   (handle: Nat)
   : HoareTriple
     (compromise StateT handle)
@@ -316,24 +316,24 @@ section CompromisableState
 
 namespace CompromisableState
 
-#combine (StateT: Type) into ExecEntryT, baseAttackerKnowledge from
+#combine (StateT: Type) into ExecTrace, Trace.BaseAttackerKnows from
   State StateT,
   Compromise StateT,
 
-#combine (StateT: Type) into ProofEntryT
+#combine (StateT: Type) into ProofTrace
 from
   State StateT,
   Compromise StateT,
 
 #combine
   (StateT: Type)
-  [BytesFunctor] [BytesInvariants]
-  [BytesLength] [BytesFunctor.Has Literal.SubF] [BytesLength.Has Literal.SubF.length] [BytesFunctor.Has Concat.SubF] [BytesLength.Has Concat.SubF.length]
-  [Comparse.ParseableSerializeable StateT] [ExecTraceTypes.Has (ExecEntryT StateT)]
+  [Bytes.Def] [Bytes.Invariants.Def]
+  [Bytes.length.Def] [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length] [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
+  [Comparse.ParseableSerializeable StateT] [ExecTrace.Has (TracePart.Exec StateT)]
   [CompromisableLocalStateInv StateT]
 into
-  SubTraceInvariant,
-  SubBaseAttackerKnowledgeTheorem__noExecHas,
+  Trace.Invariant,
+  Trace.BaseAttackerKnows_implies_Publishable__noExecHas,
 from
   State StateT,
   Compromise StateT,
