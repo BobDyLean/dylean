@@ -55,6 +55,7 @@ class Bytes.AttackerKnows.HasStep
 where
   pf: ∀ p b, att1.pred p b → att2.pred p b
 
+@[has_suffix attackerKnows]
 public
 class Bytes.AttackerKnows.Has
   [Bytes.AttackerKnows.Def]

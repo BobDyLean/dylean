@@ -106,6 +106,7 @@ theorem Trace.prefix_erase
 example [ExecTrace.Def] [ProofTrace.Def]: Coe ProofTrace ExecTrace where
   coe tr := tr.erase
 
+@[has_suffix TracePart.Proof]
 public
 class ProofTrace.Has
   [ExecTrace.Def] [ProofTrace.Def]
@@ -334,6 +335,7 @@ def Trace.Invariant
 :=
   ∀ i h_i, (tr.at i h_i).Invariant (tr.prefix i)
 
+@[has_suffix TracePart.Proof]
 public
 class Trace.Invariant.Has
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]

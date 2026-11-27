@@ -38,9 +38,9 @@ instance TracePart.invariant [Bytes.Def] [ExecTrace.Def] [ProofTrace.Def]: Trace
 public
 instance
   [Bytes.Def] [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def] [Bytes.Invariants.Def]
-  [ExecTrace.Has TracePart.Exec]
-  [ProofTrace.Has TracePart.Proof]
-  [Trace.Invariant.Has TracePart.Proof]
+  [ExecTrace has% Random]
+  [ProofTrace has% Random]
+  [Trace.Invariant has% Random]
   : Trace.BaseAttackerKnows_implies_Publishable.Part TracePart.Proof TracePart.baseAttackerKnows
 where
   pf trBefore entry b := by
@@ -92,16 +92,16 @@ def BytesPart.length [Bytes.Def]: Bytes.length.Part BytesPart.Functor :=
     size
 
 public
-abbrev BytesPart.Functor.pack [Bytes.Def] [Bytes.Has BytesPart.Functor] (x: BytesPart.Functor Bytes) := BytesView.pack x
+abbrev BytesPart.Functor.pack [Bytes.Def] [Bytes has% Random] (x: BytesPart.Functor Bytes) := BytesView.pack x
 
-def makeRand [Bytes.Def] [Bytes.Has BytesPart.Functor] (timestamp size: Nat): Bytes :=
+def makeRand [Bytes.Def] [Bytes has% Random] (timestamp size: Nat): Bytes :=
   ({timestamp, size}: BytesPart.Functor Bytes).pack
 
 end Constructors
 
 section AttackerKnowledge
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% Random]
 
 public
 def attackerKnows: Bytes.AttackerKnows.Part BytesPart.Functor where
@@ -113,8 +113,8 @@ section Invariants
 
 variable [ExecTrace.Def] [ProofTrace.Def]
 variable [Bytes.Def]
-variable [ExecTrace.Has TracePart.Exec]
-variable [ProofTrace.Has TracePart.Proof]
+variable [ExecTrace has% Random]
+variable [ProofTrace has% Random]
 
 public
 def BytesPart.invariants: Bytes.Invariants.Part BytesPart.Functor where
@@ -148,8 +148,8 @@ theorem BytesPart.invariantsLawful [Bytes.Invariants.Def]: Bytes.Invariants.Part
     simp only [BytesPart.invariants]
     grind
 
-variable [Bytes.Has BytesPart.Functor]
-variable [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes has% Random]
+variable [Bytes.Invariants.Def] [Bytes.Invariants has% Random]
 
 theorem makeRand.Invariant
   (timestamp size: Nat) (tr: ProofTrace)
@@ -169,10 +169,10 @@ section AttackerKnowledgeTheorem
 
 variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
 variable [Bytes.Def] [Bytes.Invariants.Def]
-variable [Bytes.Has BytesPart.Functor]
-variable [ExecTrace.Has TracePart.Exec]
-variable [ProofTrace.Has TracePart.Proof]
-variable [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes has% Random]
+variable [ExecTrace has% Random]
+variable [ProofTrace has% Random]
+variable [Bytes.Invariants has% Random]
 
 public
 instance: Bytes.AttackerKnows_implies_Publishable.Part attackerKnows where
@@ -183,7 +183,7 @@ end AttackerKnowledgeTheorem
 end Bytes
 
 public
-def genRand [Bytes.Def] [Bytes.Has BytesPart.Functor] [ExecTrace.Def] [ExecTrace.Has TracePart.Exec] (size: Nat): Traceful Bytes :=
+def genRand [Bytes.Def] [Bytes has% Random] [ExecTrace.Def] [ExecTrace has% Random] (size: Nat): Traceful Bytes :=
   do
   let entry: TracePart.Exec := { length := size }
   let time ← appendEntry entry
@@ -191,7 +191,7 @@ def genRand [Bytes.Def] [Bytes.Has BytesPart.Functor] [ExecTrace.Def] [ExecTrace
 
 public
 instance
-  [Bytes.Def] [Bytes.Has BytesPart.Functor] [ExecTrace.Def] [ExecTrace.Has TracePart.Exec]
+  [Bytes.Def] [Bytes has% Random] [ExecTrace.Def] [ExecTrace has% Random]
   (size: Nat)
   : HasGhostArgumentType (genRand size) ((Bytes → Label) × Usage)
 where
@@ -203,9 +203,9 @@ theorem genRand.proof
   [Bytes.Def]
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [Bytes.Has BytesPart.Functor]
-  [ExecTrace.Has TracePart.Exec] [ProofTrace.Has TracePart.Proof] [Trace.Invariant.Has TracePart.Proof]
-  [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes has% Random]
+  [ExecTrace has% Random] [ProofTrace has% Random] [Trace.Invariant has% Random]
+  [Bytes.Invariants has% Random]
   (size: Nat)
   (label: Bytes → Label) (usage: Usage)
   : HoareTripleGhost
@@ -229,7 +229,7 @@ theorem genRand.proof
   grind [makeRand.Invariant]
 
 public
-def attackerGenRandAux [Bytes.Def] [Bytes.Has BytesPart.Functor] [ExecTrace.Def] [ExecTrace.Has TracePart.Exec] [ExecTrace.Has Network.TracePart.Exec] (size: Nat): Traceful Nat :=
+def attackerGenRandAux [Bytes.Def] [Bytes has% Random] [ExecTrace.Def] [ExecTrace has% Random] [ExecTrace has% Network] (size: Nat): Traceful Nat :=
   do
   let r ← genRand size
   Network.sendMessage r
@@ -240,10 +240,10 @@ theorem attackerGenRandAux.proof
   [Bytes.Def]
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [Bytes.Has BytesPart.Functor]
-  [ExecTrace.Has TracePart.Exec] [ProofTrace.Has TracePart.Proof] [Trace.Invariant.Has TracePart.Proof]
-  [ExecTrace.Has Network.TracePart.Exec] [ProofTrace.Has Network.TracePart.Proof] [Trace.Invariant.Has Network.TracePart.Proof]
-  [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes has% Random]
+  [ExecTrace has% Random] [ProofTrace has% Random] [Trace.Invariant has% Random]
+  [ExecTrace has% Network] [ProofTrace has% Network] [Trace.Invariant has% Network]
+  [Bytes.Invariants has% Random]
   (size: Nat)
   : HoareTriple
     (attackerGenRandAux size)
@@ -257,15 +257,15 @@ theorem attackerGenRandAux.proof
 
 
 public
-def attackerGenRand [Bytes.Def] [Bytes.Has BytesPart.Functor] [ExecTrace.Def] [ExecTrace.Has TracePart.Exec] [ExecTrace.Has Network.TracePart.Exec] (size: Nat): Traceful Bytes :=
+def attackerGenRand [Bytes.Def] [Bytes has% Random] [ExecTrace.Def] [ExecTrace has% Random] [ExecTrace has% Network] (size: Nat): Traceful Bytes :=
   do
   let rHandle ← attackerGenRandAux size
   Network.receiveMessage rHandle
 
 section Reachability
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
-variable [ExecTrace.Def] [ExecTrace.Has TracePart.Exec] [ExecTrace.Has Network.TracePart.Exec]
+variable [Bytes.Def] [Bytes has% Random]
+variable [ExecTrace.Def] [ExecTrace has% Random] [ExecTrace has% Network]
 variable [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
 
 public
@@ -276,7 +276,7 @@ abbrev transitionSystem : TransitionSystem where
 
 public
 theorem attackerGenRand.preservesReachability
-  [Trace.BaseAttackerKnows.Has Network.TracePart.baseAttackerKnows]
+  [Trace.BaseAttackerKnows has% Network]
   (config: TransitionSystem)
   [TransitionSystem.Has transitionSystem config]
   (size: Nat)
@@ -297,9 +297,9 @@ theorem attackerGenRand.preservesReachability
 
 variable [ProofTrace.Def] [Trace.Invariant.Def]
 variable [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-variable [ProofTrace.Has TracePart.Proof] [Trace.Invariant.Has TracePart.Proof]
-variable [ProofTrace.Has Network.TracePart.Proof] [Trace.Invariant.Has Network.TracePart.Proof]
-variable [Bytes.Invariants.Has BytesPart.invariants]
+variable [ProofTrace has% Random] [Trace.Invariant has% Random]
+variable [ProofTrace has% Network] [Trace.Invariant has% Network]
+variable [Bytes.Invariants has% Random]
 variable [Trace.BaseAttackerKnows_implies_Publishable.Proof] [Bytes.AttackerKnows_implies_Publishable.Proof]
 
 public

@@ -23,18 +23,18 @@ public section ExecBytesConfig
 
 class HasExecBytes where
   [bytesFunc: Bytes.Def]
-  [bytesFunc0: Bytes.Has Random.BytesPart.Functor]
-  [bytesFunc1: Bytes.Has Literal.BytesPart.Functor]
-  [bytesFunc2: Bytes.Has Concat.BytesPart.Functor]
+  [bytesFunc0: Bytes has% Random]
+  [bytesFunc1: Bytes has% Literal]
+  [bytesFunc2: Bytes has% Concat]
   [canSign: Signature.CanSign Bytes]
   [bytesLen: Bytes.length.Def]
-  [bytesLen0: Bytes.length.Has Random.BytesPart.length]
-  [bytesLen1: Bytes.length.Has Literal.BytesPart.length]
-  [bytesLen2: Bytes.length.Has Concat.BytesPart.length]
+  [bytesLen0: Bytes.length has% Random]
+  [bytesLen1: Bytes.length has% Literal]
+  [bytesLen2: Bytes.length has% Concat]
   [att: Bytes.AttackerKnows.Def]
-  [att0: Bytes.AttackerKnows.Has Random.attackerKnows]
-  [att1: Bytes.AttackerKnows.Has Literal.attackerKnows]
-  [att2: Bytes.AttackerKnows.Has Concat.attackerKnows]
+  [att0: Bytes.AttackerKnows has% Random]
+  [att1: Bytes.AttackerKnows has% Literal]
+  [att2: Bytes.AttackerKnows has% Concat]
 
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc
 attribute [reducible, scoped instance] HasExecBytes.bytesFunc0
@@ -213,14 +213,14 @@ public section ExecTraceConfig
 
 class HasExecTrace extends HasExecBytes where
   [traceExec: ExecTrace.Def]
-  [traceExec0: ExecTrace.Has Network.TracePart.Exec]
-  [traceExec1: ExecTrace.Has Random.TracePart.Exec]
-  [traceExec2: ExecTrace.Has (ProtocolEvent.TracePart.Exec ACMEEvent)]
-  [traceExec3: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec OwnerKeyState)]
-  [traceExec4: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec OwnerAddressState)]
-  [traceExec5: ExecTrace.Has (PersistentLocalState.CompromisableState.TracePart.Exec LetsEncryptPendingChallengeState)]
-  [traceExec6: ExecTrace.Has (PersistentGlobalState.CompromisableState.TracePart.Exec DNSEntry)]
-  [traceExec7: ExecTrace.Has (LongTermKeys.TracePart.Exec "ACME PKI")]
+  [traceExec0: ExecTrace has% Network]
+  [traceExec1: ExecTrace has% Random]
+  [traceExec2: ExecTrace has% ProtocolEvent ACMEEvent]
+  [traceExec3: ExecTrace has% PersistentLocalState.CompromisableState OwnerKeyState]
+  [traceExec4: ExecTrace has% PersistentLocalState.CompromisableState OwnerAddressState]
+  [traceExec5: ExecTrace has% PersistentLocalState.CompromisableState LetsEncryptPendingChallengeState]
+  [traceExec6: ExecTrace has% PersistentGlobalState.CompromisableState DNSEntry]
+  [traceExec7: ExecTrace has% LongTermKeys "ACME PKI"]
   [attBase: Trace.BaseAttackerKnows.Def]
 
 attribute [reducible, scoped instance] HasExecTrace.traceExec

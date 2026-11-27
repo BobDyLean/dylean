@@ -8,8 +8,8 @@ public import DY.EquationalTheory.Concat
 namespace DY.Comparse
 
 variable [Bytes.Def] [Bytes.length.Def]
-variable [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
-variable [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
+variable [Bytes has% Literal] [Bytes.length has% Literal]
+variable [Bytes has% Concat] [Bytes.length has% Concat]
 
 public
 instance: Comparse.BytesLike Bytes where
@@ -165,7 +165,7 @@ instance
   [ExecTrace.Def] [ProofTrace.Def]
   [Bytes.WellFormed.Def]
   -- TODO: `Bytes.WellFormed` does not have Has + HasStep lemma, hence the `Literal.Literal` or `Concat.Concat`
-  [Bytes.WellFormed.Has Literal.Literal.BytesPart.invariants.well_formed] [Bytes.WellFormed.Has Concat.Concat.BytesPart.invariants.well_formed]
+  [Bytes.WellFormed has% Literal.Literal] [Bytes.WellFormed has% Concat.Concat]
   : BytesCompatibleTracePred Bytes.WellFormed
 where
   pf tr := {
@@ -187,7 +187,7 @@ public
 instance
   [ExecTrace.Def] [ProofTrace.Def]
   [Bytes.Invariants.Def]
-  [Bytes.Invariants.Has Literal.BytesPart.invariants] [Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [Bytes.Invariants has% Literal] [Bytes.Invariants has% Concat]
   : BytesCompatibleTracePred Bytes.Invariant
 where
   pf tr := {
@@ -209,7 +209,7 @@ public
 instance
   [ExecTrace.Def] [ProofTrace.Def]
   [Bytes.Invariants.Def]
-  [Bytes.Invariants.Has Literal.BytesPart.invariants] [Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [Bytes.Invariants has% Literal] [Bytes.Invariants has% Concat]
   : BytesCompatibleTracePred Bytes.Publishable
 where
   pf tr := {
@@ -234,7 +234,7 @@ public
 instance
   [ExecTrace.Def] [ProofTrace.Def]
   [Bytes.Invariants.Def]
-  [Bytes.Invariants.Has Literal.BytesPart.invariants] [Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [Bytes.Invariants has% Literal] [Bytes.Invariants has% Concat]
   (l: Label)
   : BytesCompatibleTracePred (Bytes.KnowableBy l)
 where
@@ -260,7 +260,7 @@ public
 instance
   [ExecTrace.Def]
   [Trace.BaseAttackerKnows.Def] [Bytes.AttackerKnows.Def]
-  [Bytes.AttackerKnows.Has Literal.attackerKnows] [Bytes.AttackerKnows.Has Concat.attackerKnows]
+  [Bytes.AttackerKnows has% Literal] [Bytes.AttackerKnows has% Concat]
   : BytesCompatibleTracePred Bytes.AttackerKnows
 where
   pf tr := {

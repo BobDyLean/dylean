@@ -2,6 +2,7 @@ module
 
 meta import DY.Trace.Grind
 public meta import DY.Meta.CombineMacro
+public meta import DY.Meta.HasElaborator
 
 namespace DY
 
@@ -298,6 +299,7 @@ def ExecTrace.Entry [ExecTrace.Def] := ExecTrace.Def.whole
 public
 abbrev ExecTrace [ExecTrace.Def] := Trace ExecTrace.Entry
 
+@[has_suffix TracePart.Exec]
 public
 class ExecTrace.Has [ExecTrace.Def] (ExecEntryT: Type)
   extends TraceEntryHas ExecEntryT ExecTrace.Entry

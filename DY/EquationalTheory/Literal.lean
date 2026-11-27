@@ -64,10 +64,10 @@ end Literal
   Literal,
 
 public
-abbrev Literal.BytesPart.Functor.pack [Bytes.Def] [Bytes.Has BytesPart.Functor] (x: Literal.BytesPart.Functor Bytes) := BytesView.pack x
+abbrev Literal.BytesPart.Functor.pack [Bytes.Def] [Bytes has% Literal] (x: Literal.BytesPart.Functor Bytes) := BytesView.pack x
 
 public
-instance [Bytes.Def] [Bytes.Has BytesPart.Functor]: CanMkLiteral Bytes where
+instance [Bytes.Def] [Bytes has% DY.Literal]: CanMkLiteral Bytes where
   literalToBytes lit :=
     ({ lit }: Literal.BytesPart.Functor Bytes).pack
 
@@ -79,7 +79,7 @@ instance [Bytes.Def] [Bytes.Has BytesPart.Functor]: CanMkLiteral Bytes where
 
 public
 theorem bytesToLiteral_literalToBytes
-  [Bytes.Def] [Bytes.Has BytesPart.Functor]
+  [Bytes.Def] [Bytes has% DY.Literal]
   (lit: ByteArray)
   : bytesToLiteral (literalToBytes lit: Bytes) = some lit
 := by
@@ -88,7 +88,7 @@ theorem bytesToLiteral_literalToBytes
 
 public
 theorem literalToBytes_bytesToLiteral
-  [Bytes.Def] [Bytes.Has BytesPart.Functor]
+  [Bytes.Def] [Bytes has% DY.Literal]
   (buf: Bytes)
   : match bytesToLiteral buf with
     | none => True
@@ -102,7 +102,7 @@ theorem literalToBytes_bytesToLiteral
 public
 theorem length_literalToBytes
   [Bytes.Def] [Bytes.length.Def]
-  [Bytes.Has BytesPart.Functor] [Bytes.length.Has BytesPart.length]
+  [Bytes has% DY.Literal] [Bytes.length has% DY.Literal]
   (buf: ByteArray)
   : Bytes.length (literalToBytes buf) = buf.size
 := by
@@ -114,17 +114,17 @@ end Constructors
 section AttackerKnowledge
 
 public
-def literalToBytes.attackerKnows [Bytes.Def] [Bytes.Has BytesPart.Functor]: Bytes.AttackerKnows.Part BytesPart.Functor where
+def literalToBytes.attackerKnows [Bytes.Def] [Bytes has% DY.Literal]: Bytes.AttackerKnows.Part BytesPart.Functor where
   pred p out :=
     ∃ lit,
       out = literalToBytes lit
 
-#combine [Bytes.Has BytesPart.Functor] into Bytes.AttackerKnows.merge from
+#combine [Bytes has% DY.Literal] into Bytes.AttackerKnows.merge from
   literalToBytes,
 
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% DY.Literal]
 variable [ExecTrace.Def] [Trace.BaseAttackerKnows.Def]
-variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows.Has attackerKnows]
+variable [Bytes.AttackerKnows.Def] [Bytes.AttackerKnows has% DY.Literal]
 
 public
 theorem attacker_knows_literalToBytes
@@ -169,12 +169,12 @@ from
   Literal,
 
 variable [ExecTrace.Def] [ProofTrace.Def]
-variable [Bytes.Def] [Bytes.Has BytesPart.Functor]
+variable [Bytes.Def] [Bytes has% DY.Literal]
 
 @[simp]
 public
 theorem literalToBytes.WellFormed
-  [Bytes.WellFormed.Def] [Bytes.WellFormed.Has Literal.BytesPart.invariants.well_formed]
+  [Bytes.WellFormed.Def] [Bytes.WellFormed has% Literal]
   (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).WellFormed tr
 := by
@@ -183,7 +183,7 @@ theorem literalToBytes.WellFormed
 @[simp]
 public
 theorem literalToBytes.label
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% DY.Literal]
   (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).label tr = Label.pub
 := by
@@ -192,7 +192,7 @@ theorem literalToBytes.label
 @[simp]
 public
 theorem literalToBytes.Invariant
-  [Bytes.Invariants.Def] [Bytes.Invariants.Has BytesPart.invariants]
+  [Bytes.Invariants.Def] [Bytes.Invariants has% DY.Literal]
   (lit: ByteArray) (tr: ProofTrace)
   : (literalToBytes lit: Bytes).Invariant tr
 := by
@@ -204,8 +204,8 @@ section AttackerKnowledgeTheorem
 
 variable [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
 variable [Bytes.Def] [Bytes.Invariants.Def]
-variable [Bytes.Has BytesPart.Functor]
-variable [Bytes.Invariants.Has BytesPart.invariants]
+variable [Bytes has% DY.Literal]
+variable [Bytes.Invariants has% DY.Literal]
 
 public
 instance: Bytes.AttackerKnows_implies_Publishable.Part literalToBytes.attackerKnows where
@@ -219,7 +219,7 @@ instance: Bytes.AttackerKnows_implies_Publishable.Part literalToBytes.attackerKn
 end AttackerKnowledgeTheorem
 section AttackerKnowledgeTheorem
 
-#combine [Bytes.Has BytesPart.Functor] [Bytes.Invariants.Has BytesPart.invariants] into Bytes.AttackerKnows_implies_Publishable.merge from
+#combine [Bytes has% DY.Literal] [Bytes.Invariants has% DY.Literal] into Bytes.AttackerKnows_implies_Publishable.merge from
   literalToBytes,
 
 end AttackerKnowledgeTheorem

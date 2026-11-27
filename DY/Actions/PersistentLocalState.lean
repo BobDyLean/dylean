@@ -24,8 +24,8 @@ structure LocalState (StateT: Type) where
 public -- it is useful to implement attacker programs
 instance
   [Bytes.Def] [Bytes.length.Def]
-  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
-  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
+  [Bytes has% Literal] [Bytes.length has% Literal]
+  [Bytes has% Concat] [Bytes.length has% Concat]
   (StateT: Type)
   [Comparse.ParseableSerializeable StateT]
   : Comparse.ParseableSerializeable (LocalState StateT)
@@ -38,8 +38,8 @@ instance
 public -- it is useful to implement attacker programs
 theorem LocalState.IsWellFormed_eq
   [Bytes.Def] [Bytes.length.Def]
-  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
-  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
+  [Bytes has% Literal] [Bytes.length has% Literal]
+  [Bytes has% Concat] [Bytes.length has% Concat]
   {StateT: Type} [Comparse.ParseableSerializeable StateT]
   (pre: Bytes → τ → Prop) [Comparse.BytesCompatibleTracePred pre]
   (x: LocalState StateT) (tr: τ):
@@ -59,7 +59,7 @@ end State
 public
 def storeLocalState
   {StateT: Type}
-  [ExecTrace.Def] [ExecTrace.Has (State.TracePart.Exec StateT)]
+  [ExecTrace.Def] [ExecTrace has% State StateT]
   (participant: Participant) (state: StateT)
   : Traceful Nat
 := do
@@ -68,7 +68,7 @@ def storeLocalState
 public
 def getLocalState
   {StateT: Type}
-  [ExecTrace.Def] [ExecTrace.Has (State.TracePart.Exec StateT)]
+  [ExecTrace.Def] [ExecTrace has% State StateT]
   (participant: Participant) (handle: Nat)
   : Traceful StateT
 := do
@@ -117,7 +117,7 @@ theorem storeLocalState.proof
   {StateT: Type}
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [LocalStateInv StateT]
-  [ExecTrace.Has (State.TracePart.Exec StateT)] [ProofTrace.Has (State.TracePart.Proof StateT)] [Trace.Invariant.Has (State.TracePart.Proof StateT)]
+  [ExecTrace has% State StateT] [ProofTrace has% State StateT] [Trace.Invariant has% State StateT]
   (participant: Participant) (state: StateT)
   : HoareTriple
     (storeLocalState participant state)
@@ -134,7 +134,7 @@ theorem getLocalState.proof
   {StateT: Type}
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [LocalStateInv StateT]
-  [ExecTrace.Has (State.TracePart.Exec StateT)] [ProofTrace.Has (State.TracePart.Proof StateT)] [Trace.Invariant.Has (State.TracePart.Proof StateT)]
+  [ExecTrace has% State StateT] [ProofTrace has% State StateT] [Trace.Invariant has% State StateT]
   (participant: Participant) (handle: Nat)
   : HoareTriple
     (getLocalState participant handle: Traceful StateT)
@@ -166,13 +166,13 @@ public
 def compromise
   (StateT: Type)
   [Bytes.Def] [Bytes.length.Def]
-  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
-  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
+  [Bytes has% Literal] [Bytes.length has% Literal]
+  [Bytes has% Concat] [Bytes.length has% Concat]
   [Comparse.ParseableSerializeable StateT]
   [ExecTrace.Def]
-  [ExecTrace.Has Network.TracePart.Exec]
-  [ExecTrace.Has (State.TracePart.Exec StateT)]
-  [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
+  [ExecTrace has% Network]
+  [ExecTrace has% State StateT]
+  [ExecTrace has% Compromise StateT]
   (handle: Nat)
   : Traceful Nat
 := do
@@ -181,7 +181,7 @@ def compromise
 public
 def LocalStateCompromised
   {StateT: Type}
-  [ExecTrace.Def] [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
+  [ExecTrace.Def] [ExecTrace has% Compromise StateT]
   (participant: Participant) (state: StateT)
   (tr: ExecTrace)
   : Prop
@@ -191,7 +191,7 @@ def LocalStateCompromised
 public
 theorem LocalStateCompromised_le
   {StateT: Type}
-  [ExecTrace.Def] [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
+  [ExecTrace.Def] [ExecTrace has% Compromise StateT]
   (participant: Participant) (state: StateT)
   (tr1 tr2: ExecTrace)
   : tr1 ≤ tr2 →
@@ -222,7 +222,7 @@ end Compromise
 public
 def label
   {StateT: Type}
-  [ExecTrace.Def] [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
+  [ExecTrace.Def] [ExecTrace has% Compromise StateT]
   (participant: Participant) (state: StateT)
 :=
   PersistentGlobalState.label ({ participant, state }: LocalState StateT)
@@ -230,7 +230,7 @@ def label
 public
 theorem label_isCorrupt
   {StateT: Type}
-  [ExecTrace.Def] [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
+  [ExecTrace.Def] [ExecTrace has% Compromise StateT]
   (participant: Participant) (state: StateT)
   (tr: ExecTrace)
   : (label participant state).isCorrupt tr = LocalStateCompromised participant state tr
@@ -245,10 +245,10 @@ class CompromisableLocalStateInv
   [ExecTrace.Def] [ProofTrace.Def]
   [Bytes.Def] [Bytes.Invariants.Def]
   [Bytes.length.Def]
-  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
-  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
+  [Bytes has% Literal] [Bytes.length has% Literal]
+  [Bytes has% Concat] [Bytes.length has% Concat]
   [Comparse.ParseableSerializeable StateT]
-  [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
+  [ExecTrace has% Compromise StateT]
 extends
   LocalStateInv StateT
 where
@@ -260,11 +260,11 @@ where
 instance
   [ExecTrace.Def] [ProofTrace.Def] [Bytes.Def] [Bytes.Invariants.Def]
   [Bytes.length.Def]
-  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length] [Bytes.Invariants.Has Literal.BytesPart.invariants]
-  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length] [Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [Bytes has% Literal] [Bytes.length has% Literal] [Bytes.Invariants has% Literal]
+  [Bytes has% Concat] [Bytes.length has% Concat] [Bytes.Invariants has% Concat]
   (StateT: Type)
   [Comparse.ParseableSerializeable StateT]
-  [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
+  [ExecTrace has% Compromise StateT]
   [CompromisableLocalStateInv StateT]
   : PersistentGlobalState.CompromisableGlobalStateInv (LocalState StateT)
 where
@@ -280,24 +280,24 @@ public
 theorem compromise.proof
   {StateT: Type}
   [Bytes.Def] [Bytes.length.Def]
-  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
-  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
+  [Bytes has% Literal] [Bytes.length has% Literal]
+  [Bytes has% Concat] [Bytes.length has% Concat]
   [Comparse.ParseableSerializeable StateT]
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
-  [ExecTrace.Has Network.TracePart.Exec]
-  [ProofTrace.Has Network.TracePart.Proof]
-  [ExecTrace.Has (State.TracePart.Exec StateT)]
-  [ProofTrace.Has (State.TracePart.Proof StateT)]
-  [ExecTrace.Has (Compromise.TracePart.Exec StateT)]
-  [ProofTrace.Has (Compromise.TracePart.Proof StateT)]
+  [ExecTrace has% Network]
+  [ProofTrace has% Network]
+  [ExecTrace has% State StateT]
+  [ProofTrace has% State StateT]
+  [ExecTrace has% Compromise StateT]
+  [ProofTrace has% Compromise StateT]
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [Bytes.Invariants.Has Literal.BytesPart.invariants]
-  [Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [Bytes.Invariants has% Literal]
+  [Bytes.Invariants has% Concat]
   [Comparse.ParseableSerializeable StateT]
   [CompromisableLocalStateInv StateT]
-  [Trace.Invariant.Has Network.TracePart.Proof]
-  [Trace.Invariant.Has (State.TracePart.Proof StateT)]
-  [Trace.Invariant.Has (Compromise.TracePart.Proof StateT)]
+  [Trace.Invariant has% Network]
+  [Trace.Invariant has% State StateT]
+  [Trace.Invariant has% Compromise StateT]
   (handle: Nat)
   : HoareTriple
     (compromise StateT handle)
@@ -328,8 +328,8 @@ from
 #combine
   (StateT: Type)
   [Bytes.Def] [Bytes.Invariants.Def]
-  [Bytes.length.Def] [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length] [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
-  [Comparse.ParseableSerializeable StateT] [ExecTrace.Has (TracePart.Exec StateT)]
+  [Bytes.length.Def] [Bytes has% Literal] [Bytes.length has% Literal] [Bytes has% Concat] [Bytes.length has% Concat]
+  [Comparse.ParseableSerializeable StateT] [ExecTrace has% CompromisableState StateT]
   [CompromisableLocalStateInv StateT]
 into
   Trace.Invariant,

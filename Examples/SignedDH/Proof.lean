@@ -14,13 +14,13 @@ public section ProofTraceConfig
 
 class HasProofTrace extends HasExecTrace where
   [traceProof: ProofTrace.Def]
-  [traceProof0: ProofTrace.Has Network.TracePart.Proof]
-  [traceProof1: ProofTrace.Has Random.TracePart.Proof]
-  [traceProof2: ProofTrace.Has (ProtocolEvent.TracePart.Proof SignedDH.SignedDHEvent)]
-  [traceProof3: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof SignedDH.ClientInitiateState)]
-  [traceProof4: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof SignedDH.ClientFinishState)]
-  [traceProof5: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof SignedDH.ServerFinishState)]
-  [traceProof6: ProofTrace.Has (LongTermKeys.TracePart.Proof "SignedDH PKI")]
+  [traceProof0: ProofTrace has% Network]
+  [traceProof1: ProofTrace has% Random]
+  [traceProof2: ProofTrace has% ProtocolEvent SignedDH.SignedDHEvent]
+  [traceProof3: ProofTrace has% PersistentLocalState.CompromisableState SignedDH.ClientInitiateState]
+  [traceProof4: ProofTrace has% PersistentLocalState.CompromisableState SignedDH.ClientFinishState]
+  [traceProof5: ProofTrace has% PersistentLocalState.CompromisableState SignedDH.ServerFinishState]
+  [traceProof6: ProofTrace has% LongTermKeys "SignedDH PKI"]
 
 attribute [reducible, scoped instance] HasProofTrace.traceProof
 attribute [reducible, scoped instance] HasProofTrace.traceProof0
@@ -90,9 +90,9 @@ where
 
 instance
   [Bytes.Invariants.Def]
-  [Bytes.Invariants.Has DiffieHellman.DhPk.BytesPart.invariants]
-  [Bytes.Invariants.Has Literal.BytesPart.invariants]
-  [Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [Bytes.Invariants has% DiffieHellman.DhPk]
+  [Bytes.Invariants has% Literal]
+  [Bytes.Invariants has% Concat]
   : Signature.SignPred.Lawful
 where
   pred_later := by
@@ -109,12 +109,12 @@ public section BytesInvariantsConfig
 class HasBytesInvariants extends HasProofTrace where
   [bytesInv: Bytes.Invariants.Def]
   [bytesInvProof: Bytes.Invariants.Lawful]
-  [bytesInv0: Bytes.Invariants.Has Random.BytesPart.invariants]
-  [bytesInv1: Bytes.Invariants.Has Literal.BytesPart.invariants]
-  [bytesInv2: Bytes.Invariants.Has Concat.BytesPart.invariants]
-  [bytesInv3: Bytes.Invariants.Has Hash.BytesPart.invariants]
-  [bytesInv4: Bytes.Invariants.Has Signature.BytesPart.invariants]
-  [bytesInv5: Bytes.Invariants.Has DiffieHellman.BytesPart.invariants]
+  [bytesInv0: Bytes.Invariants has% Random]
+  [bytesInv1: Bytes.Invariants has% Literal]
+  [bytesInv2: Bytes.Invariants has% Concat]
+  [bytesInv3: Bytes.Invariants has% Hash]
+  [bytesInv4: Bytes.Invariants has% Signature]
+  [bytesInv5: Bytes.Invariants has% DiffieHellman]
 
 attribute [reducible, scoped instance] HasBytesInvariants.bytesInv
 attribute [           scoped instance] HasBytesInvariants.bytesInvProof
@@ -230,13 +230,13 @@ public section TraceInvariantConfig
 
 class HasTraceInvariant extends HasBytesInvariants where
   [traceInv: Trace.Invariant.Def]
-  [traceInv0: Trace.Invariant.Has Network.TracePart.Proof]
-  [traceInv1: Trace.Invariant.Has Random.TracePart.Proof]
-  [traceInv2: Trace.Invariant.Has (ProtocolEvent.TracePart.Proof SignedDH.SignedDHEvent)]
-  [traceInv3: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof SignedDH.ClientInitiateState)]
-  [traceInv4: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof SignedDH.ClientFinishState)]
-  [traceInv5: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof SignedDH.ServerFinishState)]
-  [traceInv6: Trace.Invariant.Has (LongTermKeys.TracePart.Proof "SignedDH PKI")]
+  [traceInv0: Trace.Invariant has% Network]
+  [traceInv1: Trace.Invariant has% Random]
+  [traceInv2: Trace.Invariant has% ProtocolEvent SignedDH.SignedDHEvent]
+  [traceInv3: Trace.Invariant has% PersistentLocalState.CompromisableState SignedDH.ClientInitiateState]
+  [traceInv4: Trace.Invariant has% PersistentLocalState.CompromisableState SignedDH.ClientFinishState]
+  [traceInv5: Trace.Invariant has% PersistentLocalState.CompromisableState SignedDH.ServerFinishState]
+  [traceInv6: Trace.Invariant has% LongTermKeys "SignedDH PKI"]
   [attBaseThm: Trace.BaseAttackerKnows_implies_Publishable.Proof]
   [attThm: Bytes.AttackerKnows_implies_Publishable.Proof]
 

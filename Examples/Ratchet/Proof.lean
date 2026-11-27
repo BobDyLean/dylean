@@ -13,12 +13,12 @@ public section ProofTraceConfig
 
 class HasProofTrace extends HasExecTrace where
   [traceProof: ProofTrace.Def]
-  [traceProof0: ProofTrace.Has Network.TracePart.Proof]
-  [traceProof1: ProofTrace.Has Random.TracePart.Proof]
-  [traceProof2: ProofTrace.Has (ProtocolEvent.TracePart.Proof RatchetEvent)]
-  [traceProof3: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof StateMyTurn)]
-  [traceProof4: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof StateOtherTurn)]
-  [traceProof5: ProofTrace.Has (LongTermKeys.TracePart.Proof "Ratchet PKI")]
+  [traceProof0: ProofTrace has% Network]
+  [traceProof1: ProofTrace has% Random]
+  [traceProof2: ProofTrace has% ProtocolEvent RatchetEvent]
+  [traceProof3: ProofTrace has% PersistentLocalState.CompromisableState StateMyTurn]
+  [traceProof4: ProofTrace has% PersistentLocalState.CompromisableState StateOtherTurn]
+  [traceProof5: ProofTrace has% LongTermKeys "Ratchet PKI"]
 
 attribute [reducible, scoped instance] HasProofTrace.traceProof
 attribute [reducible, scoped instance] HasProofTrace.traceProof0
@@ -197,7 +197,7 @@ theorem minimum
   ⟨ minimum.aux p 0 i, minimum.aux.thm p 0 i (by grind) h ⟩
 
 theorem event_minimum_prefix
-  {EventT: Type} [ExecTrace.Has (ProtocolEvent.TracePart.Exec EventT)]
+  {EventT: Type} [ExecTrace has% ProtocolEvent EventT]
   (pred: EventT → Prop)
   (tr: ExecTrace)
   : (∃ ev, pred ev ∧ tr.EventLogged ev) →
@@ -340,9 +340,9 @@ where
 
 instance
   [Bytes.Invariants.Def]
-  [Bytes.Invariants.Has DiffieHellman.DhPk.BytesPart.invariants]
-  [Bytes.Invariants.Has Literal.BytesPart.invariants]
-  [Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [Bytes.Invariants has% DiffieHellman.DhPk]
+  [Bytes.Invariants has% Literal]
+  [Bytes.Invariants has% Concat]
   : Signature.SignPred.Lawful
 where
   pred_later := by
@@ -359,14 +359,14 @@ public section BytesInvariantsConfig
 class HasBytesInvariants extends HasProofTrace where
   [bytesInv: Bytes.Invariants.Def]
   [bytesInvProof: Bytes.Invariants.Lawful]
-  [bytesInv0: Bytes.Invariants.Has Random.BytesPart.invariants]
-  [bytesInv1: Bytes.Invariants.Has Literal.BytesPart.invariants]
-  [bytesInv2: Bytes.Invariants.Has Concat.BytesPart.invariants]
-  [bytesInv3: Bytes.Invariants.Has Hash.BytesPart.invariants]
-  [bytesInv4: Bytes.Invariants.Has Signature.BytesPart.invariants]
-  [bytesInv5: Bytes.Invariants.Has DiffieHellman.BytesPart.invariants]
-  [bytesInv6: Bytes.Invariants.Has KdfExtract.BytesPart.invariants]
-  [bytesInv7: Bytes.Invariants.Has KdfExpand.BytesPart.invariants]
+  [bytesInv0: Bytes.Invariants has% Random]
+  [bytesInv1: Bytes.Invariants has% Literal]
+  [bytesInv2: Bytes.Invariants has% Concat]
+  [bytesInv3: Bytes.Invariants has% Hash]
+  [bytesInv4: Bytes.Invariants has% Signature]
+  [bytesInv5: Bytes.Invariants has% DiffieHellman]
+  [bytesInv6: Bytes.Invariants has% KdfExtract]
+  [bytesInv7: Bytes.Invariants has% KdfExpand]
 
 attribute [reducible, scoped instance] HasBytesInvariants.bytesInv
 attribute [           scoped instance] HasBytesInvariants.bytesInvProof
@@ -507,12 +507,12 @@ public section TraceInvariantConfig
 
 class HasTraceInvariant extends HasBytesInvariants where
   [traceInv: Trace.Invariant.Def]
-  [traceInv0: Trace.Invariant.Has Network.TracePart.Proof]
-  [traceInv1: Trace.Invariant.Has Random.TracePart.Proof]
-  [traceInv2: Trace.Invariant.Has (ProtocolEvent.TracePart.Proof RatchetEvent)]
-  [traceInv3: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof StateMyTurn)]
-  [traceInv4: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof StateOtherTurn)]
-  [traceInv5: Trace.Invariant.Has (LongTermKeys.TracePart.Proof "Ratchet PKI")]
+  [traceInv0: Trace.Invariant has% Network]
+  [traceInv1: Trace.Invariant has% Random]
+  [traceInv2: Trace.Invariant has% ProtocolEvent RatchetEvent]
+  [traceInv3: Trace.Invariant has% PersistentLocalState.CompromisableState StateMyTurn]
+  [traceInv4: Trace.Invariant has% PersistentLocalState.CompromisableState StateOtherTurn]
+  [traceInv5: Trace.Invariant has% LongTermKeys "Ratchet PKI"]
   [attBaseThm: Trace.BaseAttackerKnows_implies_Publishable.Proof]
   [attThm: Bytes.AttackerKnows_implies_Publishable.Proof]
 

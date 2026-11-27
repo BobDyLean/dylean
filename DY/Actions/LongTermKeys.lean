@@ -22,8 +22,8 @@ structure SecretKeyState [Bytes.Def] (name: String) where
 public -- it is useful to implement attacker programs
 instance
   [Bytes.Def] [Bytes.length.Def]
-  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
-  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
+  [Bytes has% Literal] [Bytes.length has% Literal]
+  [Bytes has% Concat] [Bytes.length has% Concat]
   (name: String)
   : Comparse.ParseableSerializeable (SecretKeyState name)
 := .make <|
@@ -35,8 +35,8 @@ instance
 public -- it is useful to implement attacker programs
 theorem SecretKeyState.IsWellFormed_eq
   [Bytes.Def] [Bytes.length.Def]
-  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
-  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
+  [Bytes has% Literal] [Bytes.length has% Literal]
+  [Bytes has% Concat] [Bytes.length has% Concat]
   (pre: Bytes → τ → Prop) [Comparse.BytesCompatibleTracePred pre]
   (x: SecretKeyState name) (tr: τ):
   Comparse.IsWellFormed pre x tr = pre x.sk tr
@@ -53,8 +53,8 @@ structure PublicKeyState [Bytes.Def] (name: String) where
 public
 instance
   [Bytes.Def] [Bytes.length.Def]
-  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
-  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
+  [Bytes has% Literal] [Bytes.length has% Literal]
+  [Bytes has% Concat] [Bytes.length has% Concat]
   (name: String)
   : Comparse.ParseableSerializeable (PublicKeyState name)
 := .make <|
@@ -66,8 +66,8 @@ instance
 public -- it is useful to implement attacker programs
 theorem PublicKeyState.IsWellFormed_eq
   [Bytes.Def] [Bytes.length.Def]
-  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
-  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
+  [Bytes has% Literal] [Bytes.length has% Literal]
+  [Bytes has% Concat] [Bytes.length has% Concat]
   (pre: Bytes → τ → Prop) [Comparse.BytesCompatibleTracePred pre]
   (x: PublicKeyState name) (tr: τ):
   Comparse.IsWellFormed pre x tr = pre x.pk tr
@@ -92,10 +92,10 @@ public
 def generateKeyPair
   [ExecConfig name skToPk]
   [ExecTrace.Def]
-  [Bytes.Has Random.BytesPart.Functor]
-  [ExecTrace.Has Random.TracePart.Exec]
-  [ExecTrace.Has Network.TracePart.Exec]
-  [ExecTrace.Has <| TracePart.Exec name]
+  [Bytes has% Random]
+  [ExecTrace has% Random]
+  [ExecTrace has% Network]
+  [ExecTrace has% LongTermKeys name]
   (p: Participant)
   : Traceful (Nat × Nat × Nat)
 := do
@@ -109,7 +109,7 @@ def generateKeyPair
 public
 def getPublicKey
   [ExecTrace.Def]
-  [ExecTrace.Has <| TracePart.Exec name]
+  [ExecTrace has% LongTermKeys name]
   (p: Participant)
   (pkHandle: Nat)
   : Traceful Bytes
@@ -121,7 +121,7 @@ def getPublicKey
 public
 def getPrivateKey
   [ExecTrace.Def]
-  [ExecTrace.Has <| TracePart.Exec name]
+  [ExecTrace has% LongTermKeys name]
   (p: Participant)
   (skHandle: Nat)
   : Traceful Bytes
@@ -132,11 +132,11 @@ def getPrivateKey
 public
 def compromisePrivateKey
   [ExecTrace.Def]
-  [ExecTrace.Has <| TracePart.Exec name]
+  [ExecTrace has% LongTermKeys name]
   [Bytes.length.Def]
-  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
-  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
-  [ExecTrace.Has Network.TracePart.Exec]
+  [Bytes has% Literal] [Bytes.length has% Literal]
+  [Bytes has% Concat] [Bytes.length has% Concat]
+  [ExecTrace has% Network]
   (skHandle: Nat)
   : Traceful Nat
 := do
@@ -144,7 +144,7 @@ def compromisePrivateKey
 
 public
 def LongTermKeyCompromised
-  [ExecConfig name skToPk] [ExecTrace.Def] [ExecTrace.Has (TracePart.Exec name)]
+  [ExecConfig name skToPk] [ExecTrace.Def] [ExecTrace has% LongTermKeys name]
   (participant: Participant) (pk: Bytes)
   (tr: ExecTrace)
   : Prop
@@ -155,7 +155,7 @@ def LongTermKeyCompromised
 
 public
 theorem LongTermKeyCompromised_le
-  [ExecTrace.Def] [ExecTrace.Has (TracePart.Exec name)]
+  [ExecTrace.Def] [ExecTrace has% LongTermKeys name]
   (participant: Participant) (pk: Bytes)
   (tr1 tr2: ExecTrace)
   : tr1 ≤ tr2 →
@@ -177,7 +177,7 @@ public
 def label
   [Bytes.Def]
   (name: String) {skToPk: Bytes → Bytes} [ExecConfig name skToPk]
-  [ExecTrace.Def] [ExecTrace.Has (TracePart.Exec name)]
+  [ExecTrace.Def] [ExecTrace has% LongTermKeys name]
   (participant: Participant) (pk: Bytes)
   : Label
 where
@@ -188,7 +188,7 @@ class ProofConfig
   [Bytes.Def] [ExecTrace.Def] [ProofTrace.Def] [Bytes.Invariants.Def]
   (name: String) {skToPk: outParam (Bytes → Bytes)} (usage: outParam (Participant → Usage)) (lab: outParam (Participant → Bytes → Label))
   [ExecConfig name skToPk]
-  [ExecTrace.Has (TracePart.Exec name)]
+  [ExecTrace has% LongTermKeys name]
 where
   IsLongTermPublicKey: Participant → Bytes → ProofTrace → Prop
 
@@ -221,7 +221,7 @@ public
 theorem IsLongTermPublicKey_implies_Invariant
   [Bytes.Def] [ExecTrace.Def] [ProofTrace.Def] [Bytes.Invariants.Def]
   (name: String) {skToPk: Bytes → Bytes} (usage: Participant → Usage) (lab: Participant → Bytes → Label)
-  [ExecTrace.Has (TracePart.Exec name)]
+  [ExecTrace has% LongTermKeys name]
   [ExecConfig name skToPk] [ProofConfig name usage lab]
   (p: Participant) (b: Bytes) (tr: ProofTrace)
   : IsLongTermPublicKey name p b tr →
@@ -237,7 +237,7 @@ public
 def IsLongTermSecretKey
   [Bytes.Def] [ExecTrace.Def] [ProofTrace.Def] [Bytes.Invariants.Def]
   (name: String) {skToPk: Bytes → Bytes} {usage: Participant → Usage} {lab: Participant → Bytes → Label}
-  [ExecTrace.Has (TracePart.Exec name)]
+  [ExecTrace has% LongTermKeys name]
   [ExecConfig name skToPk] [ProofConfig name usage lab]
   (p: Participant) (b: Bytes) (tr: ProofTrace)
   : Prop
@@ -250,7 +250,7 @@ public
 theorem IsLongTermSecretKey_later
   [Bytes.Def] [ExecTrace.Def] [ProofTrace.Def] [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
   (name: String) {skToPk: Bytes → Bytes} {usage: Participant → Usage} {lab: Participant → Bytes → Label}
-  [ExecTrace.Has (TracePart.Exec name)]
+  [ExecTrace has% LongTermKeys name]
   [ExecConfig name skToPk] [ProofConfig name usage lab]
   (p: Participant) (b: Bytes) (tr1 tr2: ProofTrace)
   : tr1 ≤ tr2 →
@@ -265,11 +265,11 @@ section
 
 section
 variable [Bytes.Def] [Bytes.length.Def] [ExecTrace.Def] [ProofTrace.Def] [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-variable [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
-variable [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
-variable [Bytes.Invariants.Has Literal.BytesPart.invariants] [Bytes.Invariants.Has Concat.BytesPart.invariants]
+variable [Bytes has% Literal] [Bytes.length has% Literal]
+variable [Bytes has% Concat] [Bytes.length has% Concat]
+variable [Bytes.Invariants has% Literal] [Bytes.Invariants has% Concat]
 variable (name: String)
-variable [ExecTrace.Has <| TracePart.Exec name]
+variable [ExecTrace has% LongTermKeys name]
 variable {skToPk: Bytes → Bytes} {usage: Participant → Usage} {lab: Participant → Bytes → Label}
 variable [ExecConfig name skToPk] [ProofConfig name usage lab]
 
@@ -306,10 +306,10 @@ from
 #combine
   [Bytes.Def] (name: String)
   [Bytes.length.Def] [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
-  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
-  [Bytes.Invariants.Has Literal.BytesPart.invariants] [Bytes.Invariants.Has Concat.BytesPart.invariants]
-  [ExecTrace.Has <| TracePart.Exec name]
+  [Bytes has% Literal] [Bytes.length has% Literal]
+  [Bytes has% Concat] [Bytes.length has% Concat]
+  [Bytes.Invariants has% Literal] [Bytes.Invariants has% Concat]
+  [ExecTrace has% LongTermKeys name]
   {skToPk: Bytes → Bytes} {usage: Participant → Usage} {lab: Participant → Bytes → Label}
   [ExecConfig name skToPk] [ProofConfig name usage lab]
 into
@@ -327,26 +327,26 @@ theorem generateKeyPair.proof
   [Bytes.Def]
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [Bytes.length.Def] [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length] [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length] [Bytes.Invariants.Has Literal.BytesPart.invariants] [Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [Bytes.length.Def] [Bytes has% Literal] [Bytes.length has% Literal] [Bytes has% Concat] [Bytes.length has% Concat] [Bytes.Invariants has% Literal] [Bytes.Invariants has% Concat]
 
   (name: String)
   {skToPk: Bytes → Bytes} {usage: Participant → Usage} {lab: Participant → Bytes → Label}
 
-  [Bytes.Has Random.BytesPart.Functor]
+  [Bytes has% Random]
 
-  [ExecTrace.Has <| Random.TracePart.Exec]
-  [ProofTrace.Has <| Random.TracePart.Proof]
-  [ExecTrace.Has <| Network.TracePart.Exec]
-  [ProofTrace.Has <| Network.TracePart.Proof]
-  [ExecTrace.Has <| TracePart.Exec name]
-  [ProofTrace.Has <| TracePart.Proof name]
+  [ExecTrace has% Random]
+  [ProofTrace has% Random]
+  [ExecTrace has% Network]
+  [ProofTrace has% Network]
+  [ExecTrace has% LongTermKeys name]
+  [ProofTrace has% LongTermKeys name]
 
-  [Bytes.Invariants.Has <| Random.BytesPart.invariants]
+  [Bytes.Invariants has% Random]
 
   [ExecConfig name skToPk] [ProofConfig name usage lab]
-  [Trace.Invariant.Has <| Random.TracePart.Proof]
-  [Trace.Invariant.Has <| Network.TracePart.Proof]
-  [Trace.Invariant.Has <| TracePart.Proof name]
+  [Trace.Invariant has% Random]
+  [Trace.Invariant has% Network]
+  [Trace.Invariant has% LongTermKeys name]
   (p: Participant)
   : HoareTriple
     (generateKeyPair name p)
@@ -377,16 +377,16 @@ theorem getPublicKey.proof
   [Bytes.Def]
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [Bytes.length.Def] [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length] [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length] [Bytes.Invariants.Has Literal.BytesPart.invariants] [Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [Bytes.length.Def] [Bytes has% Literal] [Bytes.length has% Literal] [Bytes has% Concat] [Bytes.length has% Concat] [Bytes.Invariants has% Literal] [Bytes.Invariants has% Concat]
 
   (name: String)
   {skToPk: Bytes → Bytes} {usage: Participant → Usage} {lab: Participant → Bytes → Label}
 
-  [Bytes.Has Random.BytesPart.Functor]
-  [ExecTrace.Has <| TracePart.Exec name]
-  [ProofTrace.Has <| TracePart.Proof name]
+  [Bytes has% Random]
+  [ExecTrace has% LongTermKeys name]
+  [ProofTrace has% LongTermKeys name]
   [ExecConfig name skToPk] [ProofConfig name usage lab]
-  [Trace.Invariant.Has <| TracePart.Proof name]
+  [Trace.Invariant has% LongTermKeys name]
   (p: Participant) (pkHandle: Nat)
   : HoareTriple
     (getPublicKey name p pkHandle)
@@ -405,16 +405,16 @@ theorem getPrivateKey.proof
   [Bytes.Def]
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [Bytes.length.Def] [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length] [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length] [Bytes.Invariants.Has Literal.BytesPart.invariants] [Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [Bytes.length.Def] [Bytes has% Literal] [Bytes.length has% Literal] [Bytes has% Concat] [Bytes.length has% Concat] [Bytes.Invariants has% Literal] [Bytes.Invariants has% Concat]
 
   (name: String)
   {skToPk: Bytes → Bytes} {usage: Participant → Usage} {lab: Participant → Bytes → Label}
 
-  [Bytes.Has Random.BytesPart.Functor]
-  [ExecTrace.Has <| TracePart.Exec name]
-  [ProofTrace.Has <| TracePart.Proof name]
+  [Bytes has% Random]
+  [ExecTrace has% LongTermKeys name]
+  [ProofTrace has% LongTermKeys name]
   [ExecConfig name skToPk] [ProofConfig name usage lab]
-  [Trace.Invariant.Has <| TracePart.Proof name]
+  [Trace.Invariant has% LongTermKeys name]
   (p: Participant) (skHandle: Nat)
   : HoareTriple
     (getPrivateKey name p skHandle)
@@ -432,19 +432,19 @@ theorem compromisePrivateKey.proof
   [Bytes.Def]
   [ExecTrace.Def] [ProofTrace.Def] [Trace.Invariant.Def]
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [Bytes.length.Def] [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length] [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length] [Bytes.Invariants.Has Literal.BytesPart.invariants] [Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [Bytes.length.Def] [Bytes has% Literal] [Bytes.length has% Literal] [Bytes has% Concat] [Bytes.length has% Concat] [Bytes.Invariants has% Literal] [Bytes.Invariants has% Concat]
 
   (name: String)
   {skToPk: Bytes → Bytes} {usage: Participant → Usage} {lab: Participant → Bytes → Label}
 
-  [Bytes.Has Random.BytesPart.Functor]
-  [ExecTrace.Has <| TracePart.Exec name]
-  [ProofTrace.Has <| TracePart.Proof name]
+  [Bytes has% Random]
+  [ExecTrace has% LongTermKeys name]
+  [ProofTrace has% LongTermKeys name]
   [ExecConfig name skToPk] [ProofConfig name usage lab]
-  [Trace.Invariant.Has <| TracePart.Proof name]
-  [ExecTrace.Has <| Network.TracePart.Exec]
-  [ProofTrace.Has <| Network.TracePart.Proof]
-  [Trace.Invariant.Has <| Network.TracePart.Proof]
+  [Trace.Invariant has% LongTermKeys name]
+  [ExecTrace has% Network]
+  [ProofTrace has% Network]
+  [Trace.Invariant has% Network]
   (skHandle: Nat)
   : HoareTriple
     (compromisePrivateKey name skHandle)
@@ -465,10 +465,10 @@ variable
  {skToPk: Bytes → Bytes}
  [ExecConfig name skToPk]
  [ExecTrace.Def]
- [Bytes.Has Random.BytesPart.Functor]
- [ExecTrace.Has Random.TracePart.Exec]
- [ExecTrace.Has Network.TracePart.Exec]
- [ExecTrace.Has <| TracePart.Exec name]
+ [Bytes has% Random]
+ [ExecTrace has% Random]
+ [ExecTrace has% Network]
+ [ExecTrace has% LongTermKeys name]
 
 @[expose]
 public
@@ -477,8 +477,8 @@ def generateKeyPair.transitionSystem : TransitionSystem :=
 
 variable
   [Bytes.length.Def]
-  [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length]
-  [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length]
+  [Bytes has% Literal] [Bytes.length has% Literal]
+  [Bytes has% Concat] [Bytes.length has% Concat]
 
 @[expose]
 public
@@ -505,20 +505,20 @@ variable
   [Trace.Invariant.Def]
 
   [Bytes.Invariants.Def] [Bytes.Invariants.Lawful]
-  [Bytes.length.Def] [Bytes.Has Literal.BytesPart.Functor] [Bytes.length.Has Literal.BytesPart.length] [Bytes.Has Concat.BytesPart.Functor] [Bytes.length.Has Concat.BytesPart.length] [Bytes.Invariants.Has Literal.BytesPart.invariants] [Bytes.Invariants.Has Concat.BytesPart.invariants]
+  [Bytes.length.Def] [Bytes has% Literal] [Bytes.length has% Literal] [Bytes has% Concat] [Bytes.length has% Concat] [Bytes.Invariants has% Literal] [Bytes.Invariants has% Concat]
   {usage: Participant → Usage}
   {lab: Participant → Bytes → Label}
 
-  [ProofTrace.Has <| Random.TracePart.Proof]
-  [ProofTrace.Has <| Network.TracePart.Proof]
-  [ProofTrace.Has <| TracePart.Proof name]
+  [ProofTrace has% Random]
+  [ProofTrace has% Network]
+  [ProofTrace has% LongTermKeys name]
 
-  [Bytes.Invariants.Has <| Random.BytesPart.invariants]
+  [Bytes.Invariants has% Random]
 
   [ProofConfig name usage lab]
-  [Trace.Invariant.Has <| Random.TracePart.Proof]
-  [Trace.Invariant.Has <| Network.TracePart.Proof]
-  [Trace.Invariant.Has <| TracePart.Proof name]
+  [Trace.Invariant has% Random]
+  [Trace.Invariant has% Network]
+  [Trace.Invariant has% LongTermKeys name]
 
 public
 instance: Trace.Reachable_implies_Invariant.Part (generateKeyPair.transitionSystem name) where

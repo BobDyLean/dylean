@@ -13,17 +13,17 @@ public section ProofTraceConfig
 
 class HasProofTrace extends HasExecTrace where
   [traceProof: ProofTrace.Def]
-  [traceProof0: ProofTrace.Has Network.TracePart.Proof]
-  [traceProof1: ProofTrace.Has Random.TracePart.Proof]
-  [traceProof2: ProofTrace.Has (ProtocolEvent.TracePart.Proof SignedDHKEMEvent)]
-  [traceProof3: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof ClientInitiateDHState)]
-  [traceProof4: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof ClientInitiateKEMState)]
-  [traceProof5: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof ClientFinishState)]
-  [traceProof6: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof ServerFinishState)]
-  [traceProof7: ProofTrace.Has (LongTermKeys.TracePart.Proof "SignedDHKEM PKI")]
-  [traceProof8: ProofTrace.Has (KEM.Broken.TracePart.Proof)]
-  [traceProof9: ProofTrace.Has (DiffieHellman'.Broken.TracePart.Proof)]
-  [traceProof10: ProofTrace.Has (Signature'.Broken.TracePart.Proof)]
+  [traceProof0: ProofTrace has% Network]
+  [traceProof1: ProofTrace has% Random]
+  [traceProof2: ProofTrace has% ProtocolEvent SignedDHKEMEvent]
+  [traceProof3: ProofTrace has% PersistentLocalState.CompromisableState ClientInitiateDHState]
+  [traceProof4: ProofTrace has% PersistentLocalState.CompromisableState ClientInitiateKEMState]
+  [traceProof5: ProofTrace has% PersistentLocalState.CompromisableState ClientFinishState]
+  [traceProof6: ProofTrace has% PersistentLocalState.CompromisableState ServerFinishState]
+  [traceProof7: ProofTrace has% LongTermKeys "SignedDHKEM PKI"]
+  [traceProof8: ProofTrace has% KEM.Broken]
+  [traceProof9: ProofTrace has% DiffieHellman'.Broken]
+  [traceProof10: ProofTrace has% Signature'.Broken]
 
 attribute [reducible, scoped instance] HasProofTrace.traceProof
 attribute [reducible, scoped instance] HasProofTrace.traceProof0
@@ -109,10 +109,10 @@ where
 
 instance
   [Bytes.Invariants.Def]
-  [Bytes.Invariants.Has DiffieHellman'.DhPk.BytesPart.invariants]
-  [Bytes.Invariants.Has Literal.BytesPart.invariants]
-  [Bytes.Invariants.Has Concat.BytesPart.invariants]
-  [Bytes.Invariants.Has KEM.BytesPart.invariants]
+  [Bytes.Invariants has% DiffieHellman'.DhPk]
+  [Bytes.Invariants has% Literal]
+  [Bytes.Invariants has% Concat]
+  [Bytes.Invariants has% KEM]
   : Signature'.SignPred.Lawful
 where
   pred_later := by
@@ -129,13 +129,13 @@ public section BytesInvariantsConfig
 class HasBytesInvariants extends HasProofTrace where
   [bytesInv: Bytes.Invariants.Def]
   [bytesInvProof: Bytes.Invariants.Lawful]
-  [bytesInv0: Bytes.Invariants.Has Random.BytesPart.invariants]
-  [bytesInv1: Bytes.Invariants.Has Literal.BytesPart.invariants]
-  [bytesInv2: Bytes.Invariants.Has Concat.BytesPart.invariants]
-  [bytesInv3: Bytes.Invariants.Has Hash.BytesPart.invariants]
-  [bytesInv4: Bytes.Invariants.Has Signature'.BytesPart.invariants]
-  [bytesInv5: Bytes.Invariants.Has DiffieHellman'.BytesPart.invariants]
-  [bytesInv6: Bytes.Invariants.Has KEM.BytesPart.invariants]
+  [bytesInv0: Bytes.Invariants has% Random]
+  [bytesInv1: Bytes.Invariants has% Literal]
+  [bytesInv2: Bytes.Invariants has% Concat]
+  [bytesInv3: Bytes.Invariants has% Hash]
+  [bytesInv4: Bytes.Invariants has% Signature']
+  [bytesInv5: Bytes.Invariants has% DiffieHellman']
+  [bytesInv6: Bytes.Invariants has% KEM]
 
 attribute [reducible, scoped instance] HasBytesInvariants.bytesInv
 attribute [           scoped instance] HasBytesInvariants.bytesInvProof
@@ -290,17 +290,17 @@ public section TraceInvariantConfig
 
 class HasTraceInvariant extends HasBytesInvariants where
   [traceInv: Trace.Invariant.Def]
-  [traceInv0: Trace.Invariant.Has Network.TracePart.Proof]
-  [traceInv1: Trace.Invariant.Has Random.TracePart.Proof]
-  [traceInv2: Trace.Invariant.Has (ProtocolEvent.TracePart.Proof SignedDHKEMEvent)]
-  [traceInv3: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof ClientInitiateDHState)]
-  [traceInv4: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof ClientInitiateKEMState)]
-  [traceInv5: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof ClientFinishState)]
-  [traceInv6: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof ServerFinishState)]
-  [traceInv7: Trace.Invariant.Has (LongTermKeys.TracePart.Proof "SignedDHKEM PKI")]
-  [traceInv8: Trace.Invariant.Has KEM.Broken.TracePart.Proof]
-  [traceInv9: Trace.Invariant.Has DiffieHellman'.Broken.TracePart.Proof]
-  [traceInv10: Trace.Invariant.Has Signature'.Broken.TracePart.Proof]
+  [traceInv0: Trace.Invariant has% Network]
+  [traceInv1: Trace.Invariant has% Random]
+  [traceInv2: Trace.Invariant has% ProtocolEvent SignedDHKEMEvent]
+  [traceInv3: Trace.Invariant has% PersistentLocalState.CompromisableState ClientInitiateDHState]
+  [traceInv4: Trace.Invariant has% PersistentLocalState.CompromisableState ClientInitiateKEMState]
+  [traceInv5: Trace.Invariant has% PersistentLocalState.CompromisableState ClientFinishState]
+  [traceInv6: Trace.Invariant has% PersistentLocalState.CompromisableState ServerFinishState]
+  [traceInv7: Trace.Invariant has% LongTermKeys "SignedDHKEM PKI"]
+  [traceInv8: Trace.Invariant has% KEM.Broken]
+  [traceInv9: Trace.Invariant has% DiffieHellman'.Broken]
+  [traceInv10: Trace.Invariant has% Signature'.Broken]
   [attBaseThm: Trace.BaseAttackerKnows_implies_Publishable.Proof]
   [attThm: Bytes.AttackerKnows_implies_Publishable.Proof]
 

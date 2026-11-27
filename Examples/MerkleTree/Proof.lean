@@ -134,11 +134,11 @@ public section ProofTraceConfig
 
 class HasProofTrace extends HasExecTrace where
   [traceProof: ProofTrace.Def]
-  [traceProof0: ProofTrace.Has Network.TracePart.Proof]
-  [traceProof1: ProofTrace.Has Random.TracePart.Proof]
-  [traceProof2: ProofTrace.Has (ProtocolEvent.TracePart.Proof TheEvent)]
-  [traceProof3: ProofTrace.Has (LongTermKeys.TracePart.Proof "MerkleTree PKI")]
-  [traceProof4: ProofTrace.Has (PersistentLocalState.CompromisableState.TracePart.Proof ServerState)]
+  [traceProof0: ProofTrace has% Network]
+  [traceProof1: ProofTrace has% Random]
+  [traceProof2: ProofTrace has% ProtocolEvent TheEvent]
+  [traceProof3: ProofTrace has% LongTermKeys "MerkleTree PKI"]
+  [traceProof4: ProofTrace has% PersistentLocalState.CompromisableState ServerState]
 
 attribute [reducible, scoped instance] HasProofTrace.traceProof
 attribute [reducible, scoped instance] HasProofTrace.traceProof0
@@ -201,11 +201,11 @@ public section BytesInvariantsConfig
 class HasBytesInvariants extends HasProofTrace where
   [bytesInv: Bytes.Invariants.Def]
   [bytesInv0: Bytes.Invariants.Lawful]
-  [bytesInv1: Bytes.Invariants.Has Literal.BytesPart.invariants]
-  [bytesInv2: Bytes.Invariants.Has Concat.BytesPart.invariants]
-  [bytesInv3: Bytes.Invariants.Has Hash.BytesPart.invariants]
-  [bytesInv4: Bytes.Invariants.Has Signature.BytesPart.invariants]
-  [bytesInv5: Bytes.Invariants.Has Random.BytesPart.invariants]
+  [bytesInv1: Bytes.Invariants has% Literal]
+  [bytesInv2: Bytes.Invariants has% Concat]
+  [bytesInv3: Bytes.Invariants has% Hash]
+  [bytesInv4: Bytes.Invariants has% Signature]
+  [bytesInv5: Bytes.Invariants has% Random]
 
 attribute [reducible, scoped instance] HasBytesInvariants.bytesInv
 attribute [           scoped instance] HasBytesInvariants.bytesInv0
@@ -257,11 +257,11 @@ public section TraceInvariantConfig
 
 class HasTraceInvariant extends HasBytesInvariants where
   [traceInv: Trace.Invariant.Def]
-  [traceInv0: Trace.Invariant.Has Network.TracePart.Proof]
-  [traceInv1: Trace.Invariant.Has Random.TracePart.Proof]
-  [traceInv2: Trace.Invariant.Has (ProtocolEvent.TracePart.Proof TheEvent)]
-  [traceInv3: Trace.Invariant.Has (LongTermKeys.TracePart.Proof "MerkleTree PKI")]
-  [traceInv4: Trace.Invariant.Has (PersistentLocalState.CompromisableState.TracePart.Proof ServerState)]
+  [traceInv0: Trace.Invariant has% Network]
+  [traceInv1: Trace.Invariant has% Random]
+  [traceInv2: Trace.Invariant has% ProtocolEvent TheEvent]
+  [traceInv3: Trace.Invariant has% LongTermKeys "MerkleTree PKI"]
+  [traceInv4: Trace.Invariant has% PersistentLocalState.CompromisableState ServerState]
   [attBaseThm: Trace.BaseAttackerKnows_implies_Publishable.Proof]
   [attThm: Bytes.AttackerKnows_implies_Publishable.Proof]
 
