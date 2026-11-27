@@ -13,14 +13,14 @@ we use typeclasses of the form `[D.Has P.xxx]`,
 where `xxx` is a standard location for parts related to `D`,
 that must live in the namespace `P`.
 For example:
-- `[Bytes.Has Literal.BytesPart.Functor]
-- `[ExecTrace.Has Network.TracePart.Exec]
+- `[Bytes.Has Literal.BytesPart.Functor]`
+- `[ExecTrace.Has Network.TracePart.Exec]`
 
 Because we consistently use the same location `xxx` for a given definition `D`,
 this module defines the `has%` elaborator,
 that allows to instead write:
-- `[Bytes has% Literal]
-- `[ExecTrace has% Network]
+- `[Bytes has% Literal]`
+- `[ExecTrace has% Network]`
 
 To register the convention for the location `xxx` where live parts of definitions `D`,
 this module defines the attribute `@[has_suffix xxx]`.
