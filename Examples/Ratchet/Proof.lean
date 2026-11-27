@@ -343,7 +343,7 @@ instance
   [Bytes.Invariants.Has DiffieHellman.DhPk.BytesPart.invariants]
   [Bytes.Invariants.Has Literal.BytesPart.invariants]
   [Bytes.Invariants.Has Concat.BytesPart.invariants]
-  : Signature.SignPredProof
+  : Signature.SignPred.Lawful
 where
   pred_later := by
     intro _ _ _ _ _ _ _ _ _ _ _

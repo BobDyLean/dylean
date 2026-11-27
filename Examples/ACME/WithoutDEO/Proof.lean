@@ -116,7 +116,7 @@ where
 
 instance
   [Bytes.Invariants.Def]
-  : Signature.SignPredProof
+  : Signature.SignPred.Lawful
 where
   pred_later := by simp [Signature.SignPred.pred]
 

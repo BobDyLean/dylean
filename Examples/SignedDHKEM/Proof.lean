@@ -113,7 +113,7 @@ instance
   [Bytes.Invariants.Has Literal.BytesPart.invariants]
   [Bytes.Invariants.Has Concat.BytesPart.invariants]
   [Bytes.Invariants.Has KEM.BytesPart.invariants]
-  : Signature'.SignPredProof
+  : Signature'.SignPred.Lawful
 where
   pred_later := by
     intro _ _ _ _ _ _ _ _ _ _ _

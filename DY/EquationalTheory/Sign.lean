@@ -260,7 +260,7 @@ class SignPred where
   pred: [Bytes.WellFormed.Def] → [Bytes.usage.Def] → [Bytes.label.Def] → Usage → Bytes → Bytes → ProofTrace → Prop
 
 public
-class SignPredProof [Bytes.Invariants.Def] [SignPred] where
+class SignPred.Lawful [Bytes.Invariants.Def] [SignPred] where
   pred_later:
     [Bytes.WellFormed.later.Proof] → [Bytes.usage_later.Proof] → [Bytes.label_later.Proof] →
     ∀ skUsg vk msg tr1 tr2,
@@ -270,11 +270,11 @@ class SignPredProof [Bytes.Invariants.Def] [SignPred] where
       SignPred.pred skUsg vk msg tr1 →
       SignPred.pred skUsg vk msg tr2
 
-grind_pattern SignPredProof.pred_later => tr1 ≤ tr2, SignPred.pred skUsg vk msg tr1
+grind_pattern SignPred.Lawful.pred_later => tr1 ≤ tr2, SignPred.pred skUsg vk msg tr1
 
 public
-theorem SignPredProof.pred_later_fast
-  [Bytes.Invariants.Def] [SignPred] [SignPredProof] [Bytes.Invariants.Lawful]
+theorem SignPred.Lawful.pred_later_fast
+  [Bytes.Invariants.Def] [SignPred] [SignPred.Lawful] [Bytes.Invariants.Lawful]
   (skUsg: Usage) (vk msg: Bytes) (tr1 tr2: ProofTrace)
   : vk.Invariant tr1 →
     msg.Invariant tr1 →
@@ -283,7 +283,7 @@ theorem SignPredProof.pred_later_fast
     SignPred.pred skUsg vk msg tr2
 := by grind
 
-grind_pattern [grind_later] SignPredProof.pred_later_fast => tr1 ≤ tr2, SignPred.pred skUsg vk msg tr1
+grind_pattern [grind_later] SignPred.Lawful.pred_later_fast => tr1 ≤ tr2, SignPred.pred skUsg vk msg tr1
 
 public
 def Sign.BytesPart.invariants [Bytes.Has Signature.BytesPart.Functor] [SignPred]: Bytes.Invariants.Part Sign.BytesPart.Functor where
@@ -332,7 +332,7 @@ def Sign.BytesPart.invariants [Bytes.Has Signature.BytesPart.Functor] [SignPred]
       )
 
 public
-theorem Sign.BytesPart.invariantsLawful [Bytes.Has Signature.BytesPart.Functor] [Bytes.Invariants.Def] [Bytes.Invariants.Has Vk.BytesPart.invariants] [SignPred] [SignPredProof]: Bytes.Invariants.Part.Lawful Sign.BytesPart.invariants where
+theorem Sign.BytesPart.invariantsLawful [Bytes.Has Signature.BytesPart.Functor] [Bytes.Invariants.Def] [Bytes.Invariants.Has Vk.BytesPart.invariants] [SignPred] [SignPred.Lawful]: Bytes.Invariants.Part.Lawful Sign.BytesPart.invariants where
   invariant_later := by
     intro _ _ _ _ x rec tr1 tr2
     cases x
@@ -344,7 +344,7 @@ end Definition
 
 #combine [Bytes.Has BytesPart.Functor] [SignPred] into
   Bytes.Invariants,
-  Bytes.Invariants.Lawful [Bytes.Invariants.Has Vk.BytesPart.invariants] [SignPredProof]
+  Bytes.Invariants.Lawful [Bytes.Invariants.Has Vk.BytesPart.invariants] [SignPred.Lawful]
 from
   Vk,
   Sign
